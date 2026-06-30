@@ -30,9 +30,9 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-slate-100 text-slate-900" suppressHydrationWarning>
         <AuthProvider>
           <ReactQueryProvider>
-            <div className="flex flex-col min-h-screen max-w-md mx-auto bg-white shadow-2xl relative overflow-hidden">
+            <div className="flex flex-col h-[100dvh] w-full max-w-md mx-auto bg-white shadow-2xl relative overflow-hidden sm:border-x sm:border-slate-200">
               <TopBar />
-              <main className="flex-1 overflow-y-auto pb-24 scrollbar-hide">
+              <main className="flex-1 overflow-y-auto pb-24 scrollbar-hide relative bg-white">
                 {children}
               </main>
               <BottomNav />

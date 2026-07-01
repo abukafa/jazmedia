@@ -10,6 +10,31 @@ export const authOptions: NextAuthOptions = {
       clientId: process.env.INSTAGRAM_CLIENT_ID!,
       clientSecret: process.env.INSTAGRAM_CLIENT_SECRET!,
     }),
+    CredentialsProvider({
+      id: "instagram-custom",
+      name: "Instagram Custom",
+      credentials: {
+        instagramId: { type: "text" },
+        name: { type: "text" },
+        image: { type: "text" },
+      },
+      async authorize(credentials) {
+        if (!credentials?.instagramId) return null;
+        
+        await dbConnect();
+        
+        let dbUser = await User.findOne({ instagramId: credentials.instagramId });
+        if (!dbUser) {
+           dbUser = await User.create({
+             instagramId: credentials.instagramId,
+             name: credentials.name || "Instagram User",
+             image: credentials.image,
+             role: "member",
+           });
+        }
+        return { id: dbUser._id.toString(), name: dbUser.name, image: dbUser.image, role: dbUser.role };
+      }
+    }),
     // Dummy provider for easy MVP testing without IG keys
     CredentialsProvider({
       name: "Dummy Login",

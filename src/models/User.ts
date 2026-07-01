@@ -1,12 +1,18 @@
 import mongoose, { Schema, Document } from "mongoose";
 
+export interface ISkill {
+  name: string;
+  icon: string;
+  percentage: number;
+}
+
 export interface IUser extends Document {
   name: string;
   email?: string;
   image?: string;
   role: "member" | "mentor";
   bio?: string;
-  highlights?: string[];
+  skills?: ISkill[];
   instagramId?: string;
 }
 
@@ -17,7 +23,13 @@ const UserSchema = new Schema<IUser>(
     image: { type: String },
     role: { type: String, enum: ["member", "mentor"], default: "member" },
     bio: { type: String },
-    highlights: [{ type: String }],
+    skills: [
+      {
+        name: { type: String },
+        icon: { type: String },
+        percentage: { type: Number, min: 0, max: 100 },
+      }
+    ],
     instagramId: { type: String, unique: true, sparse: true },
   },
   { timestamps: true }

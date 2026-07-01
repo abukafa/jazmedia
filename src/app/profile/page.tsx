@@ -4,21 +4,16 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
-import { Grid3X3, Folder, Users, LineChart, Award } from "lucide-react";
-import { LineChart as RechartsLineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { Grid3X3, Folder, Users, LineChart, Award, LogOut, CheckCircle2 } from "lucide-react";
 
-const MOCK_USER = {
-  name: "Budi Santoso",
-  username: "budisntso",
-  bio: "Mahasiswa Sistem Informasi | Web Developer Enthusiast | UI/UX Learner",
-  avatar: "https://i.pravatar.cc/150?u=budi",
-  stats: {
-    tasks: 42,
-    projects: 5,
-    collabs: 2,
-  },
-  highlights: ["ReactJS", "Next.js", "Figma", "Tailwind CSS"],
-};
+const InstagramIcon = ({ className }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>
+);
+import { LineChart as RechartsLineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { useSession, signIn, signOut } from "next-auth/react";
+import { useEffect, useState } from "react";
+import { getUserProfile } from "@/lib/actions/user";
+import Link from "next/link";
 
 const MOCK_GRID_TASKS = [
   "https://images.unsplash.com/photo-1618761714954-0b8cd0026356?auto=format&fit=crop&q=80&w=300",
@@ -38,60 +33,177 @@ const MOCK_TIMELINE_DATA = [
   { name: 'Jun', grade: 95 },
 ];
 
-export default function Profile() {
+const CircularProgress = ({ percentage, icon, name }: { percentage: number, icon: string, name: string }) => {
+  const radius = 26;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference - (percentage / 100) * circumference;
+
   return (
-    <div className="pb-10 bg-white">
+    <div className="flex flex-col items-center gap-1.5 min-w-[72px]">
+      <div className="relative w-16 h-16 flex items-center justify-center">
+        {/* Background Circle */}
+        <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 64 64">
+          <circle cx="32" cy="32" r={radius} fill="none" stroke="#f1f5f9" strokeWidth="3" />
+          {/* Progress Circle */}
+          <circle
+            cx="32"
+            cy="32"
+            r={radius}
+            fill="none"
+            stroke="#2563eb"
+            strokeWidth="3"
+            strokeDasharray={circumference}
+            strokeDashoffset={strokeDashoffset}
+            strokeLinecap="round"
+            className="transition-all duration-1000 ease-out"
+          />
+        </svg>
+        {/* Icon inside */}
+        <div className="w-[42px] h-[42px] bg-slate-50 rounded-full flex items-center justify-center text-lg shadow-[inset_0_2px_4px_rgba(0,0,0,0.06)] border border-slate-100 font-medium">
+          {icon || "⭐"}
+        </div>
+      </div>
+      <span className="text-[10px] font-bold text-slate-600 text-center leading-tight truncate max-w-[64px]">
+        {name}
+      </span>
+    </div>
+  );
+};
+
+export default function Profile() {
+  const { data: session, status } = useSession();
+  const [dbUser, setDbUser] = useState<any>(null);
+
+  useEffect(() => {
+    if (session) {
+      getUserProfile().then(data => {
+        if (data) setDbUser(data);
+      });
+    }
+  }, [session]);
+
+  if (status === "loading") {
+    return (
+      <div className="pb-10 bg-white min-h-full flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-slate-200 border-t-blue-600 rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  // UI saat user belum login
+  if (!session) {
+    return (
+      <div className="pb-10 bg-white min-h-full flex flex-col items-center justify-center px-6">
+        <div className="w-20 h-20 bg-slate-50 rounded-[2rem] flex items-center justify-center mb-6 shadow-sm border border-slate-100">
+          <InstagramIcon className="w-10 h-10 text-pink-600" />
+        </div>
+        <h1 className="text-xl font-black text-slate-900 mb-2 text-center">Masuk ke Jazmedia</h1>
+        <p className="text-sm text-slate-500 mb-8 text-center max-w-[280px]">Tautkan akun Instagram Anda untuk mulai membagikan tugas dan membangun portofolio.</p>
+        
+        <a 
+          href="/api/auth/instagram-login" 
+          className="w-full bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 text-white font-bold h-14 rounded-2xl shadow-md border-none flex items-center justify-center gap-3 transition-all"
+        >
+          <InstagramIcon className="w-5 h-5" />
+          Lanjutkan dengan Instagram
+        </a>
+
+        {/* Akun cadangan/dummy jika belum setup kredensial IG */}
+        <div className="mt-8 pt-8 border-t border-slate-100 w-full">
+          <p className="text-[10px] text-slate-400 text-center mb-4 font-black uppercase tracking-widest">Atau masuk tanpa sandi (MVP)</p>
+          <Button 
+            onClick={() => signIn("credentials", { username: "member", callbackUrl: "/profile" })} 
+            variant="outline"
+            className="w-full font-bold h-12 rounded-xl text-slate-700 border-slate-200 bg-slate-50 hover:bg-slate-100 transition-colors"
+          >
+            Masuk sebagai Member
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // UI saat user sudah login
+  const user = session.user;
+  const username = user?.name?.toLowerCase().replace(/\s+/g, '') || "user";
+  const bio = dbUser?.bio || "Halo! Saya menggunakan Jazmedia untuk membangun portofolio dan berbagi perjalanan belajar saya.";
+  const skills = dbUser?.skills || [];
+  const role = dbUser?.role || "member";
+
+  return (
+    <div className="pb-10 bg-white min-h-full">
       {/* Profile Header */}
       <div className="px-4 pt-6 pb-4">
         <div className="flex items-center gap-6">
-          <Avatar className="h-24 w-24 border-2 border-slate-100 shadow-sm">
-            <AvatarImage src={MOCK_USER.avatar} alt={MOCK_USER.name} />
-            <AvatarFallback>{MOCK_USER.name.charAt(0)}</AvatarFallback>
+          <Avatar className="h-24 w-24 border-2 border-slate-100 shadow-sm relative">
+            <AvatarImage src={user?.image || "https://i.pravatar.cc/150"} alt={user?.name || "User"} />
+            <AvatarFallback>{user?.name?.charAt(0) || "U"}</AvatarFallback>
+            {role === "mentor" && (
+              <div className="absolute -bottom-1 -right-1 bg-amber-100 text-amber-600 rounded-full p-1 border-2 border-white shadow-sm">
+                <CheckCircle2 className="w-5 h-5 fill-amber-500 text-white" />
+              </div>
+            )}
           </Avatar>
           
           <div className="flex-1 flex justify-around text-center">
             <div className="flex flex-col">
-              <span className="font-bold text-lg text-slate-900">{MOCK_USER.stats.tasks}</span>
+              <span className="font-bold text-lg text-slate-900">42</span>
               <span className="text-xs text-slate-500">Tasks</span>
             </div>
             <div className="flex flex-col">
-              <span className="font-bold text-lg text-slate-900">{MOCK_USER.stats.projects}</span>
+              <span className="font-bold text-lg text-slate-900">5</span>
               <span className="text-xs text-slate-500">Projects</span>
             </div>
             <div className="flex flex-col">
-              <span className="font-bold text-lg text-slate-900">{MOCK_USER.stats.collabs}</span>
+              <span className="font-bold text-lg text-slate-900">2</span>
               <span className="text-xs text-slate-500">Collabs</span>
             </div>
           </div>
         </div>
 
-        <div className="mt-4">
-          <h2 className="font-bold text-base text-slate-900">{MOCK_USER.name}</h2>
-          <p className="text-xs text-blue-600 font-medium mb-1">@{MOCK_USER.username}</p>
-          <p className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">{MOCK_USER.bio}</p>
+        <div className="mt-4 flex items-center justify-between">
+          <div>
+            <h2 className="font-bold text-base text-slate-900 flex items-center gap-2">
+              {user?.name}
+              {role === "mentor" && <span className="bg-amber-100 text-amber-800 text-[9px] px-2 py-0.5 rounded-md font-black uppercase tracking-wider">Mentor</span>}
+            </h2>
+            <p className="text-xs text-blue-600 font-medium mb-1">@{username}</p>
+          </div>
         </div>
+        <p className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed mt-2">{bio}</p>
 
-        <div className="mt-4">
-          <Button className="w-full font-bold bg-slate-100 hover:bg-slate-200 text-slate-900 border-none shadow-none rounded-xl h-10">
-            Edit Profile
+        <div className="mt-5 flex gap-2">
+          <Link href="/profile/edit" className="flex-1">
+            <Button className="w-full font-bold bg-slate-100 hover:bg-slate-200 text-slate-900 border-none shadow-none rounded-xl h-10 transition-colors">
+              Edit Profile
+            </Button>
+          </Link>
+          <Button 
+            onClick={() => signOut()}
+            variant="outline"
+            className="w-10 h-10 p-0 font-bold border-slate-200 text-red-500 hover:bg-red-50 hover:text-red-600 hover:border-red-200 rounded-xl transition-colors shrink-0"
+            title="Keluar"
+          >
+            <LogOut className="w-4 h-4" />
           </Button>
         </div>
         
-        {/* Highlights */}
-        <div className="mt-6">
-          <h3 className="text-xs font-bold text-slate-900 mb-2 px-1">Highlights</h3>
-          <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide px-1">
-            {MOCK_USER.highlights.map((skill, index) => (
-              <div key={index} className="flex flex-col items-center gap-1.5 min-w-[64px]">
-                <div className="w-16 h-16 rounded-full border border-slate-200 flex items-center justify-center p-1 cursor-pointer hover:border-blue-300 transition-colors">
-                  <div className="w-full h-full rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-600 text-center leading-tight shadow-inner">
-                    {skill}
-                  </div>
-                </div>
-              </div>
-            ))}
+        {/* Skills */}
+        {skills.length > 0 && (
+          <div className="mt-7">
+            <h3 className="text-xs font-bold text-slate-900 mb-4 px-1 uppercase tracking-wider">Skills</h3>
+            <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide px-1">
+              {skills.map((skill: any, index: number) => (
+                <CircularProgress 
+                  key={index} 
+                  name={skill.name} 
+                  icon={skill.icon} 
+                  percentage={skill.percentage} 
+                />
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Tabs */}
@@ -212,7 +324,6 @@ export default function Profile() {
               </div>
             </CardContent>
           </Card>
-
         </TabsContent>
       </Tabs>
     </div>

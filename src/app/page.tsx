@@ -1,71 +1,89 @@
 "use client";
 
 import { TaskCard } from "@/components/feed/TaskCard";
-
-// Mock data for MVP UI testing
-const MOCK_TASKS = [
-  {
-    id: "1",
-    author: {
-      name: "Budi Santoso",
-      image: "https://i.pravatar.cc/150?u=budi",
-    },
-    projectTitle: "UI/UX Design Masterclass",
-    mediaUrl: "https://images.unsplash.com/photo-1618761714954-0b8cd0026356?auto=format&fit=crop&q=80&w=1000",
-    mediaType: "image" as const,
-    caption: "Akhirnya selesai mendesain landing page untuk tugas akhir. Sangat menantang tapi seru! 🚀 #uiux #design",
-    review: {
-      grade: 95,
-      comment: "Desainnya sangat bersih dan rapi. Hierarki visualnya sudah tepat sasaran. Pertahankan gaya minimalism-nya!",
-      mentorName: "Kak Rio",
-    },
-    timeAgo: "2 jam yang lalu",
-  },
-  {
-    id: "2",
-    author: {
-      name: "Siti Aminah",
-      image: "https://i.pravatar.cc/150?u=siti",
-    },
-    projectTitle: "Frontend Web Development",
-    mediaUrl: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&q=80&w=1000",
-    mediaType: "image" as const,
-    caption: "Implementasi React Hooks untuk form dinamis. Kode jadi jauh lebih rapi dibanding menggunakan class component. #reactjs",
-    timeAgo: "5 jam yang lalu",
-  },
-  {
-    id: "3",
-    author: {
-      name: "Reza Rahadian",
-      image: "https://i.pravatar.cc/150?u=reza",
-    },
-    projectTitle: "Photography 101",
-    mediaUrl: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&q=80&w=1000",
-    mediaType: "image" as const,
-    caption: "Eksperimen dengan komposisi rule of thirds saat golden hour di pantai. Cahayanya luar biasa! 📸✨",
-    review: {
-      grade: 88,
-      comment: "Penempatan objek sudah cukup baik, pencahayaannya juga dramatis. Sedikit koreksi warna bisa membuatnya lebih pop-up.",
-      mentorName: "Mba Dinda",
-    },
-    timeAgo: "1 hari yang lalu",
-  }
-];
+import { useInfiniteQuery } from "@tanstack/react-query";
+import { getTasks } from "@/lib/actions/task";
+import { useEffect } from "react";
+import { useInView } from "react-intersection-observer";
+import { Loader2 } from "lucide-react";
 
 export default function Home() {
+  const { ref, inView } = useInView();
+
+  const {
+    data,
+    error,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    status,
+  } = useInfiniteQuery({
+    queryKey: ['tasks'],
+    queryFn: async ({ pageParam = 1 }) => {
+      const res = await getTasks({ pageParam });
+      return res;
+    },
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => lastPage.nextPage,
+  });
+
+  useEffect(() => {
+    if (inView && hasNextPage) {
+      fetchNextPage();
+    }
+  }, [inView, fetchNextPage, hasNextPage]);
+
+  // Fallback mock data if DB is empty or fails
+  const showFallback = status === "success" && data.pages[0].data.length === 0;
+
   return (
     <div className="pt-4 pb-8">
       <div className="px-4">
-        {MOCK_TASKS.map((task) => (
-          <TaskCard key={task.id} {...task} />
-        ))}
+        {status === "pending" ? (
+          <div className="py-32 flex flex-col justify-center items-center gap-3 text-slate-400">
+             <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+             <span className="text-sm font-medium">Memuat tugas terbaru...</span>
+          </div>
+        ) : status === "error" ? (
+          <div className="py-20 text-center text-red-500 font-bold">Error mengambil data dari server. Pastikan MongoDB berjalan.</div>
+        ) : (
+          <>
+            {data.pages.map((page, i) => (
+              <div key={i}>
+                {page.data.map((task: any) => (
+                  <TaskCard key={task.id} {...task} />
+                ))}
+              </div>
+            ))}
+
+            {showFallback && (
+              <div className="py-20 text-center flex flex-col items-center">
+                <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+                  <span className="text-2xl">📭</span>
+                </div>
+                <p className="text-sm font-bold text-slate-900">Belum ada tugas</p>
+                <p className="text-xs text-slate-500 mt-1">Jadilah yang pertama mengunggah tugas!</p>
+              </div>
+            )}
+          </>
+        )}
       </div>
       
-      {/* Loading Indicator for Infinite Scroll (Mock) */}
-      <div className="py-8 flex justify-center items-center gap-2 text-slate-400">
-        <div className="w-5 h-5 border-2 border-slate-300 border-t-blue-600 rounded-full animate-spin"></div>
-        <span className="text-xs font-medium">Memuat postingan lama...</span>
-      </div>
+      {/* Loading Indicator for Infinite Scroll */}
+      {status === "success" && !showFallback && (
+        <div ref={ref} className="py-8 flex justify-center items-center gap-2 text-slate-400 h-10">
+          {isFetchingNextPage ? (
+            <>
+              <div className="w-5 h-5 border-2 border-slate-300 border-t-blue-600 rounded-full animate-spin"></div>
+              <span className="text-xs font-medium">Memuat postingan lama...</span>
+            </>
+          ) : hasNextPage ? (
+            <span className="text-xs font-medium">Scroll untuk memuat lagi</span>
+          ) : (
+            <span className="text-xs font-medium">Tidak ada postingan lagi</span>
+          )}
+        </div>
+      )}
     </div>
   );
 }

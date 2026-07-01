@@ -8,7 +8,7 @@ import { motion } from "framer-motion";
 export default function BottomNav() {
   const pathname = usePathname();
 
-  if (pathname === '/post') return null;
+  if (pathname === '/post' || pathname === '/profile/edit') return null;
 
   const navItems = [
     { name: "Home", href: "/", icon: Home },

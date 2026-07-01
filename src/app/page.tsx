@@ -5,7 +5,7 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import { getTasks } from "@/lib/actions/task";
 import { useEffect } from "react";
 import { useInView } from "react-intersection-observer";
-import { Loader2 } from "lucide-react";
+import { Loader2, Inbox } from "lucide-react";
 
 export default function Home() {
   const { ref, inView } = useInView();
@@ -59,7 +59,7 @@ export default function Home() {
             {showFallback && (
               <div className="py-20 text-center flex flex-col items-center">
                 <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
-                  <span className="text-2xl">📭</span>
+                  <Inbox className="w-8 h-8 text-slate-400" strokeWidth={1.5} />
                 </div>
                 <p className="text-sm font-bold text-slate-900">Belum ada tugas</p>
                 <p className="text-xs text-slate-500 mt-1">Jadilah yang pertama mengunggah tugas!</p>

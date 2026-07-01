@@ -18,7 +18,11 @@ export async function getUserProfile() {
     name: user.name,
     image: user.image,
     bio: user.bio || "",
-    skills: user.skills || [],
+    skills: user.skills ? user.skills.map((s: any) => ({
+      name: s.name,
+      icon: s.icon,
+      percentage: s.percentage,
+    })) : [],
     role: user.role,
   };
 }

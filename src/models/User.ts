@@ -35,4 +35,8 @@ const UserSchema = new Schema<IUser>(
   { timestamps: true }
 );
 
-export default mongoose.models.User || mongoose.model<IUser>("User", UserSchema);
+// Delete existing model in development to ensure schema updates take effect
+if (mongoose.models.User) {
+  delete mongoose.models.User;
+}
+export default mongoose.model<IUser>("User", UserSchema);

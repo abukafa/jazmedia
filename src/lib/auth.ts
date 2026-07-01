@@ -63,7 +63,7 @@ export const authOptions: NextAuthOptions = {
           await User.create({
             instagramId: account.providerAccountId,
             name: user.name || "Instagram User",
-            image: user.image,
+            image: user.image || undefined,
             role: "member",
           });
         }

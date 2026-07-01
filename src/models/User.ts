@@ -10,7 +10,7 @@ export interface IUser extends Document {
   name: string;
   email?: string;
   image?: string;
-  role: "member" | "mentor";
+  role: "admin" | "mentor" | "member" | "guest";
   bio?: string;
   skills?: ISkill[];
   instagramId?: string;
@@ -21,7 +21,7 @@ const UserSchema = new Schema<IUser>(
     name: { type: String, required: true },
     email: { type: String, unique: true, sparse: true },
     image: { type: String },
-    role: { type: String, enum: ["member", "mentor"], default: "member" },
+    role: { type: String, enum: ["admin", "mentor", "member", "guest"], default: "member" },
     bio: { type: String },
     skills: [
       {

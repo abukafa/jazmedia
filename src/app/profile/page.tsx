@@ -212,6 +212,11 @@ export default function Profile() {
                 <CheckCircle2 className="w-5 h-5 fill-amber-500 text-white" />
               </div>
             )}
+            {role === "admin" && (
+              <div className="absolute -bottom-1 -right-1 bg-red-100 text-red-600 rounded-full p-1 border-2 border-white shadow-sm">
+                <CheckCircle2 className="w-5 h-5 fill-red-500 text-white" />
+              </div>
+            )}
           </Avatar>
 
           <div className="flex-1 flex justify-around text-center">
@@ -237,6 +242,16 @@ export default function Profile() {
               {role === "mentor" && (
                 <span className="bg-amber-100 text-amber-800 text-[9px] px-2 py-0.5 rounded-md font-black uppercase tracking-wider">
                   Mentor
+                </span>
+              )}
+              {role === "admin" && (
+                <span className="bg-red-100 text-red-800 text-[9px] px-2 py-0.5 rounded-md font-black uppercase tracking-wider">
+                  Admin
+                </span>
+              )}
+              {role === "guest" && (
+                <span className="bg-slate-100 text-slate-600 text-[9px] px-2 py-0.5 rounded-md font-black uppercase tracking-wider">
+                  Guest
                 </span>
               )}
             </h2>

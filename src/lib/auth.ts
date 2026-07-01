@@ -21,7 +21,7 @@ export const authOptions: NextAuthOptions = {
         
         let name = "Member User";
         let email = "member@dummy.com";
-        let role = "member";
+        let role: "admin" | "mentor" | "member" | "guest" = "member";
         let image = "https://i.pravatar.cc/150?u=member";
 
         if (credentials?.username === "mentor") {
@@ -29,6 +29,16 @@ export const authOptions: NextAuthOptions = {
           email = "mentor@dummy.com";
           role = "mentor";
           image = "https://i.pravatar.cc/150?u=mentor";
+        } else if (credentials?.username === "admin") {
+          name = "Admin User";
+          email = "admin@dummy.com";
+          role = "admin";
+          image = "https://i.pravatar.cc/150?u=admin";
+        } else if (credentials?.username === "guest") {
+          name = "Guest User";
+          email = "guest@dummy.com";
+          role = "guest";
+          image = "https://i.pravatar.cc/150?u=guest";
         }
 
         let dbUser = await User.findOne({ email });

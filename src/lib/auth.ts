@@ -16,7 +16,9 @@ export const authOptions: NextAuthOptions = {
       credentials: {
         instagramId: { type: "text" },
         name: { type: "text" },
+        username: { type: "text" },
         image: { type: "text" },
+        bio: { type: "text" },
       },
       async authorize(credentials) {
         if (!credentials?.instagramId) return null;
@@ -28,9 +30,18 @@ export const authOptions: NextAuthOptions = {
            dbUser = await User.create({
              instagramId: credentials.instagramId,
              name: credentials.name || "Instagram User",
+             username: credentials.username || "",
              image: credentials.image,
+             bio: credentials.bio,
              role: "member",
            });
+        } else {
+           // Selalu sinkronkan foto profil dan bio terbaru dari Instagram jika berubah
+           dbUser.image = credentials.image || dbUser.image;
+           dbUser.bio = credentials.bio || dbUser.bio;
+           dbUser.name = credentials.name || dbUser.name;
+           dbUser.username = credentials.username || dbUser.username;
+           await dbUser.save();
         }
         return { id: dbUser._id.toString(), name: dbUser.name, image: dbUser.image, role: dbUser.role };
       }

@@ -8,6 +8,7 @@ export interface ISkill {
 
 export interface IUser extends Document {
   name: string;
+  username?: string;
   email?: string;
   image?: string;
   role: "admin" | "mentor" | "member" | "guest";
@@ -19,6 +20,7 @@ export interface IUser extends Document {
 const UserSchema = new Schema<IUser>(
   {
     name: { type: String, required: true },
+    username: { type: String },
     email: { type: String, unique: true, sparse: true },
     image: { type: String },
     role: { type: String, enum: ["admin", "mentor", "member", "guest"], default: "member" },

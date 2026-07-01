@@ -22,8 +22,8 @@ export async function exchangeInstagramCode(code: string) {
       return { error: data.error_message || "Gagal menukarkan kode akses dari Instagram." };
     }
 
-    // Panggil Graph API untuk profil dasar
-    const userRes = await fetch(`https://graph.instagram.com/me?fields=id,username,name&access_token=${data.access_token}`);
+    // Panggil Graph API untuk mengambil data selengkap-lengkapnya (jika diizinkan oleh scope)
+    const userRes = await fetch(`https://graph.instagram.com/me?fields=id,username,name,profile_picture_url,biography&access_token=${data.access_token}`);
     const userData = await userRes.json();
 
     if (!userData.id) {
@@ -33,8 +33,11 @@ export async function exchangeInstagramCode(code: string) {
     return {
       success: true,
       instagramId: userData.id,
-      name: userData.username || userData.name || "Instagram User",
-      image: `https://i.pravatar.cc/150?u=${userData.id}` 
+      name: userData.name || userData.username || "Instagram User",
+      username: userData.username || "",
+      // Gunakan foto asli Instagram. Jika dari API masih kosong, baru pakai ui-avatars berdasarkan inisial (bukan gambar random).
+      image: userData.profile_picture_url || `https://ui-avatars.com/api/?name=${userData.username || 'User'}&background=e2e8f0&color=475569`,
+      bio: userData.biography || ""
     };
   } catch (err: any) {
     return { error: err.message };

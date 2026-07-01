@@ -27,7 +27,9 @@ function CallbackContent() {
           redirect: false,
           instagramId: res.instagramId,
           name: res.name,
+          username: res.username,
           image: res.image,
+          bio: res.bio,
         });
 
         if (result?.error) {

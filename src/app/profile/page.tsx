@@ -189,7 +189,7 @@ export default function Profile() {
 
   // UI saat user sudah login
   const user = session.user;
-  const username = user?.name?.toLowerCase().replace(/\s+/g, "") || "user";
+  const username = dbUser?.username || user?.name?.toLowerCase().replace(/\s+/g, "") || "user";
   const bio =
     dbUser?.bio ||
     "Halo! Saya menggunakan Jazmedia untuk membangun portofolio dan berbagi perjalanan belajar saya.";

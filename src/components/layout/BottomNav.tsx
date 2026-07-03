@@ -2,11 +2,17 @@
 
 import { Home, FolderOpen, Plus, Search, User } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
+import { useSession } from "next-auth/react";
+import { useAlert } from "@/components/providers/AlertProvider";
 
 export default function BottomNav() {
   const pathname = usePathname();
+  const router = useRouter();
+  const { data: session } = useSession();
+  const userRole = (session?.user as any)?.role;
+  const { showAlert } = useAlert();
 
   if (pathname === '/post' || pathname === '/profile/edit') return null;
 
@@ -25,8 +31,19 @@ export default function BottomNav() {
           const isActive = pathname === item.href;
           
           if (item.isAction) {
+            const handleClick = (e: React.MouseEvent) => {
+              if (item.name === "Post") {
+                if (!session) {
+                  e.preventDefault();
+                  router.push("/profile");
+                } else if (userRole === "guest") {
+                  e.preventDefault();
+                  showAlert({ message: "Akun belum bisa posting, hubungi admin.", type: "warning" });
+                }
+              }
+            };
             return (
-              <Link key={item.name} href={item.href} className="relative -top-5">
+              <Link key={item.name} href={item.href} onClick={handleClick} className="relative -top-5">
                 <motion.div 
                   whileTap={{ scale: 0.9 }}
                   className="flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg shadow-blue-500/40 border-4 border-slate-50"

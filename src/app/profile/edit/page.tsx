@@ -1,6 +1,7 @@
 "use client";
 import { X, Loader2, Trash2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAlert } from "@/components/providers/AlertProvider";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getUserProfile, updateUserProfile } from "@/lib/actions/user";
@@ -16,6 +17,7 @@ interface Skill {
 export default function EditProfile() {
   const router = useRouter();
   const { data: session, update } = useSession();
+  const { showAlert } = useAlert();
 
   const [name, setName] = useState("");
   const [bio, setBio] = useState("");
@@ -70,7 +72,7 @@ export default function EditProfile() {
       await update({ name, role });
       router.push("/profile");
     } else {
-      alert("Gagal menyimpan profil: " + res.error);
+      showAlert({ message: "Gagal menyimpan profil: " + res.error, type: "error" });
     }
     setIsSaving(false);
   };

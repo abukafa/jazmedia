@@ -35,6 +35,7 @@ async function uploadToGDrive(file: File) {
         body: stream,
       },
       fields: "id, webViewLink, webContentLink",
+      supportsAllDrives: true,
     });
 
     const fileId = response.data.id;
@@ -45,7 +46,8 @@ async function uploadToGDrive(file: File) {
         requestBody: {
           role: 'reader',
           type: 'anyone',
-        }
+        },
+        supportsAllDrives: true,
       });
       return response.data.webContentLink || response.data.webViewLink;
     }
@@ -56,55 +58,47 @@ async function uploadToGDrive(file: File) {
   }
 }
 
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+
 export async function submitTask(formData: FormData) {
-  // We will mock the user ID for MVP testing.
-  const authorId = "66827f311c1d9b3b8c3a1e99"; 
+  const session = await getServerSession(authOptions);
+  if (!session?.user) return { success: false, error: "Unauthorized" };
+  
+  await dbConnect();
+  const dbUser = await User.findById((session.user as any).id).lean();
+  if (!dbUser) return { success: false, error: "User not found" };
+
+  const authorId = dbUser._id;
 
   const caption = formData.get("caption") as string;
   const projectId = formData.get("projectId") as string;
-  const file = formData.get("file") as File;
+  const mediaType = formData.get("mediaType") as string; // image, video, document
+  
+  const files = formData.getAll("files") as File[];
+  
+  const collaboratorsStr = formData.get("collaborators") as string;
+  const collaborators = collaboratorsStr ? JSON.parse(collaboratorsStr) : [];
 
-  if (!file || !caption || !projectId) {
-    return { success: false, error: "Semua field harus diisi." };
+  if (!files || files.length === 0 || !projectId) {
+    return { success: false, error: "Media dan Project harus diisi." };
   }
 
   try {
-    await dbConnect();
+    // 1. Upload files
+    const mediaUrls = await Promise.all(
+      files.map(async (file) => await uploadToGDrive(file))
+    );
     
-    // Ensure mock user exists
-    let user = await User.findById(authorId);
-    if (!user) {
-      user = await User.create({
-        _id: authorId,
-        name: "Budi Santoso",
-        role: "member",
-        image: "https://i.pravatar.cc/150?u=budi",
-      });
-    }
-
-    // Ensure mock project exists
-    let project = await Project.findById(projectId);
-    if (!project) {
-      project = await Project.create({
-        _id: projectId,
-        title: "Masterclass Project",
-        description: "A placeholder project for testing.",
-      });
-    }
-
-    // 1. Upload file
-    const mediaUrl = await uploadToGDrive(file);
-    
-    // 2. Determine media type
-    const mediaType = file.type.startsWith("video/") ? "video" : "image";
-
-    // 3. Save to MongoDB
+    // 2. Save to MongoDB
     const newTask = await Task.create({
-      mediaUrl,
+      mediaUrl: mediaUrls[0],
+      mediaUrls,
       mediaType,
       caption,
-      projectId: project._id,
-      authorId: user._id,
+      projectId,
+      authorId,
+      collaborators,
       status: "pending",
     });
 
@@ -177,5 +171,26 @@ export async function getTasks({ pageParam = 1 }: { pageParam?: number }) {
       data: [],
       nextPage: undefined,
     };
+  }
+}
+
+export async function getPostFormData() {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) return { success: false, error: "Unauthorized" };
+  
+  try {
+    await dbConnect();
+    const projects = await Project.find({ status: "active" }).select("title _id").lean();
+    const users = await User.find({ _id: { $ne: (session.user as any).id } }).select("name username image").lean();
+    
+    return {
+      success: true,
+      data: {
+        projects: projects.map(p => ({ id: p._id.toString(), title: p.title })),
+        users: users.map(u => ({ id: u._id.toString(), name: u.name, username: u.username, image: u.image }))
+      }
+    };
+  } catch (err: any) {
+    return { success: false, error: err.message };
   }
 }

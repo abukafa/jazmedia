@@ -46,6 +46,7 @@ import { useEffect, useState } from "react";
 import { getUserProfile } from "@/lib/actions/user";
 import Link from "next/link";
 import { SKILL_ICONS, SkillIconName } from "@/components/ui/skill-icons";
+import AdminDashboard from "@/components/profile/AdminDashboard";
 
 const MOCK_GRID_TASKS = [
   "https://images.unsplash.com/photo-1618761714954-0b8cd0026356?auto=format&fit=crop&q=80&w=300",
@@ -168,20 +169,38 @@ export default function Profile() {
         {/* Akun cadangan/dummy jika belum setup kredensial IG */}
         <div className="mt-8 pt-8 border-t border-slate-100 w-full">
           <p className="text-[10px] text-slate-400 text-center mb-4 font-black uppercase tracking-widest">
-            Atau masuk tanpa sandi (MVP)
+            Uji Coba MVP (Masuk Tanpa Sandi)
           </p>
-          <Button
-            onClick={() =>
-              signIn("credentials", {
-                username: "member",
-                callbackUrl: "/profile",
-              })
-            }
-            variant="outline"
-            className="w-full font-bold h-12 rounded-xl text-slate-700 border-slate-200 bg-slate-50 hover:bg-slate-100 transition-colors"
-          >
-            Masuk sebagai Member
-          </Button>
+          <div className="grid grid-cols-2 gap-3">
+            <Button
+              onClick={() => signIn("credentials", { username: "member", callbackUrl: "/profile" })}
+              variant="outline"
+              className="w-full font-bold h-11 rounded-xl text-slate-700 border-slate-200 bg-slate-50 hover:bg-slate-100 transition-colors"
+            >
+              Member
+            </Button>
+            <Button
+              onClick={() => signIn("credentials", { username: "mentor", callbackUrl: "/profile" })}
+              variant="outline"
+              className="w-full font-bold h-11 rounded-xl text-amber-700 border-amber-200 bg-amber-50 hover:bg-amber-100 transition-colors"
+            >
+              Mentor
+            </Button>
+            <Button
+              onClick={() => signIn("credentials", { username: "admin", callbackUrl: "/profile" })}
+              variant="outline"
+              className="w-full font-bold h-11 rounded-xl text-red-700 border-red-200 bg-red-50 hover:bg-red-100 transition-colors"
+            >
+              Admin
+            </Button>
+            <Button
+              onClick={() => signIn("credentials", { username: "guest", callbackUrl: "/profile" })}
+              variant="outline"
+              className="w-full font-bold h-11 rounded-xl text-slate-500 border-slate-200 bg-white hover:bg-slate-50 transition-colors"
+            >
+              Guest
+            </Button>
+          </div>
         </div>
       </div>
     );
@@ -219,6 +238,11 @@ export default function Profile() {
                 <CheckCircle2 className="w-5 h-5 fill-red-500 text-white" />
               </div>
             )}
+            {role === "member" && (
+              <div className="absolute -bottom-1 -right-1 bg-blue-100 text-blue-600 rounded-full p-1 border-2 border-white shadow-sm">
+                <CheckCircle2 className="w-5 h-5 fill-blue-500 text-white" />
+              </div>
+            )}
           </Avatar>
 
           <div className="flex-1 flex justify-around text-center">
@@ -249,6 +273,11 @@ export default function Profile() {
               {role === "admin" && (
                 <span className="bg-red-100 text-red-800 text-[9px] px-2 py-0.5 rounded-md font-black uppercase tracking-wider">
                   Admin
+                </span>
+              )}
+              {role === "member" && (
+                <span className="bg-blue-100 text-blue-800 text-[9px] px-2 py-0.5 rounded-md font-black uppercase tracking-wider flex items-center gap-1">
+                  Member <CheckCircle2 className="w-2.5 h-2.5 fill-blue-500 text-blue-100" />
                 </span>
               )}
               {role === "guest" && (
@@ -284,26 +313,29 @@ export default function Profile() {
           </Button>
         </div>
 
-        {/* Skills */}
-        {skills.length > 0 && (
-          <div className="mt-6">
-            <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide px-1">
-              {skills.map((skill: any, index: number) => (
-                <CircularProgress
-                  key={index}
-                  name={skill.name}
-                  icon={skill.icon}
-                  percentage={skill.percentage}
-                />
-              ))}
+          {/* Skills */}
+          {skills.length > 0 && (
+            <div className="mt-6">
+              <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide px-1">
+                {skills.map((skill: any, index: number) => (
+                  <CircularProgress
+                    key={index}
+                    name={skill.name}
+                    icon={skill.icon}
+                    percentage={skill.percentage}
+                  />
+                ))}
+              </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
 
-      {/* Tabs */}
-      <Tabs defaultValue="tasks" className="w-full mt-2">
-        <TabsList className="w-full justify-between h-12 bg-white rounded-none border-b border-slate-100 px-0">
+        {/* Conditional Rendering: Admin Dashboard vs Normal Feed */}
+        {role === "admin" ? (
+          <AdminDashboard />
+        ) : (
+          <Tabs defaultValue="tasks" className="w-full mt-2">
+            <TabsList className="w-full justify-between h-12 bg-white rounded-none border-b border-slate-100 px-0">
           <TabsTrigger
             value="tasks"
             className="flex-1 data-[state=active]:shadow-none data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-slate-900 rounded-none h-full transition-all"
@@ -502,8 +534,9 @@ export default function Profile() {
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
-      </Tabs>
+          </TabsContent>
+        </Tabs>
+      )}
     </div>
   );
 }

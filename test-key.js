@@ -1,0 +1,13 @@
+const crypto = require("crypto");
+
+const rawKey = "-----BEGIN PRIVATE KEY-----\\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDaK62M+EzWaq3m\\noKUB2ZFfkTkhRHLo83E1qAP1zVniJmogiqyFZ4GA0AZiuU/AusH48G/mKd9IrKiP\\nyRG4/7SWHB2p9Rx6OWZwT4MACBykj4RBlBY+CBXQoH7iAAweV2Gj5tkSPM1Y4pVq\\nCKf0/jK8JBC6nhHZPcH6pbBEeeQxVZAEartQTb6fIlU1yyFyxrRcFAMhVHBeJL6W\\n3k/MzNGf66+lcQeI5Bso8zIHFMe03YFZ1nxB8URicVm7C29qlCF01DTv4x4So7Br\\nzfKpg7UCnDyoOhLwMr6mnAqD5qUmWuHeKsLQ8ZDsvO1Rg5N6/xokU3XoJU14F3LB\\nToU+Hy+tAgMBAAECggEAIlesSMvAKqNdzvc8KjOhkNnXFJ/F99n0WOYjA3MJAlKa\\nM5eoqxI9PjXgv3MctQGg7YsJjkFKmtHE8edMgSLNPjDcUYfaLPoyoBzACgX83kGS\\nJ9GEA805g97zwicQQUlvfwGka1zDVUnLi8aji6rk+R0zPfEKbbgtPAOPYOQQEdyz\\n+OcRqIclVf6XNiOv8pGqRYO7yLa5PaCYa1y6R4pzS9Op3H6YHK/dqywGS0YRF5GV\\njvYd2aq4IhnVS9HKX8Jn0ImEFcaX8fX+nUWGASaeyGKv4JJjs9Sk/oeaQllVjOHC\\n52Qp6E0JzCIsldIO7mPacwW1zQjCmYuWjPGu3YQyIQKBgQDtBFUnHrX1jaZPenML\\ndb4SYhwBy6Y53dFtS5Jf1ilsX9fu3Y+Bmh4uVTwP7BS7LmIMymi4p6+uJD4yYobN\\ngRaraWQGosNzoH3omPep92FDne6Qz+K6bBdWHuvPb5Ahqq0tNznq5SsLdXozlidI\\nkyD3wNO7a6p+ZLsyrOogEkdzzQKBgQDrpO5GuXLdHyjTAo9g1LmM8oFmULk2n3Kj\\nsBrUqo4oYL2+useVGakcrQ+U6weVa9t7GRMOhNUuLCKawFlZlKb+ZkdNC9laRD2s\\n/eG/ectxQ0pPkcjv09xbcR9tQ2Kh06c1m1gd8bhWRoSfg8VXceUywE3MZZLh7XgU\\nBPnjBdyLYQKBgQCc/JGqJ50912Sgn+ozXPlYE8OZLNoc2d8tFTEOaTtmnNTZUccL\\ngJkc9zehFC1nDYHEFwzlwauLHFZV6QyAcVAimNu3yXbLzzGWLjtcSI4TyzeIkykJ\\ncS7DzBdEfhBpPDMYD8w82S15mYYnRP0gBNOBRib3rIhwzydumTk5pOHOwQKBgBlt\\nksjO+jYiRqV+gTpRujQbdxszWskqK5S+TCbmwLBawB70yNSuEDGn+yZ2tjrJiMWf\\nm6iBt8UpCdO2lVwVRTetJL71FiJRJ6GRvYCjpGKUVqEwMogcobrjhicTOhpjoGa\\nYcfZbarhsS4FaiYlhDYVyk9kJpV6qpp+bviwiTwBAoGBAIFPS0dz5c8xXEYQ8oZ+\\n2b65t+kPkIee7R5T8I4DgLD2KpUBw4yvq0udn3y4wdNzomxddpGjfIKX/wfe+3J9\\nadGTbgSuhTbGOMmjsoz5oBkRLq93scOHa7L98Wrbqli3fSiR7F2Dj8jBTrqfvbPX\\nDboqr8tnFoCW+vowBjH7axr5\\n-----END PRIVATE KEY-----\\n";
+
+let key = rawKey.replace(/^"|"$/g, "").replace(/^'|'$/g, "").replace(/\\n/g, "\n");
+console.log(key);
+
+try {
+  crypto.createPrivateKey(key);
+  console.log("OK!");
+} catch (e) {
+  console.log(e);
+}

@@ -2,10 +2,12 @@ import mongoose, { Schema, Document } from "mongoose";
 
 export interface ITask extends Document {
   mediaUrl: string;
-  mediaType: "image" | "video";
+  mediaUrls: string[];
+  mediaType: "image" | "video" | "document";
   caption: string;
   projectId: mongoose.Types.ObjectId;
   authorId: mongoose.Types.ObjectId;
+  collaborators: mongoose.Types.ObjectId[];
   status: "pending" | "reviewed" | "approved";
   review?: {
     mentorId: mongoose.Types.ObjectId;
@@ -17,11 +19,13 @@ export interface ITask extends Document {
 
 const TaskSchema = new Schema<ITask>(
   {
-    mediaUrl: { type: String, required: true },
-    mediaType: { type: String, enum: ["image", "video"], default: "image" },
+    mediaUrl: { type: String },
+    mediaUrls: [{ type: String }],
+    mediaType: { type: String, enum: ["image", "video", "document"], default: "image" },
     caption: { type: String },
     projectId: { type: Schema.Types.ObjectId, ref: "Project", required: true },
     authorId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    collaborators: [{ type: Schema.Types.ObjectId, ref: "User" }],
     status: { type: String, enum: ["pending", "reviewed", "approved"], default: "pending" },
     review: {
       mentorId: { type: Schema.Types.ObjectId, ref: "User" },

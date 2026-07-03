@@ -188,13 +188,15 @@ export default function Profile() {
   }
 
   // UI saat user sudah login
-  const user = session.user;
-  const username = dbUser?.username || user?.name?.toLowerCase().replace(/\s+/g, "") || "user";
+  const sessionUser = session.user as any;
+  const name = dbUser?.name || sessionUser?.name || "User";
+  const username = dbUser?.username || "";
+  const image = dbUser?.image || sessionUser?.image || "https://i.pravatar.cc/150";
   const bio =
     dbUser?.bio ||
     "Halo! Saya menggunakan Jazmedia untuk membangun portofolio dan berbagi perjalanan belajar saya.";
   const skills = dbUser?.skills || [];
-  const role = dbUser?.role || "member";
+  const role = dbUser?.role || sessionUser?.role || "member";
 
   return (
     <div className="pb-10 bg-white min-h-full">
@@ -203,10 +205,10 @@ export default function Profile() {
         <div className="flex items-center gap-6">
           <Avatar className="h-24 w-24 border-2 border-slate-100 shadow-sm relative">
             <AvatarImage
-              src={user?.image || "https://i.pravatar.cc/150"}
-              alt={user?.name || "User"}
+              src={image}
+              alt={name}
             />
-            <AvatarFallback>{user?.name?.charAt(0) || "U"}</AvatarFallback>
+            <AvatarFallback>{name.charAt(0)}</AvatarFallback>
             {role === "mentor" && (
               <div className="absolute -bottom-1 -right-1 bg-amber-100 text-amber-600 rounded-full p-1 border-2 border-white shadow-sm">
                 <CheckCircle2 className="w-5 h-5 fill-amber-500 text-white" />
@@ -238,7 +240,7 @@ export default function Profile() {
         <div className="mt-4 flex items-center justify-between">
           <div>
             <h2 className="font-bold text-base text-slate-900 flex items-center gap-2">
-              {user?.name}
+              {name}
               {role === "mentor" && (
                 <span className="bg-amber-100 text-amber-800 text-[9px] px-2 py-0.5 rounded-md font-black uppercase tracking-wider">
                   Mentor
@@ -255,9 +257,11 @@ export default function Profile() {
                 </span>
               )}
             </h2>
-            <p className="text-xs text-blue-600 font-medium mb-1">
-              @{username}
-            </p>
+            {username && (
+              <p className="text-xs text-blue-600 font-medium mb-1">
+                @{username}
+              </p>
+            )}
           </div>
         </div>
         <p className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed mt-2">

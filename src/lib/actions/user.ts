@@ -16,6 +16,7 @@ export async function getUserProfile() {
   return {
     id: user._id.toString(),
     name: user.name,
+    username: user.username || "",
     image: user.image,
     bio: user.bio || "",
     skills: user.skills ? user.skills.map((s: any) => ({

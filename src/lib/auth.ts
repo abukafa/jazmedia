@@ -43,7 +43,7 @@ export const authOptions: NextAuthOptions = {
            dbUser.username = credentials.username || dbUser.username;
            await dbUser.save();
         }
-        return { id: dbUser._id.toString(), name: dbUser.name, image: dbUser.image, role: dbUser.role };
+        return { id: dbUser._id.toString(), name: dbUser.name, username: dbUser.username, image: dbUser.image, role: dbUser.role };
       }
     }),
     // Dummy provider for easy MVP testing without IG keys
@@ -84,9 +84,10 @@ export const authOptions: NextAuthOptions = {
              email,
              image,
              role,
+             username: credentials?.username,
            });
         }
-        return { id: dbUser._id.toString(), name, image, role };
+        return { id: dbUser._id.toString(), name, username: dbUser.username, image, role };
       }
     })
   ],
@@ -114,11 +115,13 @@ export const authOptions: NextAuthOptions = {
         if (dbUser) {
           token.sub = dbUser._id.toString();
           token.role = dbUser.role;
+          token.username = dbUser.username;
         }
       } else if (user) {
         // Untuk credentials, user.id sudah valid ObjectId dari fungsi authorize
         token.sub = user.id;
         token.role = (user as any).role;
+        token.username = (user as any).username;
       }
       return token;
     },
@@ -126,6 +129,7 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         (session.user as any).id = token.sub;
         (session.user as any).role = token.role || "member";
+        (session.user as any).username = token.username;
       }
       return session;
     },

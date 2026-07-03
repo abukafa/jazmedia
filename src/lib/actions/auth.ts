@@ -1,4 +1,6 @@
 "use server";
+import dbConnect from "@/lib/db";
+import User from "@/models/User";
 
 export async function exchangeInstagramCode(code: string) {
   try {
@@ -22,12 +24,40 @@ export async function exchangeInstagramCode(code: string) {
       return { error: data.error_message || "Gagal menukarkan kode akses dari Instagram." };
     }
 
+    // [JALUR CEPAT / FAST PATH] 
+    // Jika Instagram langsung memberikan user_id dan user sudah ada di database kita,
+    // Bypas proses penarikan data Graph API (menghindari error scope & mempercepat login).
+    if (data.user_id) {
+      await dbConnect();
+      const existingUser = await User.findOne({ instagramId: data.user_id.toString() }).lean();
+      if (existingUser) {
+        return {
+          success: true,
+          instagramId: existingUser.instagramId,
+          name: existingUser.name,
+          username: existingUser.username || "",
+          image: existingUser.image || "",
+          bio: existingUser.bio || "",
+          isReturningUser: true,
+        };
+      }
+    }
+
+    // [PENGGUNA BARU]
     // Panggil Graph API untuk mengambil data selengkap-lengkapnya (jika diizinkan oleh scope)
     const userRes = await fetch(`https://graph.instagram.com/me?fields=id,username,name,profile_picture_url,biography&access_token=${data.access_token}`);
-    const userData = await userRes.json();
+    let userData = await userRes.json();
+
+    // Jika gagal karena masalah scope/field tidak dikenal, lakukan fallback ke field dasar
+    if (userData.error && userData.error.message && userData.error.message.includes('field')) {
+      console.warn("Instagram API menolak field tertentu. Melakukan fallback ke field dasar...");
+      const fallbackRes = await fetch(`https://graph.instagram.com/me?fields=id,username,name&access_token=${data.access_token}`);
+      userData = await fallbackRes.json();
+    }
 
     if (!userData.id) {
-      return { error: "Gagal menarik data profil dari Instagram API." };
+      console.error("Instagram profile error:", userData);
+      return { error: `Gagal menarik data profil dari Instagram API: ${userData?.error?.message || JSON.stringify(userData)}` };
     }
 
     return {

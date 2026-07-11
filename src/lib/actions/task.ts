@@ -13,7 +13,7 @@ async function uploadToGDrive(file: File) {
   const drive = getDriveClient();
   const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
   
-  if (!process.env.GOOGLE_DRIVE_CLIENT_EMAIL || !folderId) {
+  if (!process.env.GOOGLE_DRIVE_CLIENT_ID || !folderId) {
     console.warn("Mock upload enabled because Google Drive credentials are not set.");
     return "https://images.unsplash.com/photo-1618761714954-0b8cd0026356?auto=format&fit=crop&q=80&w=1000";
   }
@@ -123,6 +123,7 @@ export async function getTasks({ pageParam = 1 }: { pageParam?: number }) {
       .skip(skip)
       .limit(limit)
       .populate("authorId", "name image")
+      .populate("collaborators", "name image")
       .populate("projectId", "title")
       .lean();
 
@@ -149,8 +150,13 @@ export async function getTasks({ pageParam = 1 }: { pageParam?: number }) {
         name: task.authorId?.name || "Member",
         image: task.authorId?.image || "https://i.pravatar.cc/150",
       },
+      collaborators: task.collaborators?.map((c: any) => ({
+        name: c.name,
+        image: c.image || "https://i.pravatar.cc/150",
+      })) || [],
       projectTitle: task.projectId?.title || "Project",
       mediaUrl: task.mediaUrl,
+      mediaUrls: task.mediaUrls || [task.mediaUrl],
       mediaType: task.mediaType,
       caption: task.caption,
       timeAgo: timeAgo(task.createdAt) + " yang lalu",

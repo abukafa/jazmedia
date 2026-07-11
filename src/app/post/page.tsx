@@ -217,9 +217,11 @@ export default function PostTask() {
         <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm space-y-4">
           <div className="grid gap-2">
             <Label className="text-xs font-bold">Pilih Proyek</Label>
-            <Select onValueChange={setSelectedProjectId} required>
+            <Select value={selectedProjectId || null} onValueChange={setSelectedProjectId} required>
               <SelectTrigger className="w-full text-sm">
-                <SelectValue placeholder="-- Pilih Proyek --" />
+                <SelectValue placeholder="-- Pilih Proyek --">
+                  {selectedProjectId ? projects.find((p) => p.id === selectedProjectId)?.title : undefined}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {projects.map((p) => (

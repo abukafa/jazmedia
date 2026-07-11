@@ -124,7 +124,6 @@ export default function PostTask() {
           </h1>
           <Link
             href="/"
-            size="sm"
             className="text-slate-500 text-xs font-bold mr-3"
           >
             Cancel

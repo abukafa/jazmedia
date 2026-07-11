@@ -25,20 +25,27 @@ import { submitTask, getPostFormData } from "@/lib/actions/task";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useAlert } from "@/components/providers/AlertProvider";
+import Image from "next/image";
 
 export default function PostTask() {
   const router = useRouter();
   const { showAlert } = useAlert();
   const { data: session, status } = useSession();
-  const userRole = (session?.user as any)?.role;
+  const userRole = (session?.user as { role?: string })?.role;
   const [mediaType, setMediaType] = useState<
     "image" | "video" | "document" | null
   >(null);
 
-  const [projects, setProjects] = useState<any[]>([]);
-  const [users, setUsers] = useState<any[]>([]);
+  const [projects, setProjects] = useState<
+    Array<{ id: string; title: string }>
+  >([]);
+  const [users, setUsers] = useState<
+    Array<{ id: string; name: string; image?: string; username?: string }>
+  >([]);
 
-  const [selectedProjectId, setSelectedProjectId] = useState("");
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
+    null,
+  );
   const [caption, setCaption] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
@@ -51,7 +58,10 @@ export default function PostTask() {
     if (status === "unauthenticated") {
       router.push("/profile");
     } else if (status === "authenticated" && userRole === "guest") {
-      showAlert({ message: "Akun belum bisa posting, hubungi admin.", type: "warning" });
+      showAlert({
+        message: "Akun belum bisa posting, hubungi admin.",
+        type: "warning",
+      });
       router.push("/");
     }
   }, [status, userRole, router, showAlert]);
@@ -61,10 +71,10 @@ export default function PostTask() {
     getPostFormData().then((res) => {
       if (res.success && res.data) {
         setProjects(res.data.projects);
-        setUsers(res.data.users);
+        setUsers(res.data.users.filter((user) => user.username));
       }
     });
-  }, []);
+  }, [status]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -111,7 +121,10 @@ export default function PostTask() {
     if (res.success) {
       router.push("/profile");
     } else {
-      showAlert({ message: "Gagal mengunggah tugas: " + res.error, type: "error" });
+      showAlert({
+        message: "Gagal mengunggah tugas: " + res.error,
+        type: "error",
+      });
     }
   };
 
@@ -122,10 +135,7 @@ export default function PostTask() {
           <h1 className="text-xl font-black text-slate-900">
             Pilih Jenis Postingan
           </h1>
-          <Link
-            href="/"
-            className="text-slate-500 text-xs font-bold mr-3"
-          >
+          <Link href="/" className="text-slate-500 text-xs font-bold mr-3">
             Cancel
           </Link>
         </div>
@@ -216,10 +226,16 @@ export default function PostTask() {
         <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm space-y-4">
           <div className="grid gap-2">
             <Label className="text-xs font-bold">Pilih Proyek</Label>
-            <Select value={selectedProjectId || null} onValueChange={setSelectedProjectId} required>
+            <Select
+              value={selectedProjectId || null}
+              onValueChange={setSelectedProjectId}
+              required
+            >
               <SelectTrigger className="w-full text-sm">
                 <SelectValue placeholder="-- Pilih Proyek --">
-                  {selectedProjectId ? projects.find((p) => p.id === selectedProjectId)?.title : undefined}
+                  {selectedProjectId
+                    ? projects.find((p) => p.id === selectedProjectId)?.title
+                    : undefined}
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
@@ -262,7 +278,7 @@ export default function PostTask() {
                     style={{ width: 120, height: 120 }}
                   >
                     {mediaType === "image" ? (
-                      <img
+                      <Image
                         src={src}
                         alt="Preview"
                         className="w-full h-full object-cover"
@@ -340,7 +356,10 @@ export default function PostTask() {
               </div>
             )}
 
-            <Select onValueChange={handleAddCollaborator} value={undefined}>
+            <Select
+              onValueChange={(value) => value && handleAddCollaborator(value)}
+              value={undefined}
+            >
               <SelectTrigger className="w-full text-sm">
                 <SelectValue placeholder="Cari rekan tim..." />
               </SelectTrigger>

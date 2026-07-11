@@ -73,13 +73,13 @@ export default function AdminDashboard() {
       getAllMentors(),
     ]);
 
-    if (usersRes.success) setUsers(usersRes.data);
+    if (usersRes.success) setUsers(usersRes.data || []);
     if (projectsRes.success) {
-      setProjects(projectsRes.data);
+      setProjects(projectsRes.data || []);
       setProjectTotalPages(projectsRes.pagination?.totalPages || 1);
     }
-    if (tasksRes.success) setTasks(tasksRes.data);
-    if (mentorsRes.success) setMentors(mentorsRes.data);
+    if (tasksRes.success) setTasks(tasksRes.data || []);
+    if (mentorsRes.success) setMentors(mentorsRes.data || []);
 
     setLoading(false);
   };
@@ -423,7 +423,7 @@ export default function AdminDashboard() {
                   <Select
                     name="status"
                     value={selectedStatus}
-                    onValueChange={setSelectedStatus}
+                    onValueChange={(val) => setSelectedStatus(val || "")}
                   >
                     <SelectTrigger className="text-sm">
                       <SelectValue placeholder="Pilih status" />
@@ -443,7 +443,7 @@ export default function AdminDashboard() {
                   <Select
                     name="mentorId"
                     value={selectedMentor}
-                    onValueChange={setSelectedMentor}
+                    onValueChange={(val) => setSelectedMentor(val || "")}
                   >
                     <SelectTrigger className="text-sm">
                       <SelectValue>

@@ -25,7 +25,7 @@ export default function Projects() {
     setLoading(true);
     const res = await getPublicProjects(filter);
     if (res.success) {
-      setProjects(res.data);
+      setProjects(res.data || []);
     }
     setLoading(false);
   };

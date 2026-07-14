@@ -74,10 +74,22 @@ export async function exchangeInstagramCode(code: string) {
       apiErrorDetail = e.message;
     }
 
-    if (!userData.username) {
-      return { 
-        error: `Login Ditolak: Gagal menarik data profil.\n\nSyarat & Ketentuan API Meta:\n1. Pastikan akun Instagram Anda sudah diubah menjadi akun KREATOR atau BISNIS (bukan Personal).\n2. Jika aplikasi berstatus Live, fitur ini memerlukan persetujuan App Review dari Meta.\n\n(Pesan API: ${apiErrorDetail})` 
+    // Jika Graph API gagal, kita tidak akan menolak (reject), melainkan 
+    // mendaftarkan mereka sebagai "Peserta Baru" dengan username kosong
+    // agar mereka bisa melengkapi profil secara manual di halaman Edit Profile.
+    if (!userData.username && userData.id) {
+      return {
+        success: true,
+        instagramId: userData.id.toString(),
+        name: "Peserta Baru",
+        username: "",
+        image: "https://ui-avatars.com/api/?name=Peserta+Baru&background=e2e8f0&color=475569",
+        bio: ""
       };
+    }
+
+    if (!userData.id) {
+      return { error: "Gagal menukarkan kode akses (user_id tidak ditemukan)." };
     }
 
     return {

@@ -35,6 +35,8 @@ export async function updateUserProfile(formData: FormData) {
   const bio = formData.get("bio") as string;
   const name = formData.get("name") as string;
   const role = formData.get("role") as string;
+  const username = formData.get("username") as string;
+  const image = formData.get("image") as string;
   const skillsStr = formData.get("skills") as string;
   
   try {
@@ -49,6 +51,8 @@ export async function updateUserProfile(formData: FormData) {
       bio,
       name,
       role,
+      username,
+      image,
       skills,
     });
     

@@ -20,6 +20,8 @@ export default function EditProfile() {
   const { showAlert } = useAlert();
 
   const [name, setName] = useState("");
+  const [username, setUsername] = useState("");
+  const [image, setImage] = useState("");
   const [bio, setBio] = useState("");
   const [role, setRole] = useState("member");
   const [skills, setSkills] = useState<Skill[]>([]);
@@ -31,6 +33,8 @@ export default function EditProfile() {
       getUserProfile().then((data) => {
         if (data) {
           setName(data.name || "");
+          setUsername(data.username || "");
+          setImage(data.image || "");
           setBio(data.bio || "");
           setRole(data.role || "member");
           setSkills(data.skills || []);
@@ -62,14 +66,16 @@ export default function EditProfile() {
     setIsSaving(true);
     const formData = new FormData();
     formData.append("name", name);
+    formData.append("username", username);
+    formData.append("image", image);
     formData.append("bio", bio);
     formData.append("role", role);
     formData.append("skills", JSON.stringify(skills));
 
     const res = await updateUserProfile(formData);
     if (res.success) {
-      // Refresh session if name/role changes
-      await update({ name, role });
+      // Refresh session if profile fields change
+      await update({ name, role, username, image });
       router.push("/profile");
     } else {
       showAlert({
@@ -123,6 +129,42 @@ export default function EditProfile() {
             placeholder="Masukkan nama lengkap"
             className="w-full bg-white border border-slate-200 rounded-2xl p-4 text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-sm disabled:opacity-50"
           />
+        </div>
+
+        <div>
+          <label className="block text-xs font-bold text-slate-700 mb-2 px-2 uppercase tracking-wide">
+            Username
+          </label>
+          <div className="relative">
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">@</span>
+            <input
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              disabled={isSaving}
+              placeholder="username_anda"
+              className="w-full bg-white border border-slate-200 rounded-2xl pl-9 pr-4 py-4 text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-sm disabled:opacity-50"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-xs font-bold text-slate-700 mb-2 px-2 uppercase tracking-wide">
+            Foto Profil (URL)
+          </label>
+          <div className="flex gap-4 items-center">
+            {image && (
+              <img src={image} alt="Preview" className="w-14 h-14 rounded-full object-cover border-2 border-slate-200 flex-shrink-0" />
+            )}
+            <input
+              type="text"
+              value={image}
+              onChange={(e) => setImage(e.target.value)}
+              disabled={isSaving}
+              placeholder="https://..."
+              className="w-full bg-white border border-slate-200 rounded-2xl p-4 text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-sm disabled:opacity-50"
+            />
+          </div>
         </div>
 
         <div>

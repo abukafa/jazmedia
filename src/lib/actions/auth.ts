@@ -44,28 +44,41 @@ export async function exchangeInstagramCode(code: string) {
     }
 
     // [PENGGUNA BARU]
-    // Panggil Graph API untuk mengambil data selengkap-lengkapnya (jika diizinkan oleh scope)
-    const userRes = await fetch(`https://graph.instagram.com/me?fields=id,username,name,profile_picture_url,biography&access_token=${data.access_token}`);
-    let userData = await userRes.json();
+    // Panggil Graph API, namun jika gagal karena masalah permission/App Review (misal error "Unsupported request" untuk non-tester di Live App),
+    // kita akan menggunakan fallback data.user_id yang didapat dari token exchange agar user tetap bisa login.
+    let userData: any = { id: data.user_id };
+    
+    try {
+      const targetNode = data.user_id ? data.user_id : 'me';
+      const userRes = await fetch(`https://graph.instagram.com/v21.0/${targetNode}?fields=id,username,name,profile_picture_url&access_token=${data.access_token}`);
+      const graphData = await userRes.json();
 
-    // Jika gagal karena masalah scope/field tidak dikenal, lakukan fallback ke field dasar
-    if (userData.error && userData.error.message && userData.error.message.includes('field')) {
-      console.warn("Instagram API menolak field tertentu. Melakukan fallback ke field dasar...");
-      const fallbackRes = await fetch(`https://graph.instagram.com/me?fields=id,username,name&access_token=${data.access_token}`);
-      userData = await fallbackRes.json();
+      if (!graphData.error && graphData.id) {
+        userData = graphData;
+      } else {
+        console.warn("Instagram Graph API v21.0 gagal (mungkin masalah permission di Live mode):", graphData.error);
+        const fallbackRes = await fetch(`https://graph.instagram.com/${targetNode}?fields=id,username,name&access_token=${data.access_token}`);
+        const fallbackData = await fallbackRes.json();
+        if (!fallbackData.error && fallbackData.id) {
+          userData = fallbackData;
+        } else {
+          console.warn("Instagram Graph API unversioned juga gagal:", fallbackData.error);
+        }
+      }
+    } catch (e) {
+      console.error("Error saat fetch Graph API:", e);
     }
 
     if (!userData.id) {
-      console.error("Instagram profile error:", userData);
-      return { error: `Gagal menarik data profil dari Instagram API: ${userData?.error?.message || JSON.stringify(userData)}` };
+      return { error: "Gagal menukarkan kode akses (user_id tidak ditemukan)." };
     }
 
     return {
       success: true,
-      instagramId: userData.id,
-      name: userData.name || userData.username || "Instagram User",
-      username: userData.username || "",
-      // Gunakan foto asli Instagram. Jika dari API masih kosong, baru pakai ui-avatars berdasarkan inisial (bukan gambar random).
+      instagramId: userData.id.toString(),
+      name: userData.name || userData.username || `IG User ${userData.id.toString().substring(0, 5)}`,
+      username: userData.username || `user_${userData.id}`,
+      // Gunakan foto asli Instagram. Jika dari API masih kosong, baru pakai ui-avatars
       image: userData.profile_picture_url || `https://ui-avatars.com/api/?name=${userData.username || 'User'}&background=e2e8f0&color=475569`,
       bio: userData.biography || ""
     };

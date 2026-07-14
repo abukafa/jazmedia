@@ -29,6 +29,7 @@ export interface TaskCardProps {
     mentorName: string;
   };
   timeAgo: string;
+  createdAt: string;
 }
 
 export function TaskCard({
@@ -41,6 +42,7 @@ export function TaskCard({
   caption,
   review,
   timeAgo,
+  createdAt,
 }: TaskCardProps) {
   const [isLiked, setIsLiked] = useState(false);
   const [showReview, setShowReview] = useState(false);

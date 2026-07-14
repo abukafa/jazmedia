@@ -72,7 +72,10 @@ export default function EditProfile() {
       await update({ name, role });
       router.push("/profile");
     } else {
-      showAlert({ message: "Gagal menyimpan profil: " + res.error, type: "error" });
+      showAlert({
+        message: "Gagal menyimpan profil: " + res.error,
+        type: "error",
+      });
     }
     setIsSaving(false);
   };
@@ -185,6 +188,9 @@ export default function EditProfile() {
                         disabled={isSaving}
                         className="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none"
                       >
+                        <option value="" disabled>
+                          -- Pilih ikon skill --
+                        </option>
                         {Object.keys(SKILL_ICONS).map((iconName) => (
                           <option key={iconName} value={iconName}>
                             {iconName}

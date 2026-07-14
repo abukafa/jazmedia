@@ -8,16 +8,18 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 
-// Utility function to check admin role
-async function checkAdmin() {
+// Utility function to get auth user
+async function getAuthUser() {
   const session = await getServerSession(authOptions);
-  if (!session?.user) return false;
+  if (!session?.user) return null;
   
   await dbConnect();
-  const dbUser = await User.findById((session.user as any).id).lean();
-  if (!dbUser || dbUser.role !== "admin") return false;
-  
-  return true;
+  return await User.findById((session.user as any).id).lean();
+}
+
+async function checkAdmin() {
+  const user = await getAuthUser();
+  return user?.role === "admin";
 }
 
 // ---------------------------
@@ -62,7 +64,8 @@ export async function updateUserRole(userId: string, newRole: string) {
 // MENTORS DATA (For Select)
 // ---------------------------
 export async function getAllMentors() {
-  if (!(await checkAdmin())) return { success: false, error: "Unauthorized" };
+  const user = await getAuthUser();
+  if (!user) return { success: false, error: "Unauthorized" };
   
   try {
     await dbConnect();
@@ -80,7 +83,8 @@ export async function getAllMentors() {
 // PROJECTS MASTER DATA
 // ---------------------------
 export async function getAllProjects(page = 1, limit = 5) {
-  if (!(await checkAdmin())) return { success: false, error: "Unauthorized" };
+  const user = await getAuthUser();
+  if (!user) return { success: false, error: "Unauthorized" };
   
   try {
     await dbConnect();
@@ -91,6 +95,20 @@ export async function getAllProjects(page = 1, limit = 5) {
       { $group: { _id: "$projectId", count: { $sum: 1 } } }
     ]);
     const taskCountMap = new Map(taskCounts.map(tc => [tc._id.toString(), tc.count]));
+
+    // Aggregation for current user's task counts
+    const myTaskCounts = await Task.aggregate([
+      { 
+        $match: { 
+          $or: [
+            { authorId: user._id },
+            { collaborators: user._id }
+          ]
+        }
+      },
+      { $group: { _id: "$projectId", count: { $sum: 1 } } }
+    ]);
+    const myTaskCountMap = new Map(myTaskCounts.map(tc => [tc._id.toString(), tc.count]));
 
     const totalProjects = await Project.countDocuments();
     const projects = await Project.find({})
@@ -109,8 +127,10 @@ export async function getAllProjects(page = 1, limit = 5) {
         status: p.status,
         mentorId: p.mentorId?._id?.toString() || "",
         mentorName: p.mentorId?.name || "Belum ada mentor",
+        creatorId: p.creatorId?.toString() || "",
         participantsCount: p.participants?.length || 0,
         taskCount: taskCountMap.get(p._id.toString()) || 0,
+        myTaskCount: myTaskCountMap.get(p._id.toString()) || 0,
         createdAt: p.createdAt,
       })),
       pagination: {
@@ -126,7 +146,10 @@ export async function getAllProjects(page = 1, limit = 5) {
 }
 
 export async function createProject(formData: FormData) {
-  if (!(await checkAdmin())) return { success: false, error: "Unauthorized" };
+  const user = await getAuthUser();
+  if (!user || (user.role !== "admin" && user.role !== "mentor")) {
+    return { success: false, error: "Unauthorized" };
+  }
   
   try {
     await dbConnect();
@@ -135,7 +158,12 @@ export async function createProject(formData: FormData) {
     const status = formData.get("status") as string || "active";
     const mentorId = formData.get("mentorId") as string;
     
-    const payload: any = { title, description, status };
+    const payload: any = { 
+      title, 
+      description, 
+      status,
+      creatorId: user._id
+    };
     if (mentorId) payload.mentorId = mentorId;
     
     await Project.create(payload);
@@ -147,7 +175,10 @@ export async function createProject(formData: FormData) {
 }
 
 export async function updateProject(projectId: string, formData: FormData) {
-  if (!(await checkAdmin())) return { success: false, error: "Unauthorized" };
+  const user = await getAuthUser();
+  if (!user || (user.role !== "admin" && user.role !== "mentor")) {
+    return { success: false, error: "Unauthorized" };
+  }
   
   try {
     await dbConnect();

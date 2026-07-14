@@ -10,8 +10,8 @@ import { useAlert } from "@/components/providers/AlertProvider";
 export default function BottomNav() {
   const pathname = usePathname();
   const router = useRouter();
-  const { data: session } = useSession();
-  const userRole = (session?.user as any)?.role;
+  const { data: session, status } = useSession();
+  const userRole = (session?.user as { role?: string })?.role;
   const { showAlert } = useAlert();
 
   if (pathname === '/post' || pathname === '/profile/edit') return null;
@@ -48,7 +48,15 @@ export default function BottomNav() {
                   whileTap={{ scale: 0.9 }}
                   className="flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg shadow-blue-500/40 border-4 border-slate-50"
                 >
-                  <item.icon className="h-6 w-6" strokeWidth={2.5} />
+                  {status === "unauthenticated" && item.name === "Post" ? (
+                    <img 
+                      src="/icons/icon-512x512-maskable.png" 
+                      alt="JazMedia" 
+                      className="w-full h-full rounded-full object-cover" 
+                    />
+                  ) : (
+                    <item.icon className="h-6 w-6" strokeWidth={2.5} />
+                  )}
                 </motion.div>
               </Link>
             );

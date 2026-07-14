@@ -164,7 +164,8 @@ export async function getTasks({ pageParam = 1 }: { pageParam?: number }) {
         grade: task.review.grade,
         comment: task.review.comment,
         mentorName: "Mentor",
-      } : undefined
+      } : undefined,
+      createdAt: task.createdAt.toISOString(),
     }));
 
     return {
@@ -200,3 +201,65 @@ export async function getPostFormData() {
     return { success: false, error: err.message };
   }
 }
+
+export async function getUserTasks(userId: string) {
+  try {
+    await dbConnect();
+
+    const tasks = await Task.find({
+      $or: [{ authorId: userId }, { collaborators: userId }]
+    })
+      .sort({ createdAt: -1 })
+      .populate("authorId", "name image")
+      .populate("collaborators", "name image")
+      .populate("projectId", "title")
+      .lean();
+
+    // Calculate time ago helper
+    const timeAgo = (date: Date) => {
+      const seconds = Math.floor((new Date().getTime() - new Date(date).getTime()) / 1000);
+      let interval = seconds / 31536000;
+      if (interval > 1) return Math.floor(interval) + " tahun";
+      interval = seconds / 2592000;
+      if (interval > 1) return Math.floor(interval) + " bulan";
+      interval = seconds / 86400;
+      if (interval > 1) return Math.floor(interval) + " hari";
+      interval = seconds / 3600;
+      if (interval > 1) return Math.floor(interval) + " jam";
+      interval = seconds / 60;
+      if (interval > 1) return Math.floor(interval) + " menit";
+      return Math.floor(seconds) + " detik";
+    };
+
+    // Map to MVP TaskCard format
+    const formattedTasks = tasks.map((task: any) => ({
+      id: task._id.toString(),
+      author: {
+        name: task.authorId?.name || "Member",
+        image: task.authorId?.image || "https://i.pravatar.cc/150",
+      },
+      collaborators: task.collaborators?.map((c: any) => ({
+        name: c.name,
+        image: c.image || "https://i.pravatar.cc/150",
+      })) || [],
+      projectTitle: task.projectId?.title || "Project",
+      mediaUrl: task.mediaUrl,
+      mediaUrls: task.mediaUrls || [task.mediaUrl],
+      mediaType: task.mediaType,
+      caption: task.caption,
+      timeAgo: timeAgo(task.createdAt) + " yang lalu",
+      review: task.review?.grade ? {
+        grade: task.review.grade,
+        comment: task.review.comment,
+        mentorName: "Mentor",
+      } : undefined,
+      createdAt: task.createdAt.toISOString(),
+    }));
+
+    return { success: true, data: formattedTasks };
+  } catch (error: any) {
+    console.error("Get user tasks error:", error);
+    return { success: false, error: error.message };
+  }
+}
+

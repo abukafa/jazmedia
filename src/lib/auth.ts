@@ -107,8 +107,17 @@ export const authOptions: NextAuthOptions = {
       }
       return true;
     },
-    async jwt({ token, user, account }) {
+    async jwt({ token, user, account, trigger, session }) {
       await dbConnect();
+      
+      // Handle session update
+      if (trigger === "update" && session) {
+        if (session.name) token.name = session.name;
+        if (session.role) token.role = session.role;
+        if (session.username) token.username = session.username;
+        if (session.image) token.picture = session.image; // NextAuth uses token.picture for image
+      }
+
       // Bila login dari Instagram, timpa token.sub dengan ObjectId dari MongoDB
       if (account?.provider === "instagram") {
         const dbUser = await User.findOne({ instagramId: account.providerAccountId });
@@ -116,12 +125,14 @@ export const authOptions: NextAuthOptions = {
           token.sub = dbUser._id.toString();
           token.role = dbUser.role;
           token.username = dbUser.username;
+          if (dbUser.image) token.picture = dbUser.image;
         }
       } else if (user) {
         // Untuk credentials, user.id sudah valid ObjectId dari fungsi authorize
         token.sub = user.id;
         token.role = (user as any).role;
         token.username = (user as any).username;
+        if (user.image) token.picture = user.image;
       }
       return token;
     },
@@ -130,6 +141,7 @@ export const authOptions: NextAuthOptions = {
         (session.user as any).id = token.sub;
         (session.user as any).role = token.role || "member";
         (session.user as any).username = token.username;
+        if (token.picture) session.user.image = token.picture;
       }
       return session;
     },

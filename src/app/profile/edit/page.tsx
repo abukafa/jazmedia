@@ -7,6 +7,9 @@ import { useEffect, useState } from "react";
 import { getUserProfile, updateUserProfile } from "@/lib/actions/user";
 import { useSession } from "next-auth/react";
 import { SKILL_ICONS, SkillIconName } from "@/components/ui/skill-icons";
+import Cropper from "react-easy-crop";
+import getCroppedImg from "@/lib/utils/cropImage";
+import { uploadProfilePicture } from "@/lib/actions/upload";
 
 interface Skill {
   name: string;
@@ -27,6 +30,14 @@ export default function EditProfile() {
   const [skills, setSkills] = useState<Skill[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Cropper states
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
+  const [imageSrc, setImageSrc] = useState<string | null>(null);
+  const [isCropping, setIsCropping] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   useEffect(() => {
     if (session) {
@@ -60,6 +71,45 @@ export default function EditProfile() {
 
   const handleRemoveSkill = (index: number) => {
     setSkills(skills.filter((_, i) => i !== index));
+  };
+
+  const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const file = e.target.files[0];
+      const imageDataUrl = URL.createObjectURL(file);
+      setImageSrc(imageDataUrl);
+      setIsCropping(true);
+    }
+  };
+
+  const onCropComplete = (croppedArea: any, croppedAreaPixels: any) => {
+    setCroppedAreaPixels(croppedAreaPixels);
+  };
+
+  const uploadCroppedImage = async () => {
+    if (!imageSrc || !croppedAreaPixels) return;
+    
+    setIsUploadingImage(true);
+    try {
+      const croppedFile = await getCroppedImg(imageSrc, croppedAreaPixels);
+      if (croppedFile) {
+        const formData = new FormData();
+        formData.append("image", croppedFile);
+        
+        const res = await uploadProfilePicture(formData);
+        if (res.success && res.url) {
+          setImage(res.url);
+          setIsCropping(false);
+          setImageSrc(null);
+        } else {
+          showAlert({ message: "Gagal mengunggah foto: " + res.error, type: "error" });
+        }
+      }
+    } catch (e) {
+      console.error(e);
+      showAlert({ message: "Gagal memproses foto", type: "error" });
+    }
+    setIsUploadingImage(false);
   };
 
   const handleSave = async () => {
@@ -150,20 +200,29 @@ export default function EditProfile() {
 
         <div>
           <label className="block text-xs font-bold text-slate-700 mb-2 px-2 uppercase tracking-wide">
-            Foto Profil (URL)
+            Foto Profil
           </label>
           <div className="flex gap-4 items-center">
-            {image && (
-              <img src={image} alt="Preview" className="w-14 h-14 rounded-full object-cover border-2 border-slate-200 flex-shrink-0" />
+            {image ? (
+              <img src={image} alt="Preview" className="w-16 h-16 rounded-full object-cover border-4 border-slate-100 flex-shrink-0 shadow-sm" />
+            ) : (
+              <div className="w-16 h-16 rounded-full bg-slate-100 border-4 border-slate-50 flex items-center justify-center flex-shrink-0">
+                <span className="text-slate-400 text-xs font-bold">Kosong</span>
+              </div>
             )}
-            <input
-              type="text"
-              value={image}
-              onChange={(e) => setImage(e.target.value)}
-              disabled={isSaving}
-              placeholder="https://..."
-              className="w-full bg-white border border-slate-200 rounded-2xl p-4 text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-sm disabled:opacity-50"
-            />
+            <div className="flex-1">
+              <label className="cursor-pointer inline-flex items-center justify-center bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm">
+                Pilih Foto
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={onFileChange}
+                  className="hidden"
+                  disabled={isSaving || isUploadingImage}
+                />
+              </label>
+              <p className="text-[10px] text-slate-400 mt-2 font-medium">JPG/PNG maks. 5MB. Rasio 1:1.</p>
+            </div>
           </div>
         </div>
 
@@ -275,6 +334,46 @@ export default function EditProfile() {
           </div>
         </div>
       </div>
+
+      {/* Cropper Modal */}
+      {isCropping && imageSrc && (
+        <div className="fixed inset-0 z-[200] bg-black/90 flex flex-col items-center justify-center">
+          <div className="relative w-full h-[60vh] max-w-md mx-auto">
+            <Cropper
+              image={imageSrc}
+              crop={crop}
+              zoom={zoom}
+              aspect={1}
+              cropShape="round"
+              showGrid={false}
+              onCropChange={setCrop}
+              onCropComplete={onCropComplete}
+              onZoomChange={setZoom}
+            />
+          </div>
+          <div className="mt-8 flex gap-4">
+            <Button
+              variant="outline"
+              className="bg-white/10 text-white border-white/20 hover:bg-white/20"
+              onClick={() => {
+                setIsCropping(false);
+                setImageSrc(null);
+              }}
+              disabled={isUploadingImage}
+            >
+              Batal
+            </Button>
+            <Button
+              onClick={uploadCroppedImage}
+              disabled={isUploadingImage}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-bold"
+            >
+              {isUploadingImage ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : null}
+              Terapkan & Unggah
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

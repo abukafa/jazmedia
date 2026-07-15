@@ -64,12 +64,22 @@ export default function BottomNav() {
 
           return (
             <Link key={item.name} href={item.href} className="relative flex flex-col items-center justify-center w-16 h-full">
-              <item.icon
-                className={`h-6 w-6 transition-colors duration-200 ${
-                  isActive ? "text-blue-600" : "text-slate-400"
-                }`}
-                strokeWidth={isActive ? 2.5 : 2}
-              />
+              {item.name === "Profile" && session?.user?.image ? (
+                <img 
+                  src={session.user.image} 
+                  alt="Profile" 
+                  className={`h-7 w-7 rounded-full object-cover transition-all duration-200 ${
+                    isActive ? "ring-2 ring-blue-600 ring-offset-2 ring-offset-white opacity-100" : "opacity-70 grayscale-[20%]"
+                  }`} 
+                />
+              ) : (
+                <item.icon
+                  className={`h-6 w-6 transition-colors duration-200 ${
+                    isActive ? "text-blue-600" : "text-slate-400"
+                  }`}
+                  strokeWidth={isActive ? 2.5 : 2}
+                />
+              )}
               {isActive && (
                 <motion.div
                   layoutId="bottom-nav-indicator"

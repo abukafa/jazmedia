@@ -36,7 +36,7 @@ export async function submitTask(formData: FormData) {
   try {
     // 1. Upload files
     const mediaUrls = await Promise.all(
-      files.map(async (file) => await uploadToGDrive(file))
+      files.map(async (file) => await uploadToGDrive(file, mediaType + "s"))
     );
     
     // 2. Save to MongoDB

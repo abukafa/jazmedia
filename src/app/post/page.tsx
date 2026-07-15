@@ -278,7 +278,7 @@ export default function PostTask() {
                     style={{ width: 120, height: 120 }}
                   >
                     {mediaType === "image" ? (
-                      <Image
+                      <img
                         src={src}
                         alt="Preview"
                         className="w-full h-full object-cover"

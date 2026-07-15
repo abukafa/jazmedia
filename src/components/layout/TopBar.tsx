@@ -1,5 +1,5 @@
-import { Bell } from "lucide-react";
 import Link from "next/link";
+import NotificationBell from "./NotificationBell";
 
 export default function TopBar() {
   return (
@@ -11,10 +11,7 @@ export default function TopBar() {
         >
           Jazmedia<span className="text-blue-600"> 2.0</span>
         </Link>
-        <button className="relative p-2 text-slate-500 hover:text-slate-900 transition-colors">
-          <Bell className="w-5 h-5" />
-          <span className="absolute top-2 right-2 flex h-2 w-2 rounded-full bg-red-500 border border-white"></span>
-        </button>
+        <NotificationBell />
       </div>
     </header>
   );

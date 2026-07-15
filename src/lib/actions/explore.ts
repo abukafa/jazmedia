@@ -9,13 +9,33 @@ export async function searchTasks(query: string) {
   if (!query) return [];
   await dbConnect();
   
+  // Find matching users
+  const matchingUsers = await User.find({
+    $or: [
+      { name: { $regex: query, $options: "i" } },
+      { username: { $regex: query, $options: "i" } }
+    ]
+  }).select("_id");
+  const userIds = matchingUsers.map(u => u._id);
+
+  // Find matching projects
+  const matchingProjects = await Project.find({
+    title: { $regex: query, $options: "i" }
+  }).select("_id");
+  const projectIds = matchingProjects.map(p => p._id);
+
   const tasks = await Task.find({
-    caption: { $regex: query, $options: "i" }
+    $or: [
+      { caption: { $regex: query, $options: "i" } },
+      { mediaType: { $regex: query, $options: "i" } },
+      { authorId: { $in: userIds } },
+      { projectId: { $in: projectIds } }
+    ]
   })
     .populate("authorId", "name image username")
     .populate("collaborators", "name image")
     .populate("projectId", "title")
-    .limit(10)
+    .limit(30)
     .lean();
     
   const timeAgo = (date: Date) => {

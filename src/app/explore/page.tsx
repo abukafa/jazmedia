@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, Hash, User, Folder, Loader2 } from "lucide-react";
+import { Search, Hash, User, Folder, Loader2, ArrowLeft, Play, FileTextIcon } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TaskCard } from "@/components/feed/TaskCard";
 import { searchTasks, searchUsers, searchProjects } from "@/lib/actions/explore";
 import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getDirectMediaUrl } from "@/lib/utils/media";
 
 export default function Explore() {
   const [query, setQuery] = useState("");
@@ -16,6 +17,14 @@ export default function Explore() {
   const [projects, setProjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+  const [selectedTaskIndex, setSelectedTaskIndex] = useState<number | null>(null);
+
+  // Fungsi untuk scroll otomatis
+  const scrollRef = (node: HTMLDivElement | null) => {
+    if (node) {
+      node.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
@@ -75,8 +84,32 @@ export default function Explore() {
           ) : hasSearched && tasks.length === 0 ? (
             <div className="text-center py-10 text-slate-500">Tidak ada tugas ditemukan.</div>
           ) : tasks.length > 0 ? (
-            <div className="space-y-4 px-4">
-              {tasks.map(task => <TaskCard key={task.id} {...task} />)}
+            <div className="grid grid-cols-3 gap-[2px]">
+              {tasks.map((task, i) => (
+                <div
+                  key={task.id}
+                  onClick={() => setSelectedTaskIndex(i)}
+                  className="aspect-square bg-slate-100 relative group cursor-pointer overflow-hidden flex items-center justify-center"
+                >
+                  {task.mediaType === "image" ? (
+                    <img
+                      src={getDirectMediaUrl(task.mediaUrl, "image")}
+                      alt={`Task ${i}`}
+                      className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-500"
+                      loading="lazy"
+                    />
+                  ) : task.mediaType === "video" ? (
+                    <div className="w-full h-full bg-slate-800 flex items-center justify-center">
+                      <Play className="w-8 h-8 text-white/50" />
+                    </div>
+                  ) : (
+                    <div className="w-full h-full bg-blue-50 flex items-center justify-center">
+                      <FileTextIcon className="w-8 h-8 text-blue-300" />
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+                </div>
+              ))}
             </div>
           ) : (
             <div className="p-8 mt-6 text-center flex flex-col items-center">
@@ -149,6 +182,52 @@ export default function Explore() {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Detail Post Overlay */}
+      {selectedTaskIndex !== null && (
+        <div className="fixed inset-0 z-[100] bg-slate-50 flex flex-col">
+          <div className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-100 h-14 flex items-center px-4">
+            <button
+              onClick={() => setSelectedTaskIndex(null)}
+              className="p-2 -ml-2 rounded-full hover:bg-slate-100 text-slate-700 transition-colors"
+            >
+              <ArrowLeft className="w-6 h-6" />
+            </button>
+            <h1 className="flex-1 text-center font-bold text-slate-900 mr-8">
+              Hasil Pencarian
+            </h1>
+          </div>
+          <div className="flex-1 overflow-y-auto w-full px-4">
+            <div className="max-w-md mx-auto w-full pb-20 pt-4">
+              {tasks.map((task, index) => (
+                <div
+                  key={task.id}
+                  ref={index === selectedTaskIndex ? scrollRef : null}
+                  className="mb-6"
+                >
+                  <TaskCard {...task} />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Auto-scroll effect */}
+      {selectedTaskIndex !== null && <AutoScroll refNode={scrollRef} />}
     </div>
   );
+}
+
+// Komponen bantu untuk memicu scroll otomatis saat dirender
+function AutoScroll({
+  refNode,
+}: {
+  refNode: (node: HTMLDivElement | null) => void;
+}) {
+  useEffect(() => {
+    // Scroll will be handled by the ref callback automatically, 
+    // but this component's mount ensures it runs at the right time.
+  }, []);
+  return null;
 }

@@ -1,12 +1,40 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Heart, MessageCircle, Share2, Star, Maximize2, X } from "lucide-react";
+import {
+  Heart,
+  MessageCircle,
+  Share2,
+  Star,
+  StarHalf,
+  Maximize2,
+  X,
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { MediaCarousel } from "./media/MediaCarousel";
+import { useSession } from "next-auth/react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  toggleLike,
+  submitReview,
+  addComment,
+  getComments,
+} from "@/lib/actions/task";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export interface TaskCardProps {
   id: string;
@@ -28,11 +56,15 @@ export interface TaskCardProps {
     comment: string;
     mentorName: string;
   };
+  likesCount?: number;
+  isLikedByMe?: boolean;
+  commentsCount?: number;
   timeAgo: string;
   createdAt: string;
 }
 
 export function TaskCard({
+  id,
   author,
   collaborators = [],
   projectTitle,
@@ -41,15 +73,52 @@ export function TaskCard({
   mediaType,
   caption,
   review,
+  likesCount = 0,
+  isLikedByMe = false,
+  commentsCount = 0,
   timeAgo,
   createdAt,
 }: TaskCardProps) {
-  const [isLiked, setIsLiked] = useState(false);
+  const { data: session } = useSession();
+  const user = session?.user as any;
+  const isMentor = user?.role === "mentor" || user?.role === "admin";
+  const queryClient = useQueryClient();
+
+  const [isLiked, setIsLiked] = useState(isLikedByMe);
+  const [likes, setLikes] = useState(likesCount);
+
+  useEffect(() => {
+    setLikes(likesCount);
+    setIsLiked(isLikedByMe);
+  }, [likesCount, isLikedByMe]);
+
   const [showReview, setShowReview] = useState(false);
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  const [reviewGrade, setReviewGrade] = useState(review ? review.grade : 0);
+  const [reviewComment, setReviewComment] = useState(
+    review ? review.comment : "",
+  );
+
+  const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
+  const [commentContent, setCommentContent] = useState("");
+
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [activeSlide, setActiveSlide] = useState(0);
 
   const urls = mediaUrls.length > 0 ? mediaUrls : [mediaUrl];
+
+  const {
+    data: comments = [],
+    refetch: refetchComments,
+    isFetching: commentsLoading,
+  } = useQuery({
+    queryKey: ["comments", id],
+    queryFn: async () => {
+      const res = await getComments(id);
+      return res.success ? res.data : [];
+    },
+    enabled: isCommentModalOpen,
+  });
 
   const getDisplayNames = () => {
     if (!collaborators || collaborators.length === 0) return author.name;
@@ -58,6 +127,83 @@ export function TaskCard({
       return names.slice(0, -1).join(", ") + " dan " + names[names.length - 1];
     }
     return names.slice(0, 1).join(", ") + ` dan ${names.length - 1} lainnya`;
+  };
+
+  const likeMutation = useMutation({
+    mutationFn: async () => toggleLike(id),
+    onSuccess: (data) => {
+      if (data.success) {
+        setIsLiked(data.isLikedByMe ?? false);
+        setLikes(data.likesCount);
+      } else {
+        alert("Gagal menyukai postingan: " + data.error);
+        // Revert optimistic update
+        setIsLiked(isLikedByMe);
+        setLikes(likesCount);
+      }
+    },
+    onError: (err: any) => {
+      alert("Terjadi kesalahan jaringan: " + err.message);
+      setIsLiked(isLikedByMe);
+      setLikes(likesCount);
+    },
+  });
+
+  const handleLike = () => {
+    // Optimistic update
+    setIsLiked(!isLiked);
+    setLikes(isLiked ? likes - 1 : likes + 1);
+    likeMutation.mutate();
+  };
+
+  const handleShare = () => {
+    if (navigator.share) {
+      navigator
+        .share({
+          title: projectTitle,
+          text: caption,
+          url: window.location.href,
+        })
+        .catch(console.error);
+    } else {
+      navigator.clipboard.writeText(window.location.href);
+      alert("Tautan disalin ke clipboard!");
+    }
+  };
+
+  const reviewMutation = useMutation({
+    mutationFn: async () => submitReview(id, reviewGrade, reviewComment),
+    onSuccess: (data) => {
+      if (data.success) {
+        setIsReviewModalOpen(false);
+        queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      } else {
+        alert("Gagal memberikan ulasan: " + data.error);
+      }
+    },
+  });
+
+  const handleSubmitReview = (e: React.FormEvent) => {
+    e.preventDefault();
+    reviewMutation.mutate();
+  };
+
+  const commentMutation = useMutation({
+    mutationFn: async () => addComment(id, commentContent),
+    onSuccess: (data) => {
+      if (data.success) {
+        setCommentContent("");
+        refetchComments();
+      } else {
+        alert("Gagal menambahkan komentar: " + data.error);
+      }
+    },
+  });
+
+  const handleSubmitComment = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!commentContent.trim()) return;
+    commentMutation.mutate();
   };
 
   return (
@@ -145,19 +291,55 @@ export function TaskCard({
           <div className="flex items-center gap-4 mb-3">
             <motion.button
               whileTap={{ scale: 0.8 }}
-              onClick={() => setIsLiked(!isLiked)}
-              className="focus:outline-none"
+              onClick={handleLike}
+              className="focus:outline-none flex items-center gap-1.5"
             >
               <Heart
-                className={`w-7 h-7 transition-colors ${isLiked ? "fill-red-500 text-red-500" : "text-slate-800 hover:text-slate-600"}`}
+                className={`w-7 h-7 transition-colors ${isLiked && isLikedByMe ? "fill-red-500 text-red-500" : "text-slate-800 hover:text-slate-600"}`}
               />
+              {likes > 0 && (
+                <span className="text-sm font-bold text-slate-700">
+                  {likes}
+                </span>
+              )}
             </motion.button>
-            <button className="focus:outline-none text-slate-800 hover:text-slate-600 transition-colors">
-              <MessageCircle className="w-7 h-7" />
+            <button
+              onClick={() => setIsCommentModalOpen(true)}
+              className="focus:outline-none transition-colors"
+            >
+              <MessageCircle
+                className={`w-7 h-7 ${commentsCount > 0 ? "text-blue-500 fill-blue-500" : "text-slate-800 hover:text-slate-600"}`}
+              />
             </button>
-            <button className="focus:outline-none text-slate-800 hover:text-slate-600 transition-colors ml-auto">
+            <button
+              onClick={handleShare}
+              className="focus:outline-none text-slate-800 hover:text-slate-600 transition-colors"
+            >
               <Share2 className="w-6 h-6" />
             </button>
+
+            <div className="flex-1"></div>
+
+            <div
+              className={`flex items-center gap-0.5 ${isMentor ? "cursor-pointer hover:opacity-80" : ""}`}
+              onClick={() => (isMentor ? setIsReviewModalOpen(true) : null)}
+              title={isMentor ? "Beri ulasan" : ""}
+            >
+              {[1, 2, 3, 4, 5].map((star) => {
+                const rating5 = review ? review.grade / 20 : 0;
+
+                if (rating5 >= star) {
+                  return (
+                    <Star
+                      key={star}
+                      className="w-5 h-5 fill-amber-500 text-amber-500"
+                    />
+                  );
+                } else {
+                  return <Star key={star} className="w-5 h-5 text-slate-300" />;
+                }
+              })}
+            </div>
           </div>
 
           <p className="text-sm text-slate-800 leading-relaxed">
@@ -204,6 +386,116 @@ export function TaskCard({
           </div>
         )}
       </Card>
+
+      {/* Review Form Modal */}
+      <Dialog open={isReviewModalOpen} onOpenChange={setIsReviewModalOpen}>
+        <DialogContent className="sm:max-w-[425px] rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>Beri Ulasan Tugas</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmitReview} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="grade">Nilai / Rating (1-100)</Label>
+              <Input
+                id="grade"
+                type="number"
+                min="1"
+                max="100"
+                value={reviewGrade || ""}
+                onChange={(e) => setReviewGrade(Number(e.target.value))}
+                required
+                className="w-full"
+                placeholder="Contoh: 85"
+              />
+              <p className="text-xs text-slate-500">
+                Nilai akan dikonversi menjadi bintang. (cth: 80-100 = 5 bintang,
+                60-79 = 4 bintang, dll)
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="comment">Komentar / Deskripsi Evaluasi</Label>
+              <Textarea
+                id="comment"
+                value={reviewComment}
+                onChange={(e) => setReviewComment(e.target.value)}
+                required
+                className="w-full min-h-[100px]"
+                placeholder="Tulis ulasan Anda di sini..."
+              />
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsReviewModalOpen(false)}
+              >
+                Batal
+              </Button>
+              <Button type="submit" disabled={reviewMutation.isPending}>
+                {reviewMutation.isPending ? "Menyimpan..." : "Simpan Ulasan"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Comment Modal */}
+      <Dialog open={isCommentModalOpen} onOpenChange={setIsCommentModalOpen}>
+        <DialogContent className="sm:max-w-[425px] rounded-2xl flex flex-col max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>Komentar</DialogTitle>
+          </DialogHeader>
+
+          <ScrollArea className="flex-1 overflow-y-auto px-1 py-4 border-y border-slate-100 min-h-[200px]">
+            {commentsLoading ? (
+              <div className="text-center text-sm text-slate-500 my-4">
+                Memuat komentar...
+              </div>
+            ) : comments.length === 0 ? (
+              <div className="text-center text-sm text-slate-500 my-4">
+                Belum ada komentar. Jadilah yang pertama!
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {comments.map((comment: any) => (
+                  <div key={comment._id} className="flex gap-3">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={comment.authorId?.image} />
+                      <AvatarFallback>
+                        {comment.authorId?.name?.charAt(0)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 bg-slate-50 rounded-xl rounded-tl-none p-3 relative group">
+                      <p className="text-xs font-bold text-slate-900 mb-0.5">
+                        {comment.authorId?.name}
+                      </p>
+                      <p className="text-sm text-slate-700">
+                        {comment.content}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </ScrollArea>
+
+          <form onSubmit={handleSubmitComment} className="mt-2 flex gap-2">
+            <Input
+              value={commentContent}
+              onChange={(e) => setCommentContent(e.target.value)}
+              placeholder="Tulis komentar..."
+              className="flex-1"
+              required
+            />
+            <Button
+              type="submit"
+              disabled={commentMutation.isPending || !commentContent.trim()}
+            >
+              {commentMutation.isPending ? "Kirim..." : "Kirim"}
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Fullscreen Modal */}
       <AnimatePresence>

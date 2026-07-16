@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAlert } from "@/components/providers/AlertProvider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -24,34 +25,31 @@ interface AdminDashboardProps {
 
 export default function AdminDashboard({ currentUserId }: AdminDashboardProps) {
   const { showAlert } = useAlert();
-  const [users, setUsers] = useState<any[]>([]);
-  const [tasks, setTasks] = useState<any[]>([]);
-  
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
 
-  const fetchData = async () => {
-    setLoading(true);
-    const [usersRes, tasksRes] = await Promise.all([
-      getAllUsers(),
-      getAllTasks(),
-    ]);
+  const { data: users = [], isFetching: loadingUsers } = useQuery({
+    queryKey: ['admin', 'users'],
+    queryFn: async () => {
+      const res = await getAllUsers();
+      return res.success ? res.data || [] : [];
+    }
+  });
 
-    if (usersRes.success) setUsers(usersRes.data || []);
-    if (tasksRes.success) setTasks(tasksRes.data || []);
+  const { data: tasks = [], isFetching: loadingTasks } = useQuery({
+    queryKey: ['admin', 'tasks'],
+    queryFn: async () => {
+      const res = await getAllTasks();
+      return res.success ? res.data || [] : [];
+    }
+  });
 
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, []);
+  const loading = loadingUsers || loadingTasks;
 
   const handleRoleChange = async (userId: string, newRole: string) => {
     const res = await updateUserRole(userId, newRole);
     if (res.success) {
-      setUsers(
-        users.map((u) => (u.id === userId ? { ...u, role: newRole } : u)),
-      );
+      showAlert({ message: "Role berhasil diperbarui", type: "success" });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
     } else {
       showAlert({ message: "Gagal mengubah role: " + res.error, type: "error" });
     }

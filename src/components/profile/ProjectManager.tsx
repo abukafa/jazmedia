@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAlert } from "@/components/providers/AlertProvider";
 import {
   Folder,
@@ -43,13 +44,31 @@ interface ProjectManagerProps {
 
 export function ProjectManager({ currentUserId, isAdmin, readonly = false }: ProjectManagerProps) {
   const { showAlert } = useAlert();
-  const [projects, setProjects] = useState<any[]>([]);
-  const [mentors, setMentors] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
 
   // Pagination State for Projects
   const [projectPage, setProjectPage] = useState(1);
-  const [projectTotalPages, setProjectTotalPages] = useState(1);
+
+  const { data: projectsData, isFetching: loadingProjects } = useQuery({
+    queryKey: ['admin', 'projects', projectPage],
+    queryFn: async () => {
+      const res = await getAllProjects(projectPage, 5);
+      return res;
+    }
+  });
+
+  const projects = projectsData?.success ? projectsData.data || [] : [];
+  const projectTotalPages = projectsData?.success ? projectsData.pagination?.totalPages || 1 : 1;
+
+  const { data: mentors = [], isFetching: loadingMentors } = useQuery({
+    queryKey: ['admin', 'mentors'],
+    queryFn: async () => {
+      const res = await getAllMentors();
+      return res.success ? res.data || [] : [];
+    }
+  });
+
+  const loading = loadingProjects || loadingMentors;
 
   // Modal State
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
@@ -60,26 +79,6 @@ export function ProjectManager({ currentUserId, isAdmin, readonly = false }: Pro
   const [selectedStatus, setSelectedStatus] = useState("active");
   const [selectedMentor, setSelectedMentor] = useState("");
 
-  const fetchData = async () => {
-    setLoading(true);
-    const [projectsRes, mentorsRes] = await Promise.all([
-      getAllProjects(projectPage, 5),
-      getAllMentors(),
-    ]);
-
-    if (projectsRes.success) {
-      setProjects(projectsRes.data || []);
-      setProjectTotalPages(projectsRes.pagination?.totalPages || 1);
-    }
-    if (mentorsRes.success) setMentors(mentorsRes.data || []);
-
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, [projectPage]);
-
   const handleProjectSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -87,19 +86,19 @@ export function ProjectManager({ currentUserId, isAdmin, readonly = false }: Pro
 
     let res;
     if (editingProject) {
-      res = await updateProject(editingProject.id, formData);
+      res = await updateProject(editingProject._id, formData);
     } else {
       res = await createProject(formData);
     }
 
-    setIsSubmitting(false);
     if (res.success) {
+      showAlert({ message: `Proyek berhasil ${editingProject ? "diperbarui" : "dibuat"}`, type: "success" });
       setIsProjectModalOpen(false);
-      setEditingProject(null);
-      fetchData(); // Refresh list
+      queryClient.invalidateQueries({ queryKey: ['admin', 'projects'] });
     } else {
       showAlert({ message: "Gagal menyimpan proyek: " + res.error, type: "error" });
     }
+    setIsSubmitting(false);
   };
 
   const openEditProject = (project: any) => {

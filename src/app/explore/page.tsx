@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Search, Hash, User, Folder, Loader2, ArrowLeft, Play, FileTextIcon } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TaskCard } from "@/components/feed/TaskCard";
@@ -11,12 +12,8 @@ import { getDirectMediaUrl } from "@/lib/utils/media";
 
 export default function Explore() {
   const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [activeTab, setActiveTab] = useState("tasks");
-  const [tasks, setTasks] = useState<any[]>([]);
-  const [users, setUsers] = useState<any[]>([]);
-  const [projects, setProjects] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [hasSearched, setHasSearched] = useState(false);
   const [selectedTaskIndex, setSelectedTaskIndex] = useState<number | null>(null);
 
   // Fungsi untuk scroll otomatis
@@ -28,27 +25,31 @@ export default function Explore() {
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      if (query.trim().length > 0) {
-        setLoading(true);
-        setHasSearched(true);
-        if (activeTab === "tasks") {
-          searchTasks(query).then((res) => { setTasks(res); setLoading(false); });
-        } else if (activeTab === "users") {
-          searchUsers(query).then((res) => { setUsers(res); setLoading(false); });
-        } else if (activeTab === "projects") {
-          searchProjects(query).then((res) => { setProjects(res); setLoading(false); });
-        }
-      } else {
-        setTasks([]);
-        setUsers([]);
-        setProjects([]);
-        setHasSearched(false);
-        setLoading(false);
-      }
+      setDebouncedQuery(query);
     }, 400);
-
     return () => clearTimeout(timeoutId);
-  }, [query, activeTab]);
+  }, [query]);
+
+  const { data: tasks = [], isFetching: loadingTasks } = useQuery({
+    queryKey: ['search', 'tasks', debouncedQuery],
+    queryFn: () => searchTasks(debouncedQuery),
+    enabled: debouncedQuery.trim().length > 0 && activeTab === 'tasks',
+  });
+
+  const { data: users = [], isFetching: loadingUsers } = useQuery({
+    queryKey: ['search', 'users', debouncedQuery],
+    queryFn: () => searchUsers(debouncedQuery),
+    enabled: debouncedQuery.trim().length > 0 && activeTab === 'users',
+  });
+
+  const { data: projects = [], isFetching: loadingProjects } = useQuery({
+    queryKey: ['search', 'projects', debouncedQuery],
+    queryFn: () => searchProjects(debouncedQuery),
+    enabled: debouncedQuery.trim().length > 0 && activeTab === 'projects',
+  });
+
+  const loading = activeTab === 'tasks' ? loadingTasks : activeTab === 'users' ? loadingUsers : loadingProjects;
+  const hasSearched = debouncedQuery.trim().length > 0;
 
   return (
     <div className="pt-6 pb-24 bg-slate-50 min-h-screen">
@@ -85,7 +86,7 @@ export default function Explore() {
             <div className="text-center py-10 text-slate-500">Tidak ada tugas ditemukan.</div>
           ) : tasks.length > 0 ? (
             <div className="grid grid-cols-3 gap-[2px]">
-              {tasks.map((task, i) => (
+              {tasks.map((task: any, i: number) => (
                 <div
                   key={task.id}
                   onClick={() => setSelectedTaskIndex(i)}
@@ -129,7 +130,7 @@ export default function Explore() {
             <div className="text-center py-10 text-slate-500">Tidak ada member ditemukan.</div>
           ) : users.length > 0 ? (
             <div className="space-y-3">
-              {users.map(user => (
+              {users.map((user: any) => (
                 <div key={user._id} className="flex items-center gap-4 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
                   <Avatar className="w-12 h-12 border border-slate-100">
                     <AvatarImage src={user.image || `https://api.dicebear.com/7.x/initials/svg?seed=${user.name}`} />
@@ -164,7 +165,7 @@ export default function Explore() {
             <div className="text-center py-10 text-slate-500">Tidak ada proyek ditemukan.</div>
           ) : projects.length > 0 ? (
             <div className="space-y-3">
-              {projects.map(project => (
+              {projects.map((project: any) => (
                 <div key={project._id} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
                   <h4 className="text-sm font-bold text-blue-600 mb-1">{project.title}</h4>
                   <p className="text-xs text-slate-600 line-clamp-2">{project.description}</p>
@@ -199,7 +200,7 @@ export default function Explore() {
           </div>
           <div className="flex-1 overflow-y-auto w-full px-4">
             <div className="max-w-md mx-auto w-full pb-20 pt-4">
-              {tasks.map((task, index) => (
+              {tasks.map((task: any, index: number) => (
                 <div
                   key={task.id}
                   ref={index === selectedTaskIndex ? scrollRef : null}

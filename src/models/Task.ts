@@ -8,6 +8,7 @@ export interface ITask extends Document {
   projectId: mongoose.Types.ObjectId;
   authorId: mongoose.Types.ObjectId;
   collaborators: mongoose.Types.ObjectId[];
+  likes: mongoose.Types.ObjectId[];
   status: "pending" | "reviewed" | "approved";
   review?: {
     mentorId: mongoose.Types.ObjectId;
@@ -26,6 +27,7 @@ const TaskSchema = new Schema<ITask>(
     projectId: { type: Schema.Types.ObjectId, ref: "Project", required: true },
     authorId: { type: Schema.Types.ObjectId, ref: "User", required: true },
     collaborators: [{ type: Schema.Types.ObjectId, ref: "User" }],
+    likes: [{ type: Schema.Types.ObjectId, ref: "User" }],
     status: { type: String, enum: ["pending", "reviewed", "approved"], default: "pending" },
     review: {
       mentorId: { type: Schema.Types.ObjectId, ref: "User" },

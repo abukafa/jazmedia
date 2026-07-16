@@ -4,6 +4,9 @@ import dbConnect from "@/lib/db";
 import Task from "@/models/Task";
 import User from "@/models/User";
 import Project from "@/models/Project";
+import Comment from "@/models/Comment";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 export async function searchTasks(query: string) {
   if (!query) return [];
@@ -53,27 +56,37 @@ export async function searchTasks(query: string) {
     return Math.floor(seconds) + " detik";
   };
 
-  const formattedTasks = tasks.map((task: any) => ({
-    id: task._id.toString(),
-    author: {
-      name: task.authorId?.name || "Member",
-      image: task.authorId?.image || "https://i.pravatar.cc/150",
-    },
-    collaborators: task.collaborators?.map((c: any) => ({
-      name: c.name,
-      image: c.image || "https://i.pravatar.cc/150",
-    })) || [],
-    projectTitle: task.projectId?.title || "Project",
-    mediaUrl: task.mediaUrl,
-    mediaUrls: task.mediaUrls || [task.mediaUrl],
-    mediaType: task.mediaType,
-    caption: task.caption,
-    timeAgo: timeAgo(task.createdAt) + " yang lalu",
-    review: task.review?.grade ? {
-      grade: task.review.grade,
-      comment: task.review.comment,
-      mentorName: "Mentor",
-    } : undefined,
+  const session = await getServerSession(authOptions);
+  const sessionUserId = (session?.user as any)?.id;
+
+  const formattedTasks = await Promise.all(tasks.map(async (task: any) => {
+    const commentsCount = await Comment.countDocuments({ taskId: task._id });
+    return {
+      id: task._id.toString(),
+      author: {
+        name: task.authorId?.name || "Member",
+        image: task.authorId?.image || "https://i.pravatar.cc/150",
+      },
+      collaborators: task.collaborators?.map((c: any) => ({
+        name: c.name,
+        image: c.image || "https://i.pravatar.cc/150",
+      })) || [],
+      projectTitle: task.projectId?.title || "Project",
+      mediaUrl: task.mediaUrl,
+      mediaUrls: task.mediaUrls || [task.mediaUrl],
+      mediaType: task.mediaType,
+      caption: task.caption,
+      timeAgo: timeAgo(task.createdAt) + " yang lalu",
+      review: task.review?.grade ? {
+        grade: task.review.grade,
+        comment: task.review.comment,
+        mentorName: "Mentor", // Should populate properly later
+      } : undefined,
+      likesCount: task.likes?.length || 0,
+      isLikedByMe: sessionUserId ? task.likes?.some((id: any) => id.toString() === sessionUserId.toString()) : false,
+      commentsCount,
+      createdAt: task.createdAt.toISOString(),
+    };
   }));
     
   return JSON.parse(JSON.stringify(formattedTasks));

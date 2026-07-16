@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { 
   getNotifications, 
   markAsRead, 
@@ -20,32 +21,35 @@ import { useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export default function NotificationsPage() {
-  const [notifications, setNotifications] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("all");
   const router = useRouter();
+  const queryClient = useQueryClient();
 
-  const fetchNotifications = async (type: string) => {
-    setLoading(true);
-    const res = await getNotifications(type);
-    if (res.success) {
-      setNotifications(res.data);
+  const { data: notifications = [], isFetching: loading } = useQuery({
+    queryKey: ['notifications', activeTab],
+    queryFn: async () => {
+      const res = await getNotifications(activeTab);
+      return res.success ? res.data : [];
     }
-    setLoading(false);
+  });
+
+  const markAllMutation = useMutation({
+    mutationFn: markAllAsRead,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notifications'] })
+  });
+
+  const markAsReadMutation = useMutation({
+    mutationFn: markAsRead,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notifications'] })
+  });
+
+  const handleMarkAllRead = () => {
+    markAllMutation.mutate();
   };
 
-  useEffect(() => {
-    fetchNotifications(activeTab);
-  }, [activeTab]);
-
-  const handleMarkAllRead = async () => {
-    await markAllAsRead();
-    fetchNotifications(activeTab);
-  };
-
-  const handleNotificationClick = async (notif: any) => {
+  const handleNotificationClick = (notif: any) => {
     if (!notif.isRead) {
-      await markAsRead(notif._id);
+      markAsReadMutation.mutate(notif._id);
     }
     if (notif.link) {
       router.push(notif.link);
@@ -122,7 +126,7 @@ export default function NotificationsPage() {
             </div>
           ) : (
             <div className="divide-y divide-slate-100">
-              {notifications.map((notif) => (
+              {notifications.map((notif: any) => (
                 <div 
                   key={notif._id}
                   onClick={() => handleNotificationClick(notif)}

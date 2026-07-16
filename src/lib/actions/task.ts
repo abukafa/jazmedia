@@ -4,6 +4,7 @@ import dbConnect from "@/lib/db";
 import Task from "@/models/Task";
 import User from "@/models/User";
 import Project from "@/models/Project";
+import Comment from "@/models/Comment";
 import { uploadToGDrive } from "@/lib/actions/upload";
 import { revalidatePath } from "next/cache";
 
@@ -64,6 +65,9 @@ export async function submitTask(formData: FormData) {
 export async function getTasks({ pageParam = 1 }: { pageParam?: number }) {
   try {
     await dbConnect();
+    const session = await getServerSession(authOptions);
+    const userId = (session?.user as any)?.id;
+
     const limit = 5;
     const skip = (pageParam - 1) * limit;
 
@@ -93,28 +97,34 @@ export async function getTasks({ pageParam = 1 }: { pageParam?: number }) {
     };
 
     // Map to MVP TaskCard format
-    const formattedTasks = tasks.map((task: any) => ({
-      id: task._id.toString(),
-      author: {
-        name: task.authorId?.name || "Member",
-        image: task.authorId?.image || "https://i.pravatar.cc/150",
-      },
-      collaborators: task.collaborators?.map((c: any) => ({
-        name: c.name,
-        image: c.image || "https://i.pravatar.cc/150",
-      })) || [],
-      projectTitle: task.projectId?.title || "Project",
-      mediaUrl: task.mediaUrl,
-      mediaUrls: task.mediaUrls || [task.mediaUrl],
-      mediaType: task.mediaType,
-      caption: task.caption,
-      timeAgo: timeAgo(task.createdAt) + " yang lalu",
-      review: task.review?.grade ? {
-        grade: task.review.grade,
-        comment: task.review.comment,
-        mentorName: "Mentor",
-      } : undefined,
-      createdAt: task.createdAt.toISOString(),
+    const formattedTasks = await Promise.all(tasks.map(async (task: any) => {
+      const commentsCount = await Comment.countDocuments({ taskId: task._id });
+      return {
+        id: task._id.toString(),
+        author: {
+          name: task.authorId?.name || "Member",
+          image: task.authorId?.image || "https://i.pravatar.cc/150",
+        },
+        collaborators: task.collaborators?.map((c: any) => ({
+          name: c.name,
+          image: c.image || "https://i.pravatar.cc/150",
+        })) || [],
+        projectTitle: task.projectId?.title || "Project",
+        mediaUrl: task.mediaUrl,
+        mediaUrls: task.mediaUrls || [task.mediaUrl],
+        mediaType: task.mediaType,
+        caption: task.caption,
+        timeAgo: timeAgo(task.createdAt) + " yang lalu",
+        review: task.review?.grade ? {
+          grade: task.review.grade,
+          comment: task.review.comment,
+          mentorName: "Mentor", // Should probably populate this later
+        } : undefined,
+        likesCount: task.likes?.length || 0,
+        isLikedByMe: userId ? task.likes?.some((id: any) => id.toString() === userId.toString()) : false,
+        commentsCount,
+        createdAt: task.createdAt.toISOString(),
+      };
     }));
 
     return {
@@ -180,29 +190,38 @@ export async function getUserTasks(userId: string) {
       return Math.floor(seconds) + " detik";
     };
 
+    const session = await getServerSession(authOptions);
+    const sessionUserId = (session?.user as any)?.id;
+
     // Map to MVP TaskCard format
-    const formattedTasks = tasks.map((task: any) => ({
-      id: task._id.toString(),
-      author: {
-        name: task.authorId?.name || "Member",
-        image: task.authorId?.image || "https://i.pravatar.cc/150",
-      },
-      collaborators: task.collaborators?.map((c: any) => ({
-        name: c.name,
-        image: c.image || "https://i.pravatar.cc/150",
-      })) || [],
-      projectTitle: task.projectId?.title || "Project",
-      mediaUrl: task.mediaUrl,
-      mediaUrls: task.mediaUrls || [task.mediaUrl],
-      mediaType: task.mediaType,
-      caption: task.caption,
-      timeAgo: timeAgo(task.createdAt) + " yang lalu",
-      review: task.review?.grade ? {
-        grade: task.review.grade,
-        comment: task.review.comment,
-        mentorName: "Mentor",
-      } : undefined,
-      createdAt: task.createdAt.toISOString(),
+    const formattedTasks = await Promise.all(tasks.map(async (task: any) => {
+      const commentsCount = await Comment.countDocuments({ taskId: task._id });
+      return {
+        id: task._id.toString(),
+        author: {
+          name: task.authorId?.name || "Member",
+          image: task.authorId?.image || "https://i.pravatar.cc/150",
+        },
+        collaborators: task.collaborators?.map((c: any) => ({
+          name: c.name,
+          image: c.image || "https://i.pravatar.cc/150",
+        })) || [],
+        projectTitle: task.projectId?.title || "Project",
+        mediaUrl: task.mediaUrl,
+        mediaUrls: task.mediaUrls || [task.mediaUrl],
+        mediaType: task.mediaType,
+        caption: task.caption,
+        timeAgo: timeAgo(task.createdAt) + " yang lalu",
+        review: task.review?.grade ? {
+          grade: task.review.grade,
+          comment: task.review.comment,
+          mentorName: "Mentor",
+        } : undefined,
+        likesCount: task.likes?.length || 0,
+        isLikedByMe: sessionUserId ? task.likes?.some((id: any) => id.toString() === sessionUserId.toString()) : false,
+        commentsCount,
+        createdAt: task.createdAt.toISOString(),
+      };
     }));
 
     return { success: true, data: formattedTasks };
@@ -212,3 +231,79 @@ export async function getUserTasks(userId: string) {
   }
 }
 
+export async function toggleLike(taskId: string) {
+  const session = await getServerSession(authOptions);
+  const userId = (session?.user as any)?.id;
+  if (!userId) return { success: false, error: "Unauthorized" };
+  await dbConnect();
+  try {
+    const task = await Task.findById(taskId);
+    if (!task) return { success: false, error: "Not found" };
+    
+    const isLiked = task.likes?.some((id: any) => id.toString() === userId.toString());
+    
+    if (isLiked) {
+      await Task.findByIdAndUpdate(taskId, { $pull: { likes: userId } });
+    } else {
+      await Task.findByIdAndUpdate(taskId, { $addToSet: { likes: userId } });
+    }
+    
+    const updatedTask = await Task.findById(taskId);
+    revalidatePath("/");
+    revalidatePath("/explore");
+    return { success: true, isLikedByMe: !isLiked, likesCount: updatedTask?.likes?.length || 0 };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function addComment(taskId: string, content: string) {
+  const session = await getServerSession(authOptions);
+  const userId = (session?.user as any)?.id;
+  if (!userId) return { success: false, error: "Unauthorized" };
+  await dbConnect();
+  try {
+    const comment = await Comment.create({ taskId, authorId: userId, content });
+    return { success: true, data: JSON.parse(JSON.stringify(comment)) };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function getComments(taskId: string) {
+  await dbConnect();
+  try {
+    const comments = await Comment.find({ taskId })
+      .populate("authorId", "name image")
+      .sort({ createdAt: 1 })
+      .lean();
+    return { success: true, data: JSON.parse(JSON.stringify(comments)) };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function submitReview(taskId: string, grade: number, comment: string) {
+  const session = await getServerSession(authOptions);
+  const user = session?.user as any;
+  if (!user || (user.role !== "mentor" && user.role !== "admin")) {
+    return { success: false, error: "Unauthorized" };
+  }
+  await dbConnect();
+  try {
+    const task = await Task.findById(taskId);
+    if (!task) return { success: false, error: "Not found" };
+    
+    task.review = {
+      mentorId: user.id as any,
+      grade,
+      comment,
+      reviewedAt: new Date()
+    };
+    task.status = "reviewed";
+    await task.save();
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}

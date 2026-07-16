@@ -140,52 +140,95 @@ export default function Profile() {
   }, [session]);
 
   // --- Dynamic Insights Calculations ---
-  const { averageGrade, mediaDistribution, topReviews, chartData } = useMemo(() => {
-    // Average Grade
-    const validGrades = userTasks.filter(t => t.review?.grade).map(t => t.review!.grade);
-    const averageGrade = validGrades.length > 0 
-      ? Math.round(validGrades.reduce((a, b) => a + b, 0) / validGrades.length) 
-      : 0;
+  const { averageGrade, mediaDistribution, topReviews, chartData } =
+    useMemo(() => {
+      // Average Grade
+      const validGrades = userTasks
+        .filter((t) => t.review?.grade)
+        .map((t) => t.review!.grade);
+      const averageGrade =
+        validGrades.length > 0
+          ? Math.round(
+              validGrades.reduce((a, b) => a + b, 0) / validGrades.length,
+            )
+          : 0;
 
-    // Media Type Distribution
-    const imageCount = userTasks.filter(t => t.mediaType === "image").length;
-    const videoCount = userTasks.filter(t => t.mediaType === "video").length;
-    const documentCount = userTasks.filter(t => t.mediaType === "document").length;
-    const totalMedia = imageCount + videoCount + documentCount;
-    
-    const mediaDistribution = totalMedia > 0 ? [
-      { name: "Image", percentage: Math.round((imageCount / totalMedia) * 100), icon: "PenTool" as SkillIconName },
-      { name: "Video", percentage: Math.round((videoCount / totalMedia) * 100), icon: "Monitor" as SkillIconName },
-      { name: "Document", percentage: Math.round((documentCount / totalMedia) * 100), icon: "Database" as SkillIconName },
-    ].filter(m => m.percentage > 0) : [];
+      // Media Type Distribution
+      const imageCount = userTasks.filter(
+        (t) => t.mediaType === "image",
+      ).length;
+      const videoCount = userTasks.filter(
+        (t) => t.mediaType === "video",
+      ).length;
+      const documentCount = userTasks.filter(
+        (t) => t.mediaType === "document",
+      ).length;
+      const totalMedia = imageCount + videoCount + documentCount;
 
-    // Top Reviews
-    const topReviews = [...userTasks]
-      .filter(t => t.review?.grade)
-      .sort((a, b) => b.review!.grade - a.review!.grade)
-      .slice(0, 2);
+      const mediaDistribution =
+        totalMedia > 0
+          ? [
+              {
+                name: "Image",
+                percentage: Math.round((imageCount / totalMedia) * 100),
+                icon: "PenTool" as SkillIconName,
+              },
+              {
+                name: "Video",
+                percentage: Math.round((videoCount / totalMedia) * 100),
+                icon: "Monitor" as SkillIconName,
+              },
+              {
+                name: "Document",
+                percentage: Math.round((documentCount / totalMedia) * 100),
+                icon: "Database" as SkillIconName,
+              },
+            ].filter((m) => m.percentage > 0)
+          : [];
 
-    // Timeline (Last 6 months)
-    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    const timelineData = monthNames.map(month => ({ name: month, tasks: 0 }));
-    
-    userTasks.forEach(task => {
-      if (task.createdAt) {
-        const date = new Date(task.createdAt);
-        timelineData[date.getMonth()].tasks += 1;
+      // Top Reviews
+      const topReviews = [...userTasks]
+        .filter((t) => t.review?.grade)
+        .sort((a, b) => b.review!.grade - a.review!.grade)
+        .slice(0, 2);
+
+      // Timeline (Last 6 months)
+      const monthNames = [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
+      ];
+      const timelineData = monthNames.map((month) => ({
+        name: month,
+        tasks: 0,
+      }));
+
+      userTasks.forEach((task) => {
+        if (task.createdAt) {
+          const date = new Date(task.createdAt);
+          timelineData[date.getMonth()].tasks += 1;
+        }
+      });
+
+      const currentMonthIndex = new Date().getMonth();
+      const startMonthIndex = (currentMonthIndex - 5 + 12) % 12;
+      const chartData = [];
+      for (let i = 0; i < 6; i++) {
+        const idx = (startMonthIndex + i) % 12;
+        chartData.push(timelineData[idx]);
       }
-    });
 
-    const currentMonthIndex = new Date().getMonth();
-    const startMonthIndex = (currentMonthIndex - 5 + 12) % 12;
-    const chartData = [];
-    for (let i = 0; i < 6; i++) {
-      const idx = (startMonthIndex + i) % 12;
-      chartData.push(timelineData[idx]);
-    }
-
-    return { averageGrade, mediaDistribution, topReviews, chartData };
-  }, [userTasks]);
+      return { averageGrade, mediaDistribution, topReviews, chartData };
+    }, [userTasks]);
 
   if (status === "loading") {
     return (
@@ -284,7 +327,9 @@ export default function Profile() {
   const username = dbUser?.username || "";
   const image =
     dbUser?.image || sessionUser?.image || "https://i.pravatar.cc/150";
-  const bio = dbUser ? dbUser.bio : "Halo! Saya menggunakan Jazmedia untuk membangun portofolio dan berbagi perjalanan belajar saya.";
+  const bio = dbUser
+    ? dbUser.bio
+    : "Halo! Saya menggunakan Jazmedia untuk membangun portofolio dan berbagi perjalanan belajar saya.";
   const skills = dbUser?.skills || [];
   const role = dbUser?.role || sessionUser?.role || "member";
 
@@ -315,15 +360,21 @@ export default function Profile() {
 
           <div className="flex-1 flex justify-around text-center">
             <div className="flex flex-col">
-              <span className="font-bold text-lg text-slate-900">{userTasks.length}</span>
+              <span className="font-bold text-lg text-slate-900">
+                {userTasks.length}
+              </span>
               <span className="text-xs text-slate-500">Tasks</span>
             </div>
             <div className="flex flex-col">
-              <span className="font-bold text-lg text-slate-900">{topReviews.length}</span>
+              <span className="font-bold text-lg text-slate-900">
+                {topReviews.length}
+              </span>
               <span className="text-xs text-slate-500">Top Reviews</span>
             </div>
             <div className="flex flex-col">
-              <span className="font-bold text-lg text-slate-900">{averageGrade || "-"}</span>
+              <span className="font-bold text-lg text-slate-900">
+                {averageGrade || "-"}
+              </span>
               <span className="text-xs text-slate-500">Avg Grade</span>
             </div>
           </div>
@@ -474,7 +525,11 @@ export default function Profile() {
           </TabsContent>
 
           <TabsContent value="projects" className="p-4">
-            <ProjectManager currentUserId={dbUser?.id || ""} isAdmin={false} readonly={role !== "mentor"} />
+            <ProjectManager
+              currentUserId={dbUser?.id || ""}
+              isAdmin={false}
+              readonly={role !== "mentor"}
+            />
           </TabsContent>
 
           <TabsContent
@@ -485,7 +540,7 @@ export default function Profile() {
               <Card className="border-none shadow-sm rounded-3xl bg-gradient-to-br from-blue-50 to-white hover:shadow-md transition-shadow">
                 <CardContent className="p-5 flex flex-col items-center justify-center text-center h-full">
                   <span className="text-4xl font-black text-blue-600 mb-1 tracking-tighter">
-                    {userTasks.filter(t => t.review?.grade).length}
+                    {userTasks.filter((t) => t.review?.grade).length}
                   </span>
                   <span className="text-[11px] uppercase tracking-wider font-bold text-slate-500">
                     Karya Dinilai
@@ -592,7 +647,10 @@ export default function Profile() {
                   </h3>
                   <div className="space-y-3">
                     {topReviews.map((reviewData, i) => (
-                      <div key={i} className="bg-white/60 backdrop-blur-sm rounded-2xl p-4 border border-amber-100/50">
+                      <div
+                        key={i}
+                        className="bg-white/60 backdrop-blur-sm rounded-2xl p-4 border border-amber-100/50"
+                      >
                         <div className="flex justify-between items-start mb-2">
                           <p className="text-xs font-bold text-amber-700">
                             {reviewData.projectTitle}
@@ -606,7 +664,7 @@ export default function Profile() {
                         </p>
                         <div className="text-xs font-bold text-slate-900 mt-3 flex items-center">
                           <div className="w-5 h-5 rounded-full bg-slate-200 mr-2 flex items-center justify-center text-[8px] uppercase">
-                            {reviewData.review!.mentorName.substring(0,2)}
+                            {reviewData.review!.mentorName.substring(0, 2)}
                           </div>
                           {reviewData.review!.mentorName}
                         </div>

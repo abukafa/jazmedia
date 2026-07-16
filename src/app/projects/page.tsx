@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   FolderOpen,
@@ -14,25 +15,18 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 export default function Projects() {
-  const [projects, setProjects] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
 
   const [selectedProject, setSelectedProject] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const fetchProjects = async () => {
-    setLoading(true);
-    const res = await getPublicProjects(filter);
-    if (res.success) {
-      setProjects(res.data || []);
+  const { data: projects = [], isFetching: loading } = useQuery({
+    queryKey: ['projects', filter],
+    queryFn: async () => {
+      const res = await getPublicProjects(filter);
+      return res.success ? res.data || [] : [];
     }
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    fetchProjects();
-  }, [filter]);
+  });
 
   // Kalkulasi durasi berjalan
   const calculateDays = (createdAt: string) => {

@@ -325,7 +325,7 @@ export default function Profile() {
         )}
 
         {/* Akun cadangan/dummy jika belum setup kredensial IG */}
-        <div className="mt-8 pt-8 border-t border-slate-100 w-full">
+        <div className="hidden mt-8 pt-8 border-t border-slate-100 w-full">
           <p className="text-[10px] text-slate-400 text-center mb-4 font-black uppercase tracking-widest">
             Uji Coba MVP (Masuk Tanpa Sandi)
           </p>

@@ -4,17 +4,14 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAlert } from "@/components/providers/AlertProvider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Users,
-  Folder,
-  Grid3X3,
-  ShieldAlert,
-} from "lucide-react";
+import { Users, Folder, Grid3X3, ShieldAlert } from "lucide-react";
 import {
   getAllUsers,
   updateUserRole,
   getAllTasks,
   getAllMentors,
+  deleteUser,
+  deleteTask,
 } from "@/lib/actions/admin";
 import { Button } from "@/components/ui/button";
 import { ProjectManager } from "@/components/profile/ProjectManager";
@@ -28,19 +25,19 @@ export default function AdminDashboard({ currentUserId }: AdminDashboardProps) {
   const queryClient = useQueryClient();
 
   const { data: users = [], isFetching: loadingUsers } = useQuery({
-    queryKey: ['admin', 'users'],
+    queryKey: ["admin", "users"],
     queryFn: async () => {
       const res = await getAllUsers();
       return res.success ? res.data || [] : [];
-    }
+    },
   });
 
   const { data: tasks = [], isFetching: loadingTasks } = useQuery({
-    queryKey: ['admin', 'tasks'],
+    queryKey: ["admin", "tasks"],
     queryFn: async () => {
       const res = await getAllTasks();
       return res.success ? res.data || [] : [];
-    }
+    },
   });
 
   const loading = loadingUsers || loadingTasks;
@@ -49,9 +46,47 @@ export default function AdminDashboard({ currentUserId }: AdminDashboardProps) {
     const res = await updateUserRole(userId, newRole);
     if (res.success) {
       showAlert({ message: "Role berhasil diperbarui", type: "success" });
-      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
     } else {
-      showAlert({ message: "Gagal mengubah role: " + res.error, type: "error" });
+      showAlert({
+        message: "Gagal mengubah role: " + res.error,
+        type: "error",
+      });
+    }
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    if (
+      !confirm(
+        "Apakah Anda yakin ingin menghapus pengguna ini? Semua data yang terkait mungkin juga terhapus.",
+      )
+    )
+      return;
+
+    const res = await deleteUser(userId);
+    if (res.success) {
+      showAlert({ message: "Pengguna berhasil dihapus", type: "success" });
+      queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+    } else {
+      showAlert({
+        message: "Gagal menghapus pengguna: " + res.error,
+        type: "error",
+      });
+    }
+  };
+
+  const handleDeleteTask = async (taskId: string) => {
+    if (!confirm("Apakah Anda yakin ingin menghapus postingan ini?")) return;
+
+    const res = await deleteTask(taskId);
+    if (res.success) {
+      showAlert({ message: "Postingan berhasil dihapus", type: "success" });
+      queryClient.invalidateQueries({ queryKey: ["admin", "tasks"] });
+    } else {
+      showAlert({
+        message: "Gagal menghapus postingan: " + res.error,
+        type: "error",
+      });
     }
   };
 
@@ -123,10 +158,11 @@ export default function AdminDashboard({ currentUserId }: AdminDashboardProps) {
                   </p>
                 </div>
               </div>
-              <select
-                value={user.role}
-                onChange={(e) => handleRoleChange(user.id, e.target.value)}
-                className={`text-xs font-bold px-2 py-1.5 rounded-lg border-none focus:ring-2 focus:ring-red-100 outline-none
+              <div className="mt-2 flex justify-between items-center">
+                <select
+                  value={user.role}
+                  onChange={(e) => handleRoleChange(user.id, e.target.value)}
+                  className={`text-xs font-bold px-2 py-1.5 rounded-lg border-none focus:ring-2 focus:ring-red-100 outline-none
                   ${
                     user.role === "admin"
                       ? "bg-red-100 text-red-700"
@@ -134,12 +170,37 @@ export default function AdminDashboard({ currentUserId }: AdminDashboardProps) {
                         ? "bg-amber-100 text-amber-700"
                         : "bg-slate-100 text-slate-700"
                   }`}
-              >
-                <option value="member">Member</option>
-                <option value="mentor">Mentor</option>
-                <option value="admin">Admin</option>
-                <option value="guest">Guest</option>
-              </select>
+                >
+                  <option value="member">Member</option>
+                  <option value="mentor">Mentor</option>
+                  <option value="admin">Admin</option>
+                  <option value="guest">Guest</option>
+                </select>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleDeleteUser(user.id)}
+                  className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 ml-2"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M3 6h18" />
+                    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                    <line x1="10" x2="10" y1="11" y2="17" />
+                    <line x1="14" x2="14" y1="11" y2="17" />
+                  </svg>
+                </Button>
+              </div>
             </div>
           ))}
           {users.length === 0 && (
@@ -178,7 +239,8 @@ export default function AdminDashboard({ currentUserId }: AdminDashboardProps) {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-6 text-[10px] text-red-500 hover:text-red-700 px-2 font-bold"
+                    onClick={() => handleDeleteTask(task.id)}
+                    className="h-6 text-[10px] text-red-500 hover:text-red-700 hover:bg-red-50 px-2 font-bold"
                   >
                     Hapus
                   </Button>

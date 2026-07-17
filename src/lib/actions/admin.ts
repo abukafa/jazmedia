@@ -60,6 +60,20 @@ export async function updateUserRole(userId: string, newRole: string) {
   }
 }
 
+export async function deleteUser(userId: string) {
+  if (!(await checkAdmin())) return { success: false, error: "Unauthorized" };
+  
+  try {
+    await dbConnect();
+    await User.findByIdAndDelete(userId);
+    // Option: also delete user's tasks, projects, etc.
+    revalidatePath("/profile");
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
 // ---------------------------
 // MENTORS DATA (For Select)
 // ---------------------------
@@ -199,6 +213,19 @@ export async function updateProject(projectId: string, formData: FormData) {
   }
 }
 
+export async function deleteProject(projectId: string) {
+  if (!(await checkAdmin())) return { success: false, error: "Unauthorized" };
+  
+  try {
+    await dbConnect();
+    await Project.findByIdAndDelete(projectId);
+    revalidatePath("/profile");
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
 // ---------------------------
 // TASKS MASTER DATA
 // ---------------------------
@@ -225,6 +252,19 @@ export async function getAllTasks() {
         createdAt: t.createdAt,
       }))
     };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
+export async function deleteTask(taskId: string) {
+  if (!(await checkAdmin())) return { success: false, error: "Unauthorized" };
+  
+  try {
+    await dbConnect();
+    await Task.findByIdAndDelete(taskId);
+    revalidatePath("/profile");
+    return { success: true };
   } catch (err: any) {
     return { success: false, error: err.message };
   }

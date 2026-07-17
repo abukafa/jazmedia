@@ -86,6 +86,7 @@ export function TaskCard({
 
   const [isLiked, setIsLiked] = useState(isLikedByMe);
   const [likes, setLikes] = useState(likesCount);
+  const [showBigHeart, setShowBigHeart] = useState(false);
 
   useEffect(() => {
     setLikes(likesCount);
@@ -151,9 +152,23 @@ export function TaskCard({
 
   const handleLike = () => {
     // Optimistic update
+    const previousIsLiked = isLiked;
     setIsLiked(!isLiked);
     setLikes(isLiked ? likes - 1 : likes + 1);
+    
+    if (!isLiked) {
+      setShowBigHeart(true);
+    }
+    
     likeMutation.mutate();
+  };
+
+  const handleDoubleClick = () => {
+    if (!isLiked) {
+      handleLike();
+    } else {
+      setShowBigHeart(true);
+    }
   };
 
   const handleShare = () => {
@@ -248,7 +263,7 @@ export function TaskCard({
 
         <div
           className="relative w-full overflow-hidden group cursor-pointer bg-black"
-          onDoubleClick={() => setIsLiked(true)}
+          onDoubleClick={handleDoubleClick}
         >
           {/* Main Media Carousel extracted to component */}
           <MediaCarousel
@@ -260,24 +275,21 @@ export function TaskCard({
 
           {/* Fullscreen Button */}
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsFullscreen(true);
-            }}
-            className="absolute top-3 right-3 bg-black/40 hover:bg-black/60 text-white p-2 rounded-full backdrop-blur-md transition-colors z-20"
+            onClick={() => setIsFullscreen(true)}
+            className="absolute top-4 right-4 z-20 text-white/70 hover:text-white p-2 rounded-full bg-black/20 hover:bg-black/50 transition-all opacity-0 group-hover:opacity-100"
           >
-            <Maximize2 className="w-4 h-4" />
+            <Maximize2 className="w-5 h-5" />
           </button>
 
-          {/* Like animation overlay */}
+          {/* Double Click Heart Animation */}
           <AnimatePresence>
-            {isLiked && (
+            {showBigHeart && (
               <motion.div
                 initial={{ opacity: 0, scale: 0.5 }}
                 animate={{ opacity: 1, scale: 1.2 }}
                 exit={{ opacity: 0, scale: 1 }}
                 onAnimationComplete={() =>
-                  setTimeout(() => setIsLiked(false), 800)
+                  setTimeout(() => setShowBigHeart(false), 800)
                 }
                 className="absolute inset-0 flex items-center justify-center pointer-events-none z-30"
               >

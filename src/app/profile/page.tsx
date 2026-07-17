@@ -121,7 +121,45 @@ export default function Profile() {
     null,
   );
 
+  // PWA Install State
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isInstallable, setIsInstallable] = useState(false);
+
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setIsInstallable(true);
+    };
+
+    const handleAppInstalled = () => {
+      setIsInstallable(false);
+      setDeferredPrompt(null);
+    };
+
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    window.addEventListener("appinstalled", handleAppInstalled);
+
+    return () => {
+      window.removeEventListener(
+        "beforeinstallprompt",
+        handleBeforeInstallPrompt,
+      );
+      window.removeEventListener("appinstalled", handleAppInstalled);
+    };
+  }, []);
+
+  const handleInstallPWA = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === "accepted") {
+      setIsInstallable(false);
+    }
+    setDeferredPrompt(null);
+  };
 
   useEffect(() => {
     if (session) {
@@ -260,6 +298,31 @@ export default function Profile() {
           <InstagramIcon className="w-5 h-5" />
           Lanjutkan dengan Instagram
         </a>
+
+        {isInstallable && (
+          <Button
+            onClick={handleInstallPWA}
+            variant="outline"
+            className="w-full mt-4 border-blue-200 text-blue-700 hover:bg-blue-50 hover:text-blue-800 font-bold h-14 rounded-2xl flex items-center justify-center gap-3 transition-all bg-blue-50/50"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" x2="12" y1="15" y2="3" />
+            </svg>
+            Install Jazmedia App
+          </Button>
+        )}
 
         {/* Akun cadangan/dummy jika belum setup kredensial IG */}
         <div className="mt-8 pt-8 border-t border-slate-100 w-full">

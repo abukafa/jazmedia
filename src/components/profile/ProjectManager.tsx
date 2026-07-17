@@ -15,6 +15,7 @@ import {
   createProject,
   updateProject,
   getAllMentors,
+  deleteProject,
 } from "@/lib/actions/admin";
 import { Button } from "@/components/ui/button";
 import {
@@ -101,6 +102,18 @@ export function ProjectManager({ currentUserId, isAdmin, readonly = false }: Pro
     setIsSubmitting(false);
   };
 
+  const handleDeleteProject = async (projectId: string) => {
+    if (!confirm("Apakah Anda yakin ingin menghapus proyek ini? Semua tugas yang terkait tidak akan memiliki induk proyek lagi.")) return;
+    
+    const res = await deleteProject(projectId);
+    if (res.success) {
+      showAlert({ message: "Proyek berhasil dihapus", type: "success" });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'projects'] });
+    } else {
+      showAlert({ message: "Gagal menghapus proyek: " + res.error, type: "error" });
+    }
+  };
+
   const openEditProject = (project: any) => {
     setEditingProject(project);
     setSelectedStatus(project.status || "active");
@@ -181,6 +194,16 @@ export function ProjectManager({ currentUserId, isAdmin, readonly = false }: Pro
                 </div>
               </div>
               <div className="flex gap-2">
+                {!readonly && isAdmin && (
+                  <Button
+                    onClick={() => handleDeleteProject(project.id)}
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 rounded-lg text-red-500 hover:text-red-700 hover:bg-red-50"
+                  >
+                    Hapus
+                  </Button>
+                )}
                 {!readonly ? (
                   <Button
                     onClick={() => openEditProject(project)}

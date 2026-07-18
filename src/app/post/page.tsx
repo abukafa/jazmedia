@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { submitTask, getPostFormData } from "@/lib/actions/task";
+import { createDriveUploadSession } from "@/lib/actions/upload";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useAlert } from "@/components/providers/AlertProvider";
@@ -53,6 +54,8 @@ export default function PostTask() {
   const [collaborators, setCollaborators] = useState<string[]>([]);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
+  const [uploadPhase, setUploadPhase] = useState<string>("");
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -99,11 +102,44 @@ export default function PostTask() {
     setCollaborators(collaborators.filter((id) => id !== userId));
   };
 
+  const uploadFileToDrive = async (file: File, uploadUrl: string) => {
+    return new Promise<string>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("PUT", uploadUrl, true);
+      
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          const percentComplete = (e.loaded / e.total) * 100;
+          setUploadProgress(Math.round(percentComplete));
+        }
+      };
+      
+      xhr.onload = () => {
+        if (xhr.status === 200 || xhr.status === 201 || xhr.status === 308) {
+          try {
+            const response = JSON.parse(xhr.responseText);
+            if (response.id) resolve(response.id);
+            else reject(new Error("ID tidak ditemukan di respon"));
+          } catch (e) {
+            reject(new Error("Gagal membaca respon dari Google Drive"));
+          }
+        } else {
+          reject(new Error("Upload gagal dengan status: " + xhr.status));
+        }
+      };
+      
+      xhr.onerror = () => reject(new Error("Koneksi terputus saat mengupload"));
+      xhr.send(file);
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (files.length === 0 || !selectedProjectId || !mediaType) return;
 
     setIsSubmitting(true);
+    setUploadProgress(0);
+    setUploadPhase("Memulai unggahan...");
 
     const formData = new FormData();
     formData.append("caption", caption);
@@ -111,18 +147,45 @@ export default function PostTask() {
     formData.append("mediaType", mediaType);
     formData.append("collaborators", JSON.stringify(collaborators));
 
-    files.forEach((file) => {
-      formData.append("files", file);
-    });
+    try {
+      // Filter out files that are larger than 5MB to use Direct Upload (or all videos)
+      // Let's just use Direct Upload for all videos for consistency
+      if (mediaType === "video" || mediaType === "image" || mediaType === "document") {
+        for (const file of files) {
+          setUploadPhase(`Menyiapkan ${file.name}...`);
+          const resSession = await createDriveUploadSession(file.name, file.type, file.size, mediaType + "s");
+          
+          if (!resSession.success || !resSession.uploadUrl) {
+            throw new Error("Gagal membuat sesi upload: " + resSession.error);
+          }
+          
+          setUploadPhase(`Mengunggah ${file.name}...`);
+          const fileId = await uploadFileToDrive(file, resSession.uploadUrl);
+          formData.append("preuploadedIds", fileId);
+        }
+      } else {
+        // Fallback for smaller/other things if needed, but we do Direct for all now
+        files.forEach((file) => formData.append("files", file));
+      }
 
-    const res = await submitTask(formData);
+      setUploadPhase("Menyimpan postingan...");
+      const res = await submitTask(formData);
 
-    setIsSubmitting(false);
-    if (res.success) {
-      router.push("/profile");
-    } else {
+      setIsSubmitting(false);
+      setUploadPhase("");
+      if (res.success) {
+        router.push("/profile");
+      } else {
+        showAlert({
+          message: "Gagal menyimpan postingan: " + res.error,
+          type: "error",
+        });
+      }
+    } catch (err: any) {
+      setIsSubmitting(false);
+      setUploadPhase("");
       showAlert({
-        message: "Gagal mengunggah tugas: " + res.error,
+        message: err.message || "Terjadi kesalahan saat mengunggah",
         type: "error",
       });
     }
@@ -395,18 +458,27 @@ export default function PostTask() {
         <Button
           type="submit"
           disabled={isSubmitting || files.length === 0 || !selectedProjectId}
-          className="w-full bg-slate-900 hover:bg-slate-800 text-white rounded-xl h-12 font-black shadow-lg shadow-slate-200 transition-all"
+          className="w-full bg-slate-900 hover:bg-slate-800 text-white rounded-xl h-12 font-black shadow-lg shadow-slate-200 transition-all overflow-hidden relative"
         >
-          {isSubmitting ? (
-            <div className="flex items-center">
-              <div className="w-4 h-4 border-2 border-slate-400 border-t-white rounded-full animate-spin mr-2"></div>
-              Mengunggah ke Google Drive...
-            </div>
-          ) : (
-            <>
-              <CheckCircle2 className="w-4 h-4 mr-2" /> Publikasikan Tugas
-            </>
+          {isSubmitting && uploadProgress > 0 && uploadProgress < 100 && (
+            <div 
+              className="absolute left-0 top-0 bottom-0 bg-blue-600/30 transition-all duration-300 ease-out"
+              style={{ width: `${uploadProgress}%` }}
+            />
           )}
+          
+          <div className="relative z-10 flex items-center justify-center">
+            {isSubmitting ? (
+              <>
+                <div className="w-4 h-4 border-2 border-slate-400 border-t-white rounded-full animate-spin mr-2"></div>
+                {uploadPhase || "Mengunggah..."} {uploadProgress > 0 && uploadProgress < 100 ? `(${uploadProgress}%)` : ""}
+              </>
+            ) : (
+              <>
+                <CheckCircle2 className="w-4 h-4 mr-2" /> Publikasikan Tugas
+              </>
+            )}
+          </div>
         </Button>
       </form>
     </div>

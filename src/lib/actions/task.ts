@@ -5,7 +5,7 @@ import Task from "@/models/Task";
 import User from "@/models/User";
 import Project from "@/models/Project";
 import Comment from "@/models/Comment";
-import { uploadToGDrive } from "@/lib/actions/upload";
+import { uploadToGDrive, finalizeDriveUpload } from "@/lib/actions/upload";
 import { revalidatePath } from "next/cache";
 
 import { getServerSession } from "next-auth";
@@ -26,21 +26,41 @@ export async function submitTask(formData: FormData) {
   const mediaType = formData.get("mediaType") as string; // image, video, document
   
   const files = formData.getAll("files") as File[];
+  const preuploadedIds = formData.getAll("preuploadedIds") as string[];
   
   const collaboratorsStr = formData.get("collaborators") as string;
   const collaborators = collaboratorsStr ? JSON.parse(collaboratorsStr) : [];
 
-  if (!files || files.length === 0 || !projectId) {
-    return { success: false, error: "Media dan Project harus diisi." };
+  if ((!files || files.length === 0) && (!preuploadedIds || preuploadedIds.length === 0)) {
+    return { success: false, error: "Media harus diisi." };
+  }
+  if (!projectId) {
+    return { success: false, error: "Project harus diisi." };
   }
 
   try {
-    // 1. Upload files
-    const mediaUrls = await Promise.all(
-      files.map(async (file) => await uploadToGDrive(file, mediaType + "s"))
-    );
+    // 1. Upload new files (fallback)
+    let mediaUrls: string[] = [];
+    if (files && files.length > 0) {
+      const newUrls = await Promise.all(
+        files.map(async (file) => await uploadToGDrive(file, mediaType + "s"))
+      );
+      mediaUrls.push(...newUrls);
+    }
+
+    // 2. Finalize pre-uploaded files
+    if (preuploadedIds && preuploadedIds.length > 0) {
+      const finalizedUrls = await Promise.all(
+        preuploadedIds.map(async (id) => {
+          const res = await finalizeDriveUpload(id);
+          if (!res.success) throw new Error("Gagal mengamankan akses file: " + res.error);
+          return res.url as string;
+        })
+      );
+      mediaUrls.push(...finalizedUrls);
+    }
     
-    // 2. Save to MongoDB
+    // 3. Save to MongoDB
     const newTask = await Task.create({
       mediaUrl: mediaUrls[0],
       mediaUrls,
@@ -102,6 +122,7 @@ export async function getTasks({ pageParam = 1 }: { pageParam?: number }) {
       return {
         id: task._id.toString(),
         author: {
+          id: task.authorId?._id?.toString() || "",
           name: task.authorId?.name || "Member",
           image: task.authorId?.image || "https://i.pravatar.cc/150",
         },
@@ -199,6 +220,7 @@ export async function getUserTasks(userId: string) {
       return {
         id: task._id.toString(),
         author: {
+          id: task.authorId?._id?.toString() || "",
           name: task.authorId?.name || "Member",
           image: task.authorId?.image || "https://i.pravatar.cc/150",
         },
@@ -302,6 +324,37 @@ export async function submitReview(taskId: string, grade: number, comment: strin
     };
     task.status = "reviewed";
     await task.save();
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function updateTaskCaption(taskId: string, newCaption: string) {
+  const session = await getServerSession(authOptions);
+  const userId = (session?.user as any)?.id;
+  const userRole = (session?.user as any)?.role;
+  
+  if (!userId) {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  await dbConnect();
+  try {
+    const task = await Task.findById(taskId);
+    if (!task) return { success: false, error: "Not found" };
+    
+    if (task.authorId.toString() !== userId && userRole !== "admin") {
+      return { success: false, error: "Forbidden: You don't have permission to edit this post" };
+    }
+    
+    task.caption = newCaption;
+    await task.save();
+    
+    revalidatePath("/");
+    revalidatePath("/explore");
+    revalidatePath("/profile");
+    
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message };

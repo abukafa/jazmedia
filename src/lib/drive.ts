@@ -23,3 +23,23 @@ export const getDriveClient = () => {
 
   return google.drive({ version: "v3", auth: oauth2Client });
 };
+
+export const getDriveAuth = () => {
+  const clientId = process.env.GOOGLE_DRIVE_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_DRIVE_CLIENT_SECRET;
+  const refreshToken = process.env.GOOGLE_DRIVE_REFRESH_TOKEN;
+
+  const oauth2Client = new google.auth.OAuth2(
+    clientId,
+    clientSecret,
+    "https://developers.google.com/oauthplayground"
+  );
+
+  if (refreshToken) {
+    oauth2Client.setCredentials({
+      refresh_token: refreshToken,
+    });
+  }
+
+  return oauth2Client;
+};

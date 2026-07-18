@@ -64,6 +64,7 @@ export async function searchTasks(query: string) {
     return {
       id: task._id.toString(),
       author: {
+        id: task.authorId?._id?.toString() || "",
         name: task.authorId?.name || "Member",
         image: task.authorId?.image || "https://i.pravatar.cc/150",
       },

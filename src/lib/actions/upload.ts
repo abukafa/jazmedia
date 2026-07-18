@@ -1,6 +1,6 @@
 "use server";
 
-import { getDriveClient } from "@/lib/drive";
+import { getDriveClient, getDriveAuth } from "@/lib/drive";
 import { Readable } from "stream";
 import { getDirectMediaUrl } from "@/lib/utils/media";
 
@@ -89,6 +89,24 @@ export async function uploadToGDrive(file: File, folderName?: string) {
   }
 }
 
+export async function deleteFromGDrive(fileId: string) {
+  try {
+    const drive = getDriveClient();
+    if (!process.env.GOOGLE_DRIVE_CLIENT_ID) {
+      console.warn("Mock delete enabled because Google Drive credentials are not set.");
+      return { success: true };
+    }
+    await drive.files.delete({
+      fileId: fileId,
+      supportsAllDrives: true,
+    });
+    return { success: true };
+  } catch (error) {
+    console.error("GDrive delete error:", error);
+    return { success: false, error };
+  }
+}
+
 export async function uploadProfilePicture(formData: FormData) {
   try {
     const file = formData.get("image") as File;
@@ -105,6 +123,85 @@ export async function uploadProfilePicture(formData: FormData) {
     const url = getDirectMediaUrl(rawUrl, "image");
     return { success: true, url };
   } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function createDriveUploadSession(fileName: string, mimeType: string, fileSize: number, folderName?: string) {
+  try {
+    const auth = getDriveAuth();
+    const token = await auth.getAccessToken();
+    if (!token.token) {
+      throw new Error("Gagal mendapatkan akses token Google Drive");
+    }
+
+    const drive = getDriveClient();
+    const rootFolderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
+    let targetFolderId = rootFolderId;
+
+    if (folderName && rootFolderId) {
+      targetFolderId = await getOrCreateSubfolder(drive, rootFolderId, folderName);
+    }
+
+    const metadata = {
+      name: fileName,
+      parents: targetFolderId ? [targetFolderId] : [],
+    };
+
+    const response = await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token.token}`,
+        "Content-Type": "application/json",
+        "X-Upload-Content-Type": mimeType,
+        "X-Upload-Content-Length": fileSize.toString(),
+      },
+      body: JSON.stringify(metadata),
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error("Gagal membuat upload session:", errText);
+      throw new Error("Gagal membuat session upload");
+    }
+
+    const uploadUrl = response.headers.get("Location");
+    if (!uploadUrl) {
+      throw new Error("Tidak menerima URL upload dari Google Drive");
+    }
+
+    return { success: true, uploadUrl };
+  } catch (error: any) {
+    console.error("Session creation error:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+export async function finalizeDriveUpload(fileId: string) {
+  try {
+    const drive = getDriveClient();
+    await drive.permissions.create({
+      fileId: fileId,
+      requestBody: {
+        role: "reader",
+        type: "anyone",
+      },
+      supportsAllDrives: true,
+    });
+    
+    // Get full URL
+    const file = await drive.files.get({
+      fileId: fileId,
+      fields: "id, webViewLink, webContentLink",
+      supportsAllDrives: true,
+    });
+
+    return { 
+      success: true, 
+      url: file.data.webContentLink || file.data.webViewLink || "" 
+    };
+  } catch (error: any) {
+    console.error("Finalize upload error:", error);
     return { success: false, error: error.message };
   }
 }

@@ -7,6 +7,8 @@ import Task from "@/models/Task";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
+import { deleteFromGDrive } from "@/lib/actions/upload";
+import { extractDriveId } from "@/lib/utils/media";
 
 // Utility function to get auth user
 async function getAuthUser() {
@@ -262,8 +264,23 @@ export async function deleteTask(taskId: string) {
   
   try {
     await dbConnect();
+    
+    // Temukan task untuk mendapatkan media url
+    const task = await Task.findById(taskId);
+    if (task) {
+      const urlsToDelete = task.mediaUrls || (task.mediaUrl ? [task.mediaUrl] : []);
+      for (const url of urlsToDelete) {
+        const fileId = extractDriveId(url);
+        if (fileId) {
+          // Fire and forget (atau ditunggu jika ingin memastikan)
+          await deleteFromGDrive(fileId).catch(e => console.error("Gagal menghapus file gdrive:", e));
+        }
+      }
+    }
+
     await Task.findByIdAndDelete(taskId);
     revalidatePath("/profile");
+    revalidatePath("/");
     return { success: true };
   } catch (err: any) {
     return { success: false, error: err.message };

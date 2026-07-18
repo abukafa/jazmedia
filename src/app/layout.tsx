@@ -6,6 +6,7 @@ import AuthProvider from "@/components/providers/AuthProvider";
 import TopBar from "@/components/layout/TopBar";
 import BottomNav from "@/components/layout/BottomNav";
 import AlertProvider from "@/components/providers/AlertProvider";
+import PwaInit from "@/components/PwaInit";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -15,6 +16,19 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "Jazmedia",
   description: "Jazmedia Platform MVP",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Jazmedia",
+  },
+};
+
+export const viewport = {
+  themeColor: "#ffffff",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
 };
 
 export default function RootLayout({
@@ -32,6 +46,7 @@ export default function RootLayout({
         <AuthProvider>
           <ReactQueryProvider>
             <AlertProvider>
+              <PwaInit />
               <div className="flex flex-col h-[100dvh] w-full max-w-md mx-auto bg-white shadow-2xl relative overflow-hidden sm:border-x sm:border-slate-200">
                 <TopBar />
                 <main className="flex-1 overflow-y-auto pb-24 scrollbar-hide relative bg-white">

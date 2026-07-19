@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   getPendingTaskNotifications,
@@ -27,7 +27,7 @@ function AutoScroll({
   return null;
 }
 
-export default function NotificationsPage() {
+function NotificationsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const defaultTab = searchParams.get("tab") || "tasks";
@@ -352,5 +352,17 @@ export default function NotificationsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function NotificationsPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex justify-center items-center min-h-screen">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+      </div>
+    }>
+      <NotificationsContent />
+    </Suspense>
   );
 }

@@ -27,6 +27,7 @@ import {
   addComment,
   getComments,
   updateTaskCaption,
+  deleteTask,
 } from "@/lib/actions/task";
 import {
   Dialog,
@@ -251,6 +252,24 @@ export function TaskCard({
     }
   };
 
+  const deleteMutation = useMutation({
+    mutationFn: async () => deleteTask(id),
+    onSuccess: (data) => {
+      if (data.success) {
+        queryClient.invalidateQueries({ queryKey: ["tasks"] });
+        showAlert({
+          message: "Postingan berhasil dihapus",
+          type: "success",
+        });
+      } else {
+        showAlert({
+          message: "Gagal menghapus postingan: " + data.error,
+          type: "error",
+        });
+      }
+    },
+  });
+
   const handleSubmitReview = (e: React.FormEvent) => {
     e.preventDefault();
     reviewMutation.mutate();
@@ -287,7 +306,7 @@ export function TaskCard({
 
   return (
     <>
-      <Card className="mb-6 overflow-hidden border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white transition-all rounded-3xl">
+      <Card className="mb-6 overflow-hidden border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white transition-all rounded-3xl snap-center snap-always">
         <CardHeader className="flex flex-row items-center gap-3 px-4 pb-3 py-0">
           <div className="flex -space-x-3">
             <Avatar className="h-10 w-10 border-2 border-white shadow-sm ring-1 ring-slate-100 relative z-30">
@@ -363,16 +382,13 @@ export function TaskCard({
                           showConfirm({
                             message: "Hapus postingan ini?",
                             type: "error",
-                            onConfirm: () =>
-                              showAlert({
-                                message: "Fitur hapus segera hadir",
-                                type: "info",
-                              }),
+                            onConfirm: () => deleteMutation.mutate(),
                           });
                         }}
+                        disabled={deleteMutation.isPending}
                         className="w-full text-left px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 flex items-center gap-2"
                       >
-                        <Trash2 className="w-4 h-4" /> Hapus Postingan
+                        <Trash2 className="w-4 h-4" /> {deleteMutation.isPending ? "Menghapus..." : "Hapus Postingan"}
                       </button>
                     )}
                   </div>

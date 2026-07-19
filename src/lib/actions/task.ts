@@ -360,3 +360,31 @@ export async function updateTaskCaption(taskId: string, newCaption: string) {
     return { success: false, error: error.message };
   }
 }
+
+export async function deleteTask(taskId: string) {
+  const session = await getServerSession(authOptions);
+  const user = session?.user as any;
+  
+  if (!user || user.role !== "admin") {
+    return { success: false, error: "Unauthorized: Only admins can delete posts" };
+  }
+
+  await dbConnect();
+  try {
+    const task = await Task.findById(taskId);
+    if (!task) return { success: false, error: "Task not found" };
+    
+    // Clean up related comments
+    await Comment.deleteMany({ taskId });
+    
+    await Task.findByIdAndDelete(taskId);
+    
+    revalidatePath("/");
+    revalidatePath("/explore");
+    revalidatePath("/profile");
+    
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}

@@ -52,7 +52,7 @@ export default function RootLayout({
               <PwaInit />
               <div className="flex flex-col h-[100dvh] w-full max-w-md mx-auto bg-white shadow-2xl relative overflow-hidden sm:border-x sm:border-slate-200">
                 <TopBar />
-                <main className="flex-1 overflow-y-auto pb-16 scrollbar-hide relative bg-white">
+                <main className="flex-1 overflow-y-auto snap-y snap-mandatory pb-16 scrollbar-hide relative bg-white">
                   {children}
                 </main>
                 <BottomNav />

@@ -71,6 +71,13 @@ export async function uploadToGDrive(file: File, folderName?: string) {
 
     const fileId = response.data.id;
     if (fileId) {
+      // Rename to match its ID
+      await drive.files.update({
+        fileId: fileId,
+        requestBody: { name: fileId },
+        supportsAllDrives: true,
+      });
+
       // Make it public so it can be viewed by anyone
       await drive.permissions.create({
         fileId: fileId,
@@ -127,7 +134,7 @@ export async function uploadProfilePicture(formData: FormData) {
   }
 }
 
-export async function createDriveUploadSession(fileName: string, mimeType: string, fileSize: number, folderName?: string) {
+export async function createDriveUploadSession(fileName: string, mimeType: string, fileSize: number, folderName?: string, clientOrigin?: string) {
   try {
     const auth = getDriveAuth();
     const token = await auth.getAccessToken();
@@ -149,7 +156,7 @@ export async function createDriveUploadSession(fileName: string, mimeType: strin
     };
 
     // Gunakan Origin dari environment atau default localhost agar Google Drive membuka akses CORS untuk browser
-    const appOrigin = process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const appOrigin = clientOrigin || process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
     const response = await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable", {
       method: "POST",
@@ -184,6 +191,16 @@ export async function createDriveUploadSession(fileName: string, mimeType: strin
 export async function finalizeDriveUpload(fileId: string) {
   try {
     const drive = getDriveClient();
+
+    // Rename file to its own ID
+    await drive.files.update({
+      fileId: fileId,
+      requestBody: {
+        name: fileId,
+      },
+      supportsAllDrives: true,
+    });
+
     await drive.permissions.create({
       fileId: fileId,
       requestBody: {

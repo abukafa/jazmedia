@@ -1,53 +1,74 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, Suspense, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
-import { signIn } from "next-auth/react";
+import { signIn, useSession } from "next-auth/react";
 import { exchangeInstagramCode } from "@/lib/actions/auth";
+import { linkInstagramAccount } from "@/lib/actions/auth-custom";
+import { useAlert } from "@/components/providers/AlertProvider";
 
 function CallbackContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const code = searchParams.get("code");
-  const [status, setStatus] = useState("Menghubungkan Instagram...");
+  const [statusText, setStatusText] = useState("Menghubungkan Instagram...");
+  const { status, data: session } = useSession();
+  const { showAlert } = useAlert();
+  const executed = useRef(false);
 
   useEffect(() => {
+    if (status === "loading") return;
+    if (executed.current) return;
+
     if (!code) {
-      setStatus("Kode otorisasi tidak ditemukan di URL. Gagal login.");
+      setStatusText("Kode otorisasi tidak ditemukan di URL. Gagal login.");
       return;
     }
 
+    executed.current = true;
+
     exchangeInstagramCode(code).then(async (res) => {
       if (res.error) {
-        setStatus("Gagal: " + res.error);
+        setStatusText("Gagal: " + res.error);
       } else if (res.success) {
-        setStatus("Otorisasi berhasil. Membuat sesi aplikasi...");
-        const result = await signIn("instagram-custom", {
-          redirect: false,
-          instagramId: res.instagramId,
-          name: res.name,
-          username: res.username,
-          image: res.image,
-          bio: res.bio,
-        });
-
-        if (result?.error) {
-          setStatus("Gagal masuk: " + result.error);
+        if (status === "authenticated") {
+          setStatusText("Menautkan akun Instagram ke profil Anda...");
+          const linkRes = await linkInstagramAccount(res.instagramId, res.name, res.username, res.image, res.bio);
+          if (linkRes.success) {
+            showAlert({ message: "Instagram berhasil ditautkan!", type: "success" });
+            router.push("/profile/edit");
+          } else {
+            showAlert({ message: "Gagal menautkan Instagram: " + linkRes.error, type: "error" });
+            router.push("/profile/edit");
+          }
         } else {
-          router.push("/profile");
+          setStatusText("Otorisasi berhasil. Membuat sesi aplikasi...");
+          const result = await signIn("instagram-custom", {
+            redirect: false,
+            instagramId: res.instagramId,
+            name: res.name,
+            username: res.username,
+            image: res.image,
+            bio: res.bio,
+          });
+
+          if (result?.error) {
+            setStatusText("Gagal masuk: " + result.error);
+          } else {
+            router.push("/profile");
+          }
         }
       }
     });
-  }, [code, router]);
+  }, [code, router, status, showAlert]);
 
   return (
     <div className="min-h-[70vh] bg-white flex flex-col items-center justify-center p-8 text-center pt-32">
-      <div className="w-20 h-20 bg-pink-50 rounded-[2rem] flex items-center justify-center mb-6 shadow-sm border border-pink-100">
-        <Loader2 className="w-10 h-10 text-pink-600 animate-spin" />
+      <div className="bg-slate-50 w-24 h-24 rounded-[2rem] flex items-center justify-center mb-8 border border-slate-100">
+        <Loader2 className="w-10 h-10 animate-spin text-blue-600" />
       </div>
-      <h1 className="text-xl font-black text-slate-900 mb-2">Sinkronisasi Akun</h1>
-      <p className="text-sm font-medium text-slate-500 max-w-[280px]">{status}</p>
+      <p className="text-slate-600 font-medium text-lg">{statusText}</p>
     </div>
   );
 }

@@ -46,48 +46,35 @@ export const authOptions: NextAuthOptions = {
         return { id: dbUser._id.toString(), name: dbUser.name, username: dbUser.username, image: dbUser.image, role: dbUser.role };
       }
     }),
-    // Dummy provider for easy MVP testing without IG keys
     CredentialsProvider({
-      name: "Dummy Login",
+      id: "credentials",
+      name: "Email/Username",
       credentials: {
-        username: { label: "Username", type: "text", placeholder: "member / mentor" },
+        username: { label: "Email atau Username", type: "text" },
+        password: { label: "Kata Sandi", type: "password" },
       },
       async authorize(credentials) {
+        if (!credentials?.username || !credentials?.password) return null;
+        
         await dbConnect();
         
-        let name = "Member User";
-        let email = "member@dummy.com";
-        let role: "admin" | "mentor" | "member" | "guest" = "member";
-        let image = "https://i.pravatar.cc/150?u=member";
-
-        if (credentials?.username === "mentor") {
-          name = "Mentor User";
-          email = "mentor@dummy.com";
-          role = "mentor";
-          image = "https://i.pravatar.cc/150?u=mentor";
-        } else if (credentials?.username === "admin") {
-          name = "Admin User";
-          email = "admin@dummy.com";
-          role = "admin";
-          image = "https://i.pravatar.cc/150?u=admin";
-        } else if (credentials?.username === "guest") {
-          name = "Guest User";
-          email = "guest@dummy.com";
-          role = "guest";
-          image = "https://i.pravatar.cc/150?u=guest";
+        const dbUser = await User.findOne({
+          $or: [
+            { email: credentials.username },
+            { username: credentials.username }
+          ]
+        });
+        
+        if (!dbUser || !dbUser.password) {
+           throw new Error("Kredensial tidak valid");
         }
 
-        let dbUser = await User.findOne({ email });
-        if (!dbUser) {
-           dbUser = await User.create({
-             name,
-             email,
-             image,
-             role,
-             username: credentials?.username,
-           });
-        }
-        return { id: dbUser._id.toString(), name, username: dbUser.username, image, role };
+        const bcrypt = require('bcryptjs');
+        const isValid = await bcrypt.compare(credentials.password, dbUser.password);
+        
+        if (!isValid) throw new Error("Kredensial tidak valid");
+
+        return { id: dbUser._id.toString(), name: dbUser.name, username: dbUser.username, image: dbUser.image, role: dbUser.role };
       }
     })
   ],

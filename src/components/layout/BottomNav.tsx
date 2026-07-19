@@ -14,7 +14,7 @@ export default function BottomNav() {
   const userRole = (session?.user as { role?: string })?.role;
   const { showAlert } = useAlert();
 
-  if (pathname === '/post' || pathname === '/profile/edit') return null;
+  if (pathname === "/post" || pathname === "/profile/edit") return null;
 
   const navItems = [
     { name: "Home", href: "/", icon: Home },
@@ -29,30 +29,38 @@ export default function BottomNav() {
       <div className="flex items-center justify-around h-14">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
-          
+
           if (item.isAction) {
             const handleClick = (e: React.MouseEvent) => {
               if (item.name === "Post") {
                 if (!session) {
                   e.preventDefault();
-                  router.push("/profile");
+                  router.push("/login");
                 } else if (userRole === "guest") {
                   e.preventDefault();
-                  showAlert({ message: "Akun belum bisa posting, hubungi admin.", type: "warning" });
+                  showAlert({
+                    message: "Akun belum bisa posting, hubungi admin.",
+                    type: "warning",
+                  });
                 }
               }
             };
             return (
-              <Link key={item.name} href={item.href} onClick={handleClick} className="relative -top-5">
-                <motion.div 
+              <Link
+                key={item.name}
+                href={item.href}
+                onClick={handleClick}
+                className="relative -top-5"
+              >
+                <motion.div
                   whileTap={{ scale: 0.9 }}
                   className="flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg shadow-blue-500/40 border-4 border-slate-50"
                 >
                   {status === "unauthenticated" && item.name === "Post" ? (
-                    <img 
-                      src="/icons/icon-512x512-maskable.png" 
-                      alt="JazMedia" 
-                      className="w-full h-full rounded-full object-cover" 
+                    <img
+                      src="/icons/icon-512x512-maskable.png"
+                      alt="JazMedia"
+                      className="w-full h-full rounded-full object-cover"
                     />
                   ) : (
                     <item.icon className="h-6 w-6" strokeWidth={2.5} />
@@ -63,14 +71,20 @@ export default function BottomNav() {
           }
 
           return (
-            <Link key={item.name} href={item.href} className="relative flex flex-col items-center justify-center w-16 h-full">
+            <Link
+              key={item.name}
+              href={item.href}
+              className="relative flex flex-col items-center justify-center w-16 h-full"
+            >
               {item.name === "Profile" && session?.user?.image ? (
-                <img 
-                  src={session.user.image} 
-                  alt="Profile" 
+                <img
+                  src={session.user.image}
+                  alt="Profile"
                   className={`h-7 w-7 rounded-full object-cover transition-all duration-200 ${
-                    isActive ? "ring-2 ring-blue-600 ring-offset-2 ring-offset-white opacity-100" : "opacity-70 grayscale-[20%]"
-                  }`} 
+                    isActive
+                      ? "ring-2 ring-blue-600 ring-offset-2 ring-offset-white opacity-100"
+                      : "opacity-70 grayscale-[20%]"
+                  }`}
                 />
               ) : (
                 <item.icon

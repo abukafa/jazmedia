@@ -10,6 +10,7 @@ import { SKILL_ICONS, SkillIconName } from "@/components/ui/skill-icons";
 import Cropper from "react-easy-crop";
 import getCroppedImg from "@/lib/utils/cropImage";
 import { uploadProfilePicture } from "@/lib/actions/upload";
+import { unlinkInstagramAccount } from "@/lib/actions/auth-custom";
 
 interface Skill {
   name: string;
@@ -23,11 +24,15 @@ export default function EditProfile() {
   const { showAlert } = useAlert();
 
   const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [image, setImage] = useState("");
   const [bio, setBio] = useState("");
   const [role, setRole] = useState("member");
   const [skills, setSkills] = useState<Skill[]>([]);
+  const [instagramId, setInstagramId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -44,11 +49,13 @@ export default function EditProfile() {
       getUserProfile().then((data) => {
         if (data) {
           setName(data.name || "");
+          setEmail(data.email || "");
           setUsername(data.username || "");
           setImage(data.image || "");
           setBio(data.bio || "");
           setRole(data.role || "member");
           setSkills(data.skills || []);
+          setInstagramId(data.instagramId || null);
         }
         setIsLoading(false);
       });
@@ -88,21 +95,24 @@ export default function EditProfile() {
 
   const uploadCroppedImage = async () => {
     if (!imageSrc || !croppedAreaPixels) return;
-    
+
     setIsUploadingImage(true);
     try {
       const croppedFile = await getCroppedImg(imageSrc, croppedAreaPixels);
       if (croppedFile) {
         const formData = new FormData();
         formData.append("image", croppedFile);
-        
+
         const res = await uploadProfilePicture(formData);
         if (res.success && res.url) {
           setImage(res.url);
           setIsCropping(false);
           setImageSrc(null);
         } else {
-          showAlert({ message: "Gagal mengunggah foto: " + res.error, type: "error" });
+          showAlert({
+            message: "Gagal mengunggah foto: " + res.error,
+            type: "error",
+          });
         }
       }
     } catch (e) {
@@ -113,10 +123,24 @@ export default function EditProfile() {
   };
 
   const handleSave = async () => {
+    if (password && password !== confirmPassword) {
+      showAlert({
+        message: "Kata sandi dan konfirmasi sandi tidak cocok",
+        type: "error",
+      });
+      return;
+    }
+    if (password && password.length < 6) {
+      showAlert({ message: "Kata sandi minimal 6 karakter", type: "error" });
+      return;
+    }
+
     setIsSaving(true);
     const formData = new FormData();
     formData.append("name", name);
+    formData.append("email", email);
     formData.append("username", username);
+    if (password) formData.append("password", password);
     formData.append("image", image);
     formData.append("bio", bio);
     formData.append("role", role);
@@ -125,7 +149,7 @@ export default function EditProfile() {
     const res = await updateUserProfile(formData);
     if (res.success) {
       // Refresh session if profile fields change
-      await update({ name, role, username, image });
+      await update({ name, role, email, username, image });
       router.push("/profile");
     } else {
       showAlert({
@@ -183,10 +207,26 @@ export default function EditProfile() {
 
         <div>
           <label className="block text-xs font-bold text-slate-700 mb-2 px-2 uppercase tracking-wide">
+            Email
+          </label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            disabled={isSaving}
+            placeholder="Masukkan email"
+            className="w-full bg-white border border-slate-200 rounded-2xl p-4 text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-sm disabled:opacity-50"
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs font-bold text-slate-700 mb-2 px-2 uppercase tracking-wide">
             Username
           </label>
           <div className="relative">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">@</span>
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">
+              @
+            </span>
             <input
               type="text"
               value={username}
@@ -200,11 +240,92 @@ export default function EditProfile() {
 
         <div>
           <label className="block text-xs font-bold text-slate-700 mb-2 px-2 uppercase tracking-wide">
+            Instagram
+          </label>
+          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex items-center justify-between shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm border border-slate-100">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="text-pink-600"
+                >
+                  <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
+                  <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+                  <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-sm font-bold text-slate-900">
+                  {instagramId ? "Terhubung" : "Belum Terhubung"}
+                </p>
+                <p className="text-[10px] font-medium text-slate-500">
+                  {instagramId
+                    ? "Akun Instagram sudah terhubung"
+                    : "Hubungkan akun untuk sinkronisasi post"}
+                </p>
+              </div>
+            </div>
+            {instagramId ? (
+              <button
+                type="button"
+                disabled={isSaving}
+                onClick={async () => {
+                  if (
+                    confirm(
+                      "Apakah Anda yakin ingin memutuskan tautan Instagram?",
+                    )
+                  ) {
+                    setIsSaving(true);
+                    const res = await unlinkInstagramAccount();
+                    if (res.success) {
+                      setInstagramId(null);
+                      showAlert({
+                        message: "Tautan Instagram diputus",
+                        type: "success",
+                      });
+                    } else {
+                      showAlert({
+                        message: "Gagal: " + res.error,
+                        type: "error",
+                      });
+                    }
+                    setIsSaving(false);
+                  }
+                }}
+                className="px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg text-xs font-bold transition-colors disabled:opacity-50"
+              >
+                Putuskan
+              </button>
+            ) : (
+              <a
+                href="/api/auth/instagram-login"
+                className="px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg text-xs font-bold transition-colors disabled:opacity-50 inline-block"
+              >
+                Hubungkan
+              </a>
+            )}
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-xs font-bold text-slate-700 mb-2 px-2 uppercase tracking-wide">
             Foto Profil
           </label>
           <div className="flex gap-4 items-center">
             {image ? (
-              <img src={image} alt="Preview" className="w-16 h-16 rounded-full object-cover border-4 border-slate-100 flex-shrink-0 shadow-sm" />
+              <img
+                src={image}
+                alt="Preview"
+                className="w-16 h-16 rounded-full object-cover border-4 border-slate-100 flex-shrink-0 shadow-sm"
+              />
             ) : (
               <div className="w-16 h-16 rounded-full bg-slate-100 border-4 border-slate-50 flex items-center justify-center flex-shrink-0">
                 <span className="text-slate-400 text-xs font-bold">Kosong</span>
@@ -221,7 +342,9 @@ export default function EditProfile() {
                   disabled={isSaving || isUploadingImage}
                 />
               </label>
-              <p className="text-[10px] text-slate-400 mt-2 font-medium">JPG/PNG maks. 5MB. Rasio 1:1.</p>
+              <p className="text-[10px] text-slate-400 mt-2 font-medium">
+                JPG/PNG maks. 5MB. Rasio 1:1.
+              </p>
             </div>
           </div>
         </div>
@@ -237,6 +360,60 @@ export default function EditProfile() {
             placeholder="Ceritakan tentang diri Anda, keahlian, atau portofolio..."
             className="w-full bg-white border border-slate-200 rounded-3xl p-4 text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none h-28 shadow-sm disabled:opacity-50"
           ></textarea>
+        </div>
+
+        <div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-2 px-2 uppercase tracking-wide">
+                Kata Sandi Baru
+              </label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={isSaving}
+                placeholder="Kosongkan jika tidak ingin mengubah"
+                className="w-full bg-white border border-slate-200 rounded-2xl p-4 text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-sm disabled:opacity-50"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-2 px-2 uppercase tracking-wide">
+                Konfirmasi
+              </label>
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                disabled={isSaving}
+                placeholder="Ulangi kata sandi baru"
+                className="w-full bg-white border border-slate-200 rounded-2xl p-4 text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-sm disabled:opacity-50"
+              />
+            </div>
+          </div>
+          {password.length > 0 ? (
+            <div className="px-2 mt-2 space-y-1">
+              <p
+                className={`text-[10px] font-medium ${password.length >= 6 ? "text-green-500" : "text-red-500"}`}
+              >
+                {password.length >= 6
+                  ? "✓ Minimal 6 karakter"
+                  : "✗ Minimal 6 karakter"}
+              </p>
+              <p
+                className={`text-[10px] font-medium ${password === confirmPassword ? "text-green-500" : "text-red-500"}`}
+              >
+                {password === confirmPassword
+                  ? "✓ Konfirmasi sandi cocok"
+                  : "✗ Konfirmasi sandi belum cocok"}
+              </p>
+            </div>
+          ) : (
+            <p className="text-[10px] text-slate-400 mt-2 px-2 font-medium">
+              Biarkan kosong jika tidak ingin menambahkan atau mengubah sandi.
+            </p>
+          )}
         </div>
 
         <div>
@@ -368,7 +545,9 @@ export default function EditProfile() {
               disabled={isUploadingImage}
               className="bg-blue-600 hover:bg-blue-700 text-white font-bold"
             >
-              {isUploadingImage ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : null}
+              {isUploadingImage ? (
+                <Loader2 className="w-5 h-5 animate-spin mr-2" />
+              ) : null}
               Terapkan & Unggah
             </Button>
           </div>

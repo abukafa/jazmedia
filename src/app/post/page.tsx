@@ -105,7 +105,7 @@ export default function PostTask() {
   const uploadFileToDrive = async (file: File, uploadUrl: string) => {
     return new Promise<string>((resolve, reject) => {
       // Chunk size 5MB (harus kelipatan 256KB)
-      const chunkSize = 256 * 1024 * 20; 
+      const chunkSize = 256 * 1024 * 20;
       const fileSize = file.size;
       let offset = 0;
       let retries = 0;
@@ -118,8 +118,14 @@ export default function PostTask() {
 
         xhr.open("PUT", uploadUrl, true);
         // Pastikan header dikirim sesuai standar Google Drive Resumable API
-        xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
-        xhr.setRequestHeader("Content-Range", `bytes ${offset}-${end - 1}/${fileSize}`);
+        xhr.setRequestHeader(
+          "Content-Type",
+          file.type || "application/octet-stream",
+        );
+        xhr.setRequestHeader(
+          "Content-Range",
+          `bytes ${offset}-${end - 1}/${fileSize}`,
+        );
 
         xhr.upload.onprogress = (e) => {
           if (e.lengthComputable) {
@@ -136,7 +142,11 @@ export default function PostTask() {
             if (offset < fileSize) {
               uploadChunk();
             } else {
-              reject(new Error("Upload belum tuntas padahal seluruh file telah terkirim."));
+              reject(
+                new Error(
+                  "Upload belum tuntas padahal seluruh file telah terkirim.",
+                ),
+              );
             }
           } else if (xhr.status === 200 || xhr.status === 201) {
             try {
@@ -152,7 +162,11 @@ export default function PostTask() {
               retries++;
               setTimeout(uploadChunk, 2000);
             } else {
-              reject(new Error(`Gagal (Status: ${xhr.status}) di potongan ${Math.round(offset/1024/1024)}MB`));
+              reject(
+                new Error(
+                  `Gagal (Status: ${xhr.status}) di potongan ${Math.round(offset / 1024 / 1024)}MB`,
+                ),
+              );
             }
           }
         };
@@ -162,7 +176,11 @@ export default function PostTask() {
             retries++;
             setTimeout(uploadChunk, 3000);
           } else {
-            reject(new Error("Koneksi internet terputus di tengah jalan. Pastikan jaringan stabil."));
+            reject(
+              new Error(
+                "Koneksi internet terputus di tengah jalan. Pastikan jaringan stabil.",
+              ),
+            );
           }
         };
 
@@ -190,15 +208,24 @@ export default function PostTask() {
     try {
       // Filter out files that are larger than 5MB to use Direct Upload (or all videos)
       // Let's just use Direct Upload for all videos for consistency
-      if (mediaType === "video" || mediaType === "image" || mediaType === "document") {
+      if (
+        mediaType === "video" ||
+        mediaType === "image" ||
+        mediaType === "document"
+      ) {
         for (const file of files) {
           setUploadPhase(`Menyiapkan ${file.name}...`);
-          const resSession = await createDriveUploadSession(file.name, file.type, file.size, mediaType + "s");
-          
+          const resSession = await createDriveUploadSession(
+            file.name,
+            file.type,
+            file.size,
+            mediaType + "s",
+          );
+
           if (!resSession.success || !resSession.uploadUrl) {
             throw new Error("Gagal membuat sesi upload: " + resSession.error);
           }
-          
+
           setUploadPhase(`Mengunggah ${file.name}...`);
           const fileId = await uploadFileToDrive(file, resSession.uploadUrl);
           formData.append("preuploadedIds", fileId);
@@ -501,17 +528,20 @@ export default function PostTask() {
           className="w-full bg-slate-900 hover:bg-slate-800 text-white rounded-xl h-12 font-black shadow-lg shadow-slate-200 transition-all overflow-hidden relative"
         >
           {isSubmitting && uploadProgress > 0 && uploadProgress < 100 && (
-            <div 
+            <div
               className="absolute left-0 top-0 bottom-0 bg-blue-600/30 transition-all duration-300 ease-out"
               style={{ width: `${uploadProgress}%` }}
             />
           )}
-          
+
           <div className="relative z-10 flex items-center justify-center">
             {isSubmitting ? (
               <>
                 <div className="w-4 h-4 border-2 border-slate-400 border-t-white rounded-full animate-spin mr-2"></div>
-                {uploadPhase || "Mengunggah..."} {uploadProgress > 0 && uploadProgress < 100 ? `(${uploadProgress}%)` : ""}
+                {uploadPhase || "Mengunggah..."}{" "}
+                {uploadProgress > 0 && uploadProgress < 100
+                  ? `(${uploadProgress}%)`
+                  : ""}
               </>
             ) : (
               <>

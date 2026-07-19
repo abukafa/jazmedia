@@ -43,6 +43,7 @@ import {
 } from "recharts";
 import { useSession, signIn, signOut } from "next-auth/react";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { TaskCard, TaskCardProps } from "@/components/feed/TaskCard";
 import { getUserTasks } from "@/lib/actions/task";
 import { ArrowLeft, Play, FileText as FileTextIcon } from "lucide-react";
@@ -115,6 +116,7 @@ const CircularProgress = ({
 
 export default function Profile() {
   const { data: session, status } = useSession();
+  const router = useRouter();
   const [dbUser, setDbUser] = useState<any>(null);
   const [userTasks, setUserTasks] = useState<TaskCardProps[]>([]);
   const [selectedTaskIndex, setSelectedTaskIndex] = useState<number | null>(
@@ -162,6 +164,9 @@ export default function Profile() {
   };
 
   useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push("/login");
+    }
     if (session) {
       getUserProfile().then((data: any) => {
         if (data) setDbUser(data);
@@ -175,7 +180,7 @@ export default function Profile() {
         });
       }
     }
-  }, [session]);
+  }, [session, status, router]);
 
   // --- Dynamic Insights Calculations ---
   const { averageGrade, mediaDistribution, topReviews, chartData } =
@@ -268,118 +273,10 @@ export default function Profile() {
       return { averageGrade, mediaDistribution, topReviews, chartData };
     }, [userTasks]);
 
-  if (status === "loading") {
+  if (status === "loading" || status === "unauthenticated" || !session) {
     return (
-      <div className="pb-10 bg-white min-h-full flex items-center justify-center">
+      <div className="pb-10 bg-white min-h-screen flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-slate-200 border-t-blue-600 rounded-full animate-spin"></div>
-      </div>
-    );
-  }
-
-  // UI saat user belum login
-  if (!session) {
-    return (
-      <div className="pb-10 bg-white min-h-full flex flex-col items-center justify-center px-6">
-        <div className="w-20 h-20 bg-slate-50 rounded-[2rem] flex items-center justify-center mb-6 shadow-sm border border-slate-100">
-          <InstagramIcon className="w-10 h-10 text-pink-600" />
-        </div>
-        <h1 className="text-xl font-black text-slate-900 mb-2 text-center">
-          Masuk ke Jazmedia
-        </h1>
-        <p className="text-sm text-slate-500 mb-8 text-center max-w-[280px]">
-          Tautkan akun Instagram Anda untuk mulai membagikan tugas dan membangun
-          portofolio.
-        </p>
-
-        <a
-          href="/api/auth/instagram-login"
-          className="w-full bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 text-white font-bold h-14 rounded-2xl shadow-md border-none flex items-center justify-center gap-3 transition-all"
-        >
-          <InstagramIcon className="w-5 h-5" />
-          Lanjutkan dengan Instagram
-        </a>
-
-        {isInstallable && (
-          <Button
-            onClick={handleInstallPWA}
-            variant="outline"
-            className="w-full mt-4 border-blue-200 text-blue-700 hover:bg-blue-50 hover:text-blue-800 font-bold h-14 rounded-2xl flex items-center justify-center gap-3 transition-all bg-blue-50/50"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-              <polyline points="7 10 12 15 17 10" />
-              <line x1="12" x2="12" y1="15" y2="3" />
-            </svg>
-            Install Jazmedia App
-          </Button>
-        )}
-
-        {/* Akun cadangan/dummy jika belum setup kredensial IG */}
-        <div className="mt-8 pt-8 border-t border-slate-100 w-full">
-          <p className="text-[10px] text-slate-400 text-center mb-4 font-black uppercase tracking-widest">
-            Uji Coba MVP (Masuk Tanpa Sandi)
-          </p>
-          <div className="grid grid-cols-2 gap-3">
-            <Button
-              onClick={() =>
-                signIn("credentials", {
-                  username: "member",
-                  callbackUrl: "/profile",
-                })
-              }
-              variant="outline"
-              className="w-full font-bold h-11 rounded-xl text-slate-700 border-slate-200 bg-slate-50 hover:bg-slate-100 transition-colors"
-            >
-              Member
-            </Button>
-            <Button
-              onClick={() =>
-                signIn("credentials", {
-                  username: "mentor",
-                  callbackUrl: "/profile",
-                })
-              }
-              variant="outline"
-              className="w-full font-bold h-11 rounded-xl text-amber-700 border-amber-200 bg-amber-50 hover:bg-amber-100 transition-colors"
-            >
-              Mentor
-            </Button>
-            <Button
-              onClick={() =>
-                signIn("credentials", {
-                  username: "admin",
-                  callbackUrl: "/profile",
-                })
-              }
-              variant="outline"
-              className="w-full font-bold h-11 rounded-xl text-red-700 border-red-200 bg-red-50 hover:bg-red-100 transition-colors"
-            >
-              Admin
-            </Button>
-            <Button
-              onClick={() =>
-                signIn("credentials", {
-                  username: "guest",
-                  callbackUrl: "/profile",
-                })
-              }
-              variant="outline"
-              className="w-full font-bold h-11 rounded-xl text-slate-500 border-slate-200 bg-white hover:bg-slate-50 transition-colors"
-            >
-              Guest
-            </Button>
-          </div>
-        </div>
       </div>
     );
   }

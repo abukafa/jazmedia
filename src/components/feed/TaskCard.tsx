@@ -157,14 +157,20 @@ export function TaskCard({
         setIsLiked(data.isLikedByMe ?? false);
         setLikes(data.likesCount);
       } else {
-        showAlert({ message: "Gagal menyukai postingan: " + data.error, type: "error" });
+        showAlert({
+          message: "Gagal menyukai postingan: " + data.error,
+          type: "error",
+        });
         // Revert optimistic update
         setIsLiked(isLikedByMe);
         setLikes(likesCount);
       }
     },
     onError: (err: any) => {
-      showAlert({ message: "Terjadi kesalahan jaringan: " + err.message, type: "error" });
+      showAlert({
+        message: "Terjadi kesalahan jaringan: " + err.message,
+        type: "error",
+      });
       setIsLiked(isLikedByMe);
       setLikes(likesCount);
     },
@@ -218,7 +224,10 @@ export function TaskCard({
         setIsReviewModalOpen(false);
         queryClient.invalidateQueries({ queryKey: ["tasks"] });
       } else {
-        showAlert({ message: "Gagal memberikan ulasan: " + data.error, type: "error" });
+        showAlert({
+          message: "Gagal memberikan ulasan: " + data.error,
+          type: "error",
+        });
       }
     },
   });
@@ -235,7 +244,10 @@ export function TaskCard({
       setIsEditing(false);
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
     } else {
-      showAlert({ message: "Gagal mengedit caption: " + res.error, type: "error" });
+      showAlert({
+        message: "Gagal mengedit caption: " + res.error,
+        type: "error",
+      });
     }
   };
 
@@ -251,7 +263,10 @@ export function TaskCard({
         setCommentContent("");
         refetchComments();
       } else {
-        showAlert({ message: "Gagal menambahkan komentar: " + data.error, type: "error" });
+        showAlert({
+          message: "Gagal menambahkan komentar: " + data.error,
+          type: "error",
+        });
       }
     },
   });
@@ -334,17 +349,21 @@ export function TaskCard({
                     )}
 
                     {user?.role === "admin" && (
-                        <button
-                          onClick={() => { 
-                            setShowMenu(false); 
-                            showConfirm({
-                              message: "Hapus postingan ini?",
-                              type: "error",
-                              onConfirm: () => showAlert({ message: "Fitur hapus segera hadir", type: "info" })
-                            });
-                          }}
-                          className="w-full text-left px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 flex items-center gap-2"
-                        >
+                      <button
+                        onClick={() => {
+                          setShowMenu(false);
+                          showConfirm({
+                            message: "Hapus postingan ini?",
+                            type: "error",
+                            onConfirm: () =>
+                              showAlert({
+                                message: "Fitur hapus segera hadir",
+                                type: "info",
+                              }),
+                          });
+                        }}
+                        className="w-full text-left px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 flex items-center gap-2"
+                      >
                         <Trash2 className="w-4 h-4" /> Hapus Postingan
                       </button>
                     )}

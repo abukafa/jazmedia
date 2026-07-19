@@ -15,12 +15,13 @@ export interface IUser extends Document {
   bio?: string;
   skills?: ISkill[];
   instagramId?: string;
+  password?: string;
 }
 
 const UserSchema = new Schema<IUser>(
   {
     name: { type: String, required: true },
-    username: { type: String },
+    username: { type: String, unique: true, sparse: true },
     email: { type: String, unique: true, sparse: true },
     image: { type: String },
     role: { type: String, enum: ["admin", "mentor", "member", "guest"], default: "member" },
@@ -33,6 +34,7 @@ const UserSchema = new Schema<IUser>(
       }
     ],
     instagramId: { type: String, unique: true, sparse: true },
+    password: { type: String },
   },
   { timestamps: true }
 );

@@ -24,12 +24,19 @@ export default function NotificationBell() {
     }
   }, [session]);
 
+  const userRole = (session?.user as any)?.role || "member";
+  const targetTab =
+    userRole === "mentor" || userRole === "admin" ? "tasks" : "reviews";
+
   return (
-    <Link href="/notifications" className="relative p-2 text-slate-500 hover:text-slate-900 transition-colors">
+    <Link
+      href={`/notifications?tab=${targetTab}`}
+      className="relative p-2 text-slate-500 hover:text-slate-900 transition-colors"
+    >
       <Bell className="w-5 h-5" />
       {unreadCount > 0 && (
-        <span className="absolute top-1 right-1 flex items-center justify-center h-4 w-4 text-[9px] font-bold text-white rounded-full bg-red-500 border-2 border-white">
-          {unreadCount > 99 ? '99+' : unreadCount}
+        <span className="absolute top-1 right-1 flex items-center justify-center h-4 w-4 text-[9px] pt-0.5 font-bold text-white rounded-full bg-red-500 border-2 border-white">
+          {unreadCount > 99 ? "99+" : unreadCount}
         </span>
       )}
     </Link>

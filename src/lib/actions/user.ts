@@ -1,6 +1,8 @@
 "use server";
 import dbConnect from "@/lib/db";
 import User from "@/models/User";
+import Task from "@/models/Task";
+import Project from "@/models/Project";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
@@ -58,7 +60,62 @@ export async function updateUserProfile(formData: FormData) {
     
     revalidatePath("/profile");
     return { success: true };
-  } catch (err: any) {
-    return { success: false, error: err.message };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function getPublicProfile(userId: string) {
+  try {
+    await dbConnect();
+    const user = await User.findById(userId).lean();
+    if (!user) return { success: false, error: "User tidak ditemukan" };
+
+    // Fetch tasks where user is author or collaborator
+    const tasks = await Task.find({
+      $or: [{ authorId: userId }, { collaborators: userId }],
+    })
+      .populate({ path: "authorId", select: "name image username", model: User })
+      .populate({ path: "projectId", select: "title", model: Project })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const serializedUser = {
+      id: user._id.toString(),
+      name: user.name,
+      username: user.username || "",
+      image: user.image,
+      bio: user.bio || "",
+      skills: user.skills ? user.skills.map((s: any) => ({
+        name: s.name,
+        icon: s.icon,
+        percentage: s.percentage,
+      })) : [],
+      role: user.role,
+    };
+
+    const serializedTasks = tasks.map((task: any) => ({
+      _id: task._id.toString(),
+      caption: task.caption,
+      mediaUrl: task.mediaUrl,
+      mediaUrls: task.mediaUrls || [task.mediaUrl],
+      mediaType: task.mediaType || "image",
+      likesCount: task.likes ? task.likes.length : 0,
+      createdAt: task.createdAt?.toISOString(),
+      author: task.authorId ? {
+        id: task.authorId._id.toString(),
+        name: task.authorId.name,
+        image: task.authorId.image,
+        username: task.authorId.username,
+      } : null,
+      project: task.projectId ? {
+        id: task.projectId._id.toString(),
+        title: task.projectId.title,
+      } : null,
+    }));
+
+    return { success: true, data: { user: serializedUser, tasks: serializedTasks } };
+  } catch (error: any) {
+    return { success: false, error: error.message };
   }
 }

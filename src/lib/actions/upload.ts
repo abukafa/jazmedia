@@ -148,6 +148,9 @@ export async function createDriveUploadSession(fileName: string, mimeType: strin
       parents: targetFolderId ? [targetFolderId] : [],
     };
 
+    // Gunakan Origin dari environment atau default localhost agar Google Drive membuka akses CORS untuk browser
+    const appOrigin = process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+
     const response = await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable", {
       method: "POST",
       headers: {
@@ -155,6 +158,7 @@ export async function createDriveUploadSession(fileName: string, mimeType: strin
         "Content-Type": "application/json",
         "X-Upload-Content-Type": mimeType,
         "X-Upload-Content-Length": fileSize.toString(),
+        "Origin": appOrigin,
       },
       body: JSON.stringify(metadata),
     });

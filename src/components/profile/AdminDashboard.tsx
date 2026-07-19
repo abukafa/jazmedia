@@ -4,7 +4,9 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAlert } from "@/components/providers/AlertProvider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, Folder, Grid3X3, ShieldAlert } from "lucide-react";
+import { Users, Folder, Grid3X3, ShieldAlert, FileText } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getDirectMediaUrl } from "@/lib/utils/media";
 import {
   getAllUsers,
   updateUserRole,
@@ -21,7 +23,7 @@ interface AdminDashboardProps {
 }
 
 export default function AdminDashboard({ currentUserId }: AdminDashboardProps) {
-  const { showAlert } = useAlert();
+  const { showAlert, showConfirm } = useAlert();
   const queryClient = useQueryClient();
 
   const { data: users = [], isFetching: loadingUsers } = useQuery({
@@ -55,39 +57,40 @@ export default function AdminDashboard({ currentUserId }: AdminDashboardProps) {
     }
   };
 
-  const handleDeleteUser = async (userId: string) => {
-    if (
-      !confirm(
-        "Apakah Anda yakin ingin menghapus pengguna ini? Semua data yang terkait mungkin juga terhapus.",
-      )
-    )
-      return;
-
-    const res = await deleteUser(userId);
-    if (res.success) {
-      showAlert({ message: "Pengguna berhasil dihapus", type: "success" });
-      queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
-    } else {
-      showAlert({
-        message: "Gagal menghapus pengguna: " + res.error,
-        type: "error",
-      });
-    }
+  const handleDeleteUser = (userId: string) => {
+    showConfirm({
+      message: "Apakah Anda yakin ingin menghapus pengguna ini? Semua data yang terkait mungkin juga terhapus.",
+      onConfirm: async () => {
+        const res = await deleteUser(userId);
+        if (res.success) {
+          showAlert({ message: "Pengguna berhasil dihapus", type: "success" });
+          queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+        } else {
+          showAlert({
+            message: "Gagal menghapus pengguna: " + res.error,
+            type: "error",
+          });
+        }
+      }
+    });
   };
 
-  const handleDeleteTask = async (taskId: string) => {
-    if (!confirm("Apakah Anda yakin ingin menghapus postingan ini?")) return;
-
-    const res = await deleteTask(taskId);
-    if (res.success) {
-      showAlert({ message: "Postingan berhasil dihapus", type: "success" });
-      queryClient.invalidateQueries({ queryKey: ["admin", "tasks"] });
-    } else {
-      showAlert({
-        message: "Gagal menghapus postingan: " + res.error,
-        type: "error",
-      });
-    }
+  const handleDeleteTask = (taskId: string) => {
+    showConfirm({
+      message: "Apakah Anda yakin ingin menghapus postingan ini?",
+      onConfirm: async () => {
+        const res = await deleteTask(taskId);
+        if (res.success) {
+          showAlert({ message: "Postingan berhasil dihapus", type: "success" });
+          queryClient.invalidateQueries({ queryKey: ["admin", "tasks"] });
+        } else {
+          showAlert({
+            message: "Gagal menghapus postingan: " + res.error,
+            type: "error",
+          });
+        }
+      }
+    });
   };
 
   if (loading && users.length === 0) {
@@ -215,27 +218,94 @@ export default function AdminDashboard({ currentUserId }: AdminDashboardProps) {
         </TabsContent>
 
         <TabsContent value="tasks" className="p-4 space-y-3">
-          {tasks.map((task) => (
+          {tasks.map((task: any) => (
             <div
               key={task.id}
               className="bg-white border border-slate-100 rounded-xl p-3 flex gap-3 shadow-sm"
             >
-              <div className="w-16 h-16 bg-slate-100 rounded-lg shrink-0 flex items-center justify-center">
-                <Grid3X3 className="w-6 h-6 text-slate-300" />
+              <div className="w-16 h-16 bg-slate-100 rounded-lg shrink-0 overflow-hidden relative border border-slate-200/50">
+                {task.mediaType === "document" ? (
+                  <div className="w-full h-full flex items-center justify-center bg-blue-50 text-blue-500">
+                    <FileText className="w-6 h-6" />
+                  </div>
+                ) : task.mediaType === "video" ? (
+                  <video
+                    src={getDirectMediaUrl(
+                      task.mediaUrl || task.mediaUrls?.[0] || "",
+                      "video",
+                    )}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <img
+                    src={getDirectMediaUrl(
+                      task.mediaUrl || task.mediaUrls?.[0] || "",
+                      "image",
+                    )}
+                    alt="Preview"
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src =
+                        `https://ui-avatars.com/api/?name=P&background=f1f5f9&color=94a3b8`;
+                    }}
+                  />
+                )}
               </div>
               <div className="flex-1 min-w-0">
-                <h4 className="font-bold text-sm text-slate-900 truncate">
-                  {task.projectTitle}
-                </h4>
-                <p className="text-xs text-slate-500 truncate mt-0.5">
-                  By: {task.authorName}
-                </p>
-                <div className="mt-2 flex justify-between items-center">
+                <div className="inline-flex items-center gap-2 my-0.5">
+                  <h4 className="font-bold text-sm text-slate-900 truncate">
+                    {task.projectTitle}
+                  </h4>
                   <span
                     className={`text-[10px] font-black uppercase px-2 py-0.5 rounded ${task.status === "approved" ? "bg-green-100 text-green-700" : task.status === "reviewed" ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-600"}`}
                   >
                     {task.status}
                   </span>
+                </div>
+                <p className="text-[10px] text-slate-500 truncate">
+                  {task.caption || "Tidak ada caption"}
+                </p>
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center">
+                    <Avatar className="h-5 w-5 border-2 border-white shadow-sm relative z-20">
+                      <AvatarImage src={task.author?.image} />
+                      <AvatarFallback className="text-[8px] bg-blue-100 text-blue-700">
+                        {task.author?.name?.charAt(0)}
+                      </AvatarFallback>
+                    </Avatar>
+
+                    {task.collaborators && task.collaborators.length > 0 && (
+                      <div className="flex -ml-1.5">
+                        {task.collaborators
+                          .slice(0, 2)
+                          .map((collab: any, i: number) => (
+                            <Avatar
+                              key={i}
+                              className={`h-5 w-5 border-2 border-white shadow-sm relative ${i === 0 ? "z-10" : "z-0"} -ml-0.5`}
+                            >
+                              <AvatarImage src={collab.image} />
+                              <AvatarFallback className="text-[8px] bg-slate-100 text-slate-600">
+                                {collab.name?.charAt(0)}
+                              </AvatarFallback>
+                            </Avatar>
+                          ))}
+                        {task.collaborators.length > 2 && (
+                          <div className="h-5 w-5 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center -ml-1.5 z-[-1] shadow-sm">
+                            <span className="text-[8px] font-bold text-slate-600">
+                              +{task.collaborators.length - 2}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    <span className="text-[10px] text-slate-500 font-medium ml-2 truncate">
+                      {task.author?.name}{" "}
+                      {task.collaborators?.length > 0 &&
+                        `+${task.collaborators.length}`}
+                    </span>
+                  </div>
+
                   <Button
                     variant="ghost"
                     size="sm"

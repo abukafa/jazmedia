@@ -12,10 +12,14 @@ import {
   StarHalf,
   Maximize2,
   X,
+  MoreVertical,
+  Trash2,
+  Edit3,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { MediaCarousel } from "./media/MediaCarousel";
 import { useSession } from "next-auth/react";
+import { useAlert } from "@/components/providers/AlertProvider";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   toggleLike,
@@ -85,15 +89,16 @@ export function TaskCard({
   const user = session?.user as any;
   const isMentor = user?.role === "mentor" || user?.role === "admin";
   const queryClient = useQueryClient();
+  const { showAlert, showConfirm } = useAlert();
 
   const [isLiked, setIsLiked] = useState(isLikedByMe);
   const [likes, setLikes] = useState(likesCount);
   const [showBigHeart, setShowBigHeart] = useState(false);
-  
+
   const [isEditing, setIsEditing] = useState(false);
   const [editedCaption, setEditedCaption] = useState(caption);
   const [isSubmittingEdit, setIsSubmittingEdit] = useState(false);
-  
+
   const isAuthor = user?.id === author.id;
 
   useEffect(() => {
@@ -101,7 +106,12 @@ export function TaskCard({
     setIsLiked(isLikedByMe);
   }, [likesCount, isLikedByMe]);
 
-  const [showReview, setShowReview] = useState(false);
+  const [localReview, setLocalReview] = useState(review);
+
+  useEffect(() => {
+    setLocalReview(review);
+  }, [review]);
+
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [reviewGrade, setReviewGrade] = useState(review ? review.grade : 0);
   const [reviewComment, setReviewComment] = useState(
@@ -113,6 +123,8 @@ export function TaskCard({
 
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [activeSlide, setActiveSlide] = useState(0);
+
+  const [showMenu, setShowMenu] = useState(false);
 
   const urls = mediaUrls.length > 0 ? mediaUrls : [mediaUrl];
 
@@ -145,14 +157,14 @@ export function TaskCard({
         setIsLiked(data.isLikedByMe ?? false);
         setLikes(data.likesCount);
       } else {
-        alert("Gagal menyukai postingan: " + data.error);
+        showAlert({ message: "Gagal menyukai postingan: " + data.error, type: "error" });
         // Revert optimistic update
         setIsLiked(isLikedByMe);
         setLikes(likesCount);
       }
     },
     onError: (err: any) => {
-      alert("Terjadi kesalahan jaringan: " + err.message);
+      showAlert({ message: "Terjadi kesalahan jaringan: " + err.message, type: "error" });
       setIsLiked(isLikedByMe);
       setLikes(likesCount);
     },
@@ -163,11 +175,11 @@ export function TaskCard({
     const previousIsLiked = isLiked;
     setIsLiked(!isLiked);
     setLikes(isLiked ? likes - 1 : likes + 1);
-    
+
     if (!isLiked) {
       setShowBigHeart(true);
     }
-    
+
     likeMutation.mutate();
   };
 
@@ -190,7 +202,7 @@ export function TaskCard({
         .catch(console.error);
     } else {
       navigator.clipboard.writeText(window.location.href);
-      alert("Tautan disalin ke clipboard!");
+      showAlert({ message: "Tautan disalin ke clipboard!", type: "success" });
     }
   };
 
@@ -198,10 +210,15 @@ export function TaskCard({
     mutationFn: async () => submitReview(id, reviewGrade, reviewComment),
     onSuccess: (data) => {
       if (data.success) {
+        setLocalReview({
+          grade: reviewGrade,
+          comment: reviewComment,
+          mentorName: user?.name || "Mentor",
+        });
         setIsReviewModalOpen(false);
         queryClient.invalidateQueries({ queryKey: ["tasks"] });
       } else {
-        alert("Gagal memberikan ulasan: " + data.error);
+        showAlert({ message: "Gagal memberikan ulasan: " + data.error, type: "error" });
       }
     },
   });
@@ -218,7 +235,7 @@ export function TaskCard({
       setIsEditing(false);
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
     } else {
-      alert("Gagal mengedit caption: " + res.error);
+      showAlert({ message: "Gagal mengedit caption: " + res.error, type: "error" });
     }
   };
 
@@ -234,7 +251,7 @@ export function TaskCard({
         setCommentContent("");
         refetchComments();
       } else {
-        alert("Gagal menambahkan komentar: " + data.error);
+        showAlert({ message: "Gagal menambahkan komentar: " + data.error, type: "error" });
       }
     },
   });
@@ -269,28 +286,72 @@ export function TaskCard({
           <div className="flex flex-col flex-1">
             <p className="text-sm font-bold text-slate-900 leading-none truncate flex items-center gap-2">
               {getDisplayNames()}
-              {isAuthor && !isEditing && (
-                <button 
-                  onClick={() => setIsEditing(true)}
-                  className="text-slate-400 hover:text-blue-600 transition-colors"
-                  title="Edit Caption"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                </button>
-              )}
             </p>
             <p className="text-xs text-slate-500 mt-1 font-medium">
               {projectTitle} • {timeAgo}
             </p>
           </div>
-          {review && (
-            <Badge
-              variant="secondary"
-              className="bg-amber-100 text-amber-800 hover:bg-amber-200 font-extrabold px-2 py-1 shadow-sm border border-amber-200/50"
-            >
-              <Star className="w-3.5 h-3.5 mr-1 fill-amber-500 text-amber-500" />
-              {review.grade}
-            </Badge>
+
+          {/* Menu Dropdown */}
+          {(isMentor || isAuthor || user?.role === "admin") && (
+            <div className="relative ml-2">
+              <button
+                onClick={() => setShowMenu(!showMenu)}
+                className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
+              >
+                <MoreVertical className="w-5 h-5" />
+              </button>
+
+              {showMenu && (
+                <>
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setShowMenu(false)}
+                  />
+                  <div className="absolute right-0 mt-1 w-48 bg-white rounded-xl shadow-lg border border-slate-100 py-1.5 z-50 overflow-hidden transform origin-top-right transition-all">
+                    {isMentor && (
+                      <button
+                        onClick={() => {
+                          setIsReviewModalOpen(true);
+                          setShowMenu(false);
+                        }}
+                        className="w-full text-left px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                      >
+                        <Star className="w-4 h-4 text-amber-500" /> Beri Ulasan
+                      </button>
+                    )}
+
+                    {isAuthor && (
+                      <button
+                        onClick={() => {
+                          setIsEditing(true);
+                          setShowMenu(false);
+                        }}
+                        className="w-full text-left px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                      >
+                        <Edit3 className="w-4 h-4 text-blue-500" /> Edit Caption
+                      </button>
+                    )}
+
+                    {user?.role === "admin" && (
+                        <button
+                          onClick={() => { 
+                            setShowMenu(false); 
+                            showConfirm({
+                              message: "Hapus postingan ini?",
+                              type: "error",
+                              onConfirm: () => showAlert({ message: "Fitur hapus segera hadir", type: "info" })
+                            });
+                          }}
+                          className="w-full text-left px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 flex items-center gap-2"
+                        >
+                        <Trash2 className="w-4 h-4" /> Hapus Postingan
+                      </button>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
           )}
         </CardHeader>
 
@@ -371,7 +432,7 @@ export function TaskCard({
               title={isMentor ? "Beri ulasan" : ""}
             >
               {[1, 2, 3, 4, 5].map((star) => {
-                const rating5 = review ? review.grade / 20 : 0;
+                const rating5 = localReview ? localReview.grade / 20 : 0;
 
                 if (rating5 >= star) {
                   return (
@@ -398,9 +459,9 @@ export function TaskCard({
                   autoFocus
                 />
                 <div className="flex gap-2 justify-end">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={() => {
                       setIsEditing(false);
                       setEditedCaption(caption);
@@ -410,8 +471,8 @@ export function TaskCard({
                   >
                     Batal
                   </Button>
-                  <Button 
-                    size="sm" 
+                  <Button
+                    size="sm"
                     onClick={handleEditSubmit}
                     disabled={isSubmittingEdit}
                     className="h-7 text-xs bg-blue-600 hover:bg-blue-700"
@@ -426,41 +487,43 @@ export function TaskCard({
           </div>
         </CardContent>
 
-        {review && (
-          <div className="px-4 pb-0 mt-3">
-            <button
-              onClick={() => setShowReview(!showReview)}
-              className="text-xs font-bold text-blue-600 hover:text-blue-800 transition-colors"
-            >
-              {showReview
-                ? "Sembunyikan ulasan mentor"
-                : "Lihat ulasan mentor..."}
-            </button>
+        {localReview && (
+          <div className="bg-amber-50/50 border-t border-amber-100/50 p-4 relative overflow-hidden">
+            {/* Dekorasi halus */}
+            <div className="absolute top-0 right-0 w-24 h-24 bg-amber-100/30 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none" />
 
-            <AnimatePresence>
-              {showReview && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  className="overflow-hidden"
-                >
-                  <div className="mt-3 p-3 bg-slate-50 border border-slate-100 rounded-xl relative shadow-inner">
-                    <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-blue-400 to-indigo-500 rounded-l-xl"></div>
-                    <p className="text-xs font-bold text-slate-900 mb-1.5 flex items-center">
-                      <Star className="w-3 h-3 text-amber-500 fill-amber-500 mr-1" />
-                      {review.mentorName}{" "}
-                      <span className="text-slate-500 font-medium ml-1">
-                        mengulas:
-                      </span>
-                    </p>
-                    <p className="text-sm text-slate-700 italic">
-                      "{review.comment}"
-                    </p>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            <div className="flex items-center justify-between mb-3 relative z-10">
+              <div className="flex items-center gap-2">
+                <div className="bg-amber-100 p-1.5 rounded-lg border border-amber-200/50">
+                  <Star className="w-4 h-4 text-amber-600 fill-amber-500" />
+                </div>
+                <h4 className="font-bold text-slate-800 text-sm">
+                  {localReview.mentorName}{" "}
+                  <span className="text-slate-500 font-medium ml-1">
+                    mengulas:
+                  </span>
+                </h4>
+              </div>
+              <Badge
+                variant="outline"
+                className="bg-white border-amber-200 text-amber-700 font-black shadow-sm"
+              >
+                Nilai: {localReview.grade}/100
+              </Badge>
+            </div>
+
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="overflow-hidden relative z-10"
+            >
+              <div className="bg-white/60 backdrop-blur-sm rounded-xl p-3 border border-amber-100 shadow-sm mt-1">
+                <p className="text-sm text-slate-700 italic">
+                  {localReview.comment}
+                </p>
+              </div>
+            </motion.div>
           </div>
         )}
       </Card>

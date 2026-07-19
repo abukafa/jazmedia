@@ -238,7 +238,8 @@ export async function getAllTasks() {
     await dbConnect();
     const tasks = await Task.find({})
       .sort({ createdAt: -1 })
-      .populate("authorId", "name username")
+      .populate("authorId", "name username image")
+      .populate("collaborators", "name image")
       .populate("projectId", "title")
       .lean();
       
@@ -247,9 +248,18 @@ export async function getAllTasks() {
       data: tasks.map((t: any) => ({
         id: t._id.toString(),
         mediaType: t.mediaType,
+        mediaUrl: t.mediaUrl || "",
+        mediaUrls: t.mediaUrls || [],
         caption: t.caption,
         status: t.status,
-        authorName: t.authorId?.name || "Unknown",
+        author: {
+          name: t.authorId?.name || "Unknown",
+          image: t.authorId?.image || "",
+        },
+        collaborators: t.collaborators?.map((c: any) => ({
+          name: c.name,
+          image: c.image || "",
+        })) || [],
         projectTitle: t.projectId?.title || "Unknown",
         createdAt: t.createdAt,
       }))

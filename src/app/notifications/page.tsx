@@ -1,170 +1,356 @@
 "use client";
 
-import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { 
-  getNotifications, 
-  markAsRead, 
-  markAllAsRead 
+import { useState, useEffect, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
+import {
+  getPendingTaskNotifications,
+  getReviewedTaskNotifications,
+  getSystemReminders,
 } from "@/lib/actions/notification";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  Bell, 
-  CheckCheck, 
-  MessageSquare, 
-  CheckCircle, 
-  Info,
-  Loader2,
-  ChevronLeft
-} from "lucide-react";
-import { useRouter } from "next/navigation";
+import { Bell, ChevronLeft, Star, Loader2, AlertCircle } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { TaskCard } from "@/components/feed/TaskCard";
+import Link from "next/link";
+
+function AutoScroll({
+  refNode,
+}: {
+  refNode: React.RefObject<HTMLDivElement | null>;
+}) {
+  useEffect(() => {
+    if (refNode.current) {
+      refNode.current.scrollIntoView({ behavior: "instant", block: "start" });
+    }
+  }, [refNode]);
+  return null;
+}
 
 export default function NotificationsPage() {
-  const [activeTab, setActiveTab] = useState("all");
   const router = useRouter();
-  const queryClient = useQueryClient();
+  const searchParams = useSearchParams();
+  const defaultTab = searchParams.get("tab") || "tasks";
 
-  const { data: notifications = [], isFetching: loading } = useQuery({
-    queryKey: ['notifications', activeTab],
+  const [activeTab, setActiveTab] = useState(defaultTab);
+
+  const [overlayData, setOverlayData] = useState<{
+    type: "tasks" | "reviews";
+    activeIndex: number;
+  } | null>(null);
+
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const { data: pendingTasks = [], isFetching: loadingTasks } = useQuery({
+    queryKey: ["notifications", "tasks"],
     queryFn: async () => {
-      const res = await getNotifications(activeTab);
+      const res = await getPendingTaskNotifications();
       return res.success ? res.data : [];
-    }
+    },
   });
 
-  const markAllMutation = useMutation({
-    mutationFn: markAllAsRead,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notifications'] })
+  const { data: reviewedTasks = [], isFetching: loadingReviews } = useQuery({
+    queryKey: ["notifications", "reviews"],
+    queryFn: async () => {
+      const res = await getReviewedTaskNotifications();
+      return res.success ? res.data : [];
+    },
   });
 
-  const markAsReadMutation = useMutation({
-    mutationFn: markAsRead,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notifications'] })
+  const { data: systemReminders = [], isFetching: loadingSystem } = useQuery({
+    queryKey: ["notifications", "system"],
+    queryFn: async () => {
+      const res = await getSystemReminders();
+      return res.success ? res.data : [];
+    },
   });
-
-  const handleMarkAllRead = () => {
-    markAllMutation.mutate();
-  };
-
-  const handleNotificationClick = (notif: any) => {
-    if (!notif.isRead) {
-      markAsReadMutation.mutate(notif._id);
-    }
-    if (notif.link) {
-      router.push(notif.link);
-    }
-  };
-
-  const getIcon = (type: string, isRead: boolean) => {
-    const className = `w-5 h-5 ${isRead ? 'text-slate-400' : 'text-blue-500'}`;
-    switch (type) {
-      case "task": return <CheckCircle className={className} />;
-      case "review": return <MessageSquare className={className} />;
-      case "system": return <Info className={className} />;
-      default: return <Bell className={className} />;
-    }
-  };
 
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
     const diff = Math.floor((now.getTime() - date.getTime()) / 1000);
-    
+
     if (diff < 60) return "Baru saja";
     if (diff < 3600) return `${Math.floor(diff / 60)} mnt lalu`;
     if (diff < 86400) return `${Math.floor(diff / 3600)} jam lalu`;
-    return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+    return date.toLocaleDateString("id-ID", { day: "numeric", month: "short" });
   };
 
+  const currentOverlayTasks =
+    overlayData?.type === "tasks" ? pendingTasks : reviewedTasks;
+
   return (
-    <div className="pt-6 pb-24 bg-slate-50 min-h-screen">
+    <div className="pt-6 pb-24 bg-slate-50 min-h-screen relative">
       <div className="px-4 mb-4 flex items-center justify-between">
         <div className="flex items-center">
-          <button onClick={() => router.back()} className="mr-3 p-2 -ml-2 rounded-full hover:bg-slate-200 text-slate-700 transition-colors">
+          <button
+            onClick={() => router.back()}
+            className="mr-3 p-2 -ml-2 rounded-full hover:bg-slate-200 text-slate-700 transition-colors"
+          >
             <ChevronLeft className="w-6 h-6" />
           </button>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight">Notifikasi</h1>
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight">
+            Notifikasi
+          </h1>
         </div>
-        <button 
-          onClick={handleMarkAllRead}
-          className="p-2 rounded-full hover:bg-blue-50 text-blue-600 transition-colors"
-          title="Tandai semua dibaca"
-        >
-          <CheckCheck className="w-5 h-5" />
-        </button>
       </div>
 
-      <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <Tabs
+        defaultValue="tasks"
+        value={activeTab}
+        onValueChange={setActiveTab}
+        className="w-full"
+      >
         <TabsList className="w-full justify-between h-14 bg-white rounded-none border-b border-slate-200 px-4 shadow-sm sticky top-0 z-10">
-          <TabsTrigger value="all" className="flex-1 data-[state=active]:shadow-none data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 rounded-none h-full transition-all text-slate-500 font-bold">
-            Semua
+          <TabsTrigger
+            value="tasks"
+            className="flex-1 data-[state=active]:shadow-none data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 rounded-none h-full transition-all text-slate-500 font-bold"
+          >
+            Tasks {pendingTasks.length > 0 && `(${pendingTasks.length})`}
           </TabsTrigger>
-          <TabsTrigger value="task" className="flex-1 data-[state=active]:shadow-none data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 rounded-none h-full transition-all text-slate-500 font-bold">
-            Tasks
-          </TabsTrigger>
-          <TabsTrigger value="review" className="flex-1 data-[state=active]:shadow-none data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 rounded-none h-full transition-all text-slate-500 font-bold">
+          <TabsTrigger
+            value="reviews"
+            className="flex-1 data-[state=active]:shadow-none data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 rounded-none h-full transition-all text-slate-500 font-bold"
+          >
             Reviews
           </TabsTrigger>
-          <TabsTrigger value="system" className="flex-1 data-[state=active]:shadow-none data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 rounded-none h-full transition-all text-slate-500 font-bold">
+          <TabsTrigger
+            value="system"
+            className="flex-1 data-[state=active]:shadow-none data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 rounded-none h-full transition-all text-slate-500 font-bold relative"
+          >
             Sistem
+            {systemReminders.length > 0 && (
+              <div className="absolute top-2 right-3 w-2 h-2 bg-red-500 rounded-full" />
+            )}
           </TabsTrigger>
         </TabsList>
-        
-        <div className="mt-2">
-          {loading ? (
+
+        {/* TASKS TAB */}
+        <TabsContent value="tasks" className="mt-0">
+          {loadingTasks ? (
             <div className="flex justify-center py-20">
               <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
             </div>
-          ) : notifications.length === 0 ? (
+          ) : pendingTasks.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
               <div className="w-16 h-16 bg-slate-200 rounded-full flex items-center justify-center mb-4">
                 <Bell className="w-8 h-8 text-slate-400" />
               </div>
-              <p className="text-sm font-medium text-slate-900">Belum ada notifikasi</p>
-              <p className="text-xs text-slate-500 mt-1">Anda sudah melihat semuanya.</p>
+              <p className="text-sm font-medium text-slate-900">
+                Belum ada tugas baru
+              </p>
             </div>
           ) : (
             <div className="divide-y divide-slate-100">
-              {notifications.map((notif: any) => (
-                <div 
-                  key={notif._id}
-                  onClick={() => handleNotificationClick(notif)}
-                  className={`flex gap-4 p-4 cursor-pointer transition-colors hover:bg-slate-100 ${notif.isRead ? 'bg-white opacity-70' : 'bg-blue-50/30'}`}
+              {pendingTasks.map((task: any, index: number) => (
+                <div
+                  key={task._id}
+                  onClick={() =>
+                    setOverlayData({ type: "tasks", activeIndex: index })
+                  }
+                  className="flex gap-4 p-4 cursor-pointer transition-colors bg-white hover:bg-slate-50"
                 >
-                  <div className="flex-shrink-0 relative">
-                    {notif.senderId?.image ? (
-                      <Avatar className="w-12 h-12">
-                        <AvatarImage src={notif.senderId.image} />
-                        <AvatarFallback>{notif.senderId.name.substring(0,2)}</AvatarFallback>
-                      </Avatar>
-                    ) : (
-                      <div className="w-12 h-12 bg-white border border-slate-200 rounded-full flex items-center justify-center">
-                        {getIcon(notif.type, notif.isRead)}
-                      </div>
-                    )}
-                    {!notif.isRead && (
-                      <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></div>
-                    )}
-                  </div>
+                  <Avatar className="w-12 h-12 flex-shrink-0">
+                    <AvatarImage src={task.authorId?.image} />
+                    <AvatarFallback>
+                      {task.authorId?.name?.substring(0, 2)}
+                    </AvatarFallback>
+                  </Avatar>
+
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm text-slate-900 font-medium">
-                      {notif.senderId && <span className="font-bold">{notif.senderId.name} </span>}
-                      {notif.title}
+                    <p className="text-sm text-slate-900 font-medium line-clamp-1">
+                      <span className="font-bold">{task.authorId?.name}</span>
+                      {task.collaborators?.length > 0 &&
+                        ` & ${task.collaborators.length} lainnya`}
                     </p>
-                    <p className={`text-xs mt-0.5 line-clamp-2 ${notif.isRead ? 'text-slate-500' : 'text-slate-700 font-medium'}`}>
-                      {notif.message}
+                    <p className="text-xs text-slate-600 mt-0.5 line-clamp-1">
+                      Tugas baru di project:{" "}
+                      <span className="font-bold">{task.projectId?.title}</span>
                     </p>
-                    <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-wider">
-                      {formatTime(notif.createdAt)}
+                    <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase">
+                      {formatTime(task.createdAt)}
+                    </p>
+                  </div>
+
+                  <div className="flex-shrink-0 flex items-center justify-center">
+                    <Star
+                      className="w-6 h-6 text-slate-300"
+                      strokeWidth={1.5}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        {/* REVIEWS TAB */}
+        <TabsContent value="reviews" className="mt-0">
+          {loadingReviews ? (
+            <div className="flex justify-center py-20">
+              <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+            </div>
+          ) : reviewedTasks.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
+              <div className="w-16 h-16 bg-slate-200 rounded-full flex items-center justify-center mb-4">
+                <Bell className="w-8 h-8 text-slate-400" />
+              </div>
+              <p className="text-sm font-medium text-slate-900">
+                Belum ada tugas direview
+              </p>
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-100">
+              {reviewedTasks.map((task: any, index: number) => (
+                <div
+                  key={task._id}
+                  onClick={() =>
+                    setOverlayData({ type: "reviews", activeIndex: index })
+                  }
+                  className="flex gap-4 p-4 cursor-pointer transition-colors bg-white hover:bg-slate-50"
+                >
+                  <Avatar className="w-12 h-12 flex-shrink-0">
+                    <AvatarImage src={task.authorId?.image} />
+                    <AvatarFallback>
+                      {task.authorId?.name?.substring(0, 2)}
+                    </AvatarFallback>
+                  </Avatar>
+
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-slate-900 font-medium line-clamp-1">
+                      <span className="font-bold">{task.authorId?.name}</span>
+                    </p>
+                    <p className="text-xs text-slate-600 mt-0.5 line-clamp-1">
+                      Direview oleh:{" "}
+                      <span className="font-bold">
+                        {task.review?.mentorId?.name}
+                      </span>
+                    </p>
+                    <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase">
+                      {task.review?.reviewedAt
+                        ? formatTime(task.review.reviewedAt)
+                        : formatTime(task.updatedAt)}
+                    </p>
+                  </div>
+
+                  <div className="flex-shrink-0 flex flex-col items-center justify-center">
+                    <div className="flex items-center text-amber-500">
+                      <Star className="w-5 h-5 fill-current" />
+                      <span className="font-black text-sm ml-1">
+                        {task.review?.grade}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        {/* SYSTEM TAB */}
+        <TabsContent value="system" className="mt-0">
+          {loadingSystem ? (
+            <div className="flex justify-center py-20">
+              <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+            </div>
+          ) : systemReminders.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
+              <div className="w-16 h-16 bg-slate-200 rounded-full flex items-center justify-center mb-4">
+                <AlertCircle className="w-8 h-8 text-slate-400" />
+              </div>
+              <p className="text-sm font-medium text-slate-900">
+                Sistem berjalan optimal
+              </p>
+              <p className="text-xs text-slate-500 mt-1">
+                Tidak ada reminder saat ini.
+              </p>
+            </div>
+          ) : (
+            <div className="p-4 space-y-3">
+              {systemReminders.map((reminder: any, idx: number) => (
+                <div
+                  key={idx}
+                  className="bg-red-50/50 border border-red-100 p-4 rounded-2xl flex gap-3"
+                >
+                  <AlertCircle className="w-6 h-6 text-red-500 shrink-0" />
+                  <div>
+                    <h4 className="text-sm font-bold text-red-700 capitalize">
+                      {reminder.type.replace("_", " ")}
+                    </h4>
+                    <p className="text-xs text-red-600 mt-1">
+                      {reminder.message}
                     </p>
                   </div>
                 </div>
               ))}
             </div>
           )}
-        </div>
+        </TabsContent>
       </Tabs>
+
+      {/* OVERLAY VIEWER */}
+      {overlayData !== null && (
+        <div className="fixed inset-0 z-[100] bg-slate-50 flex flex-col">
+          <div className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-100 h-14 flex items-center px-4">
+            <button
+              onClick={() => setOverlayData(null)}
+              className="p-2 -ml-2 rounded-full hover:bg-slate-100 text-slate-700 transition-colors"
+            >
+              <ChevronLeft className="w-6 h-6" />
+            </button>
+            <h1 className="flex-1 text-center font-bold text-slate-900 mr-8 capitalize">
+              {overlayData.type === "tasks" ? "Tugas Baru" : "Hasil Review"}
+            </h1>
+          </div>
+
+          <div className="flex-1 overflow-y-auto w-full px-4 scrollbar-hide pb-20 pt-4">
+            <div className="max-w-md mx-auto w-full">
+              {currentOverlayTasks.map((task: any, index: number) => {
+                const serializedTask = {
+                  id: task._id.toString(),
+                  caption: task.caption,
+                  mediaUrl: task.mediaUrl,
+                  mediaUrls: task.mediaUrls || [task.mediaUrl],
+                  mediaType: task.mediaType || "image",
+                  likesCount: task.likes ? task.likes.length : 0,
+                  createdAt: task.createdAt,
+                  timeAgo: formatTime(task.createdAt),
+                  author: {
+                    id: task.authorId?._id?.toString(),
+                    name: task.authorId?.name || "Unknown",
+                    image: task.authorId?.image || "",
+                    username: task.authorId?.username,
+                  },
+                  project: task.projectId
+                    ? {
+                        id: task.projectId._id.toString(),
+                        title: task.projectId.title,
+                      }
+                    : null,
+                  projectTitle: task.projectId?.title || "",
+                  review: task.review
+                    ? {
+                        grade: task.review.grade,
+                        comment: task.review.comment,
+                        mentorName: task.review.mentorId?.name || "Mentor",
+                      }
+                    : undefined,
+                };
+
+                return (
+                  <div
+                    key={task._id}
+                    ref={index === overlayData.activeIndex ? scrollRef : null}
+                    className="mb-6"
+                  >
+                    <TaskCard {...serializedTask} />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

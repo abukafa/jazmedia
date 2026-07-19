@@ -62,3 +62,37 @@ export async function getPublicProjects(statusFilter: string = "all") {
     return { success: false, error: err.message };
   }
 }
+
+export async function getProjectById(projectId: string) {
+  try {
+    await dbConnect();
+    
+    const project = await Project.findById(projectId)
+      .populate("mentorId", "name")
+      .lean();
+      
+    if (!project) return { success: false, error: "Project not found" };
+
+    const tasks = await Task.find({ projectId })
+      .populate("authorId", "name username image")
+      .populate("collaborators", "name username image")
+      .populate("review.mentorId", "name")
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const serializedProject = {
+      id: project._id.toString(),
+      title: project.title,
+      description: project.description,
+      status: project.status,
+      mentorName: project.mentorId?.name || "Tanpa Mentor",
+      createdAt: project.createdAt,
+      participantsCount: project.participants?.length || 0,
+      tasks: JSON.parse(JSON.stringify(tasks))
+    };
+
+    return { success: true, data: serializedProject };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}

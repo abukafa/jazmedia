@@ -44,7 +44,7 @@ interface ProjectManagerProps {
 }
 
 export function ProjectManager({ currentUserId, isAdmin, readonly = false }: ProjectManagerProps) {
-  const { showAlert } = useAlert();
+  const { showAlert, showConfirm } = useAlert();
   const queryClient = useQueryClient();
 
   // Pagination State for Projects
@@ -102,16 +102,19 @@ export function ProjectManager({ currentUserId, isAdmin, readonly = false }: Pro
     setIsSubmitting(false);
   };
 
-  const handleDeleteProject = async (projectId: string) => {
-    if (!confirm("Apakah Anda yakin ingin menghapus proyek ini? Semua tugas yang terkait tidak akan memiliki induk proyek lagi.")) return;
-    
-    const res = await deleteProject(projectId);
-    if (res.success) {
-      showAlert({ message: "Proyek berhasil dihapus", type: "success" });
-      queryClient.invalidateQueries({ queryKey: ['admin', 'projects'] });
-    } else {
-      showAlert({ message: "Gagal menghapus proyek: " + res.error, type: "error" });
-    }
+  const handleDeleteProject = (projectId: string) => {
+    showConfirm({
+      message: "Apakah Anda yakin ingin menghapus proyek ini? Semua tugas yang terkait tidak akan memiliki induk proyek lagi.",
+      onConfirm: async () => {
+        const res = await deleteProject(projectId);
+        if (res.success) {
+          showAlert({ message: "Proyek berhasil dihapus", type: "success" });
+          queryClient.invalidateQueries({ queryKey: ['admin', 'projects'] });
+        } else {
+          showAlert({ message: "Gagal menghapus proyek: " + res.error, type: "error" });
+        }
+      }
+    });
   };
 
   const openEditProject = (project: any) => {

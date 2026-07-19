@@ -93,6 +93,84 @@ export async function searchTasks(query: string) {
   return JSON.parse(JSON.stringify(formattedTasks));
 }
 
+export async function getMemberStreaks(query: string = "") {
+  await dbConnect();
+
+  // Find users with role "member"
+  const searchFilter: any = { role: "member" };
+  if (query.trim()) {
+    searchFilter.$or = [
+      { name: { $regex: query, $options: "i" } },
+      { username: { $regex: query, $options: "i" } }
+    ];
+  }
+
+  const members = await User.find(searchFilter)
+    .select("_id name username image")
+    .lean();
+    
+  const memberIds = members.map(m => m._id);
+
+  const tasks = await Task.find({
+    $or: [
+      { authorId: { $in: memberIds } },
+      { collaborators: { $in: memberIds } }
+    ]
+  }).select("_id authorId collaborators createdAt").lean();
+
+  const now = new Date().getTime();
+
+  const streaks = members.map(member => {
+    const memberIdStr = member._id.toString();
+    
+    const authoredTasks = tasks.filter(t => t.authorId?.toString() === memberIdStr);
+    const collabTasks = tasks.filter(t => 
+      t.collaborators?.some((c: any) => c.toString() === memberIdStr)
+    );
+
+    // Calculate Streak
+    let streakTaskCount = 0;
+    let weekIndex = 0;
+    
+    while (true) {
+      const tasksInWeek = authoredTasks.filter(t => {
+        const daysAgo = (now - new Date(t.createdAt).getTime()) / (1000 * 60 * 60 * 24);
+        return daysAgo >= weekIndex * 7 && daysAgo < (weekIndex + 1) * 7;
+      });
+
+      if (tasksInWeek.length > 0) {
+        streakTaskCount += tasksInWeek.length;
+        weekIndex++;
+      } else {
+        // Grace period for the current week (week 0)
+        if (weekIndex === 0) {
+          weekIndex++;
+        } else {
+          break; // Streak broken
+        }
+      }
+    }
+
+    return {
+      id: memberIdStr,
+      name: member.name,
+      username: member.username,
+      image: member.image || "https://i.pravatar.cc/150",
+      totalTasks: authoredTasks.length,
+      totalCollabs: collabTasks.length,
+      streakCount: streakTaskCount
+    };
+  });
+
+  // Sort by streakCount descending, then by totalTasks
+  streaks.sort((a, b) => {
+    if (b.streakCount !== a.streakCount) return b.streakCount - a.streakCount;
+    return b.totalTasks - a.totalTasks;
+  });
+
+  return JSON.parse(JSON.stringify(streaks));
+}
+
 export async function searchUsers(query: string) {
   if (!query) return [];
   await dbConnect();

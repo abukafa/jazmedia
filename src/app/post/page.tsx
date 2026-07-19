@@ -104,109 +104,37 @@ export default function PostTask() {
 
   const uploadFileToDrive = async (file: File, uploadUrl: string) => {
     return new Promise<string>((resolve, reject) => {
-      const chunkSize = 256 * 1024 * 10; // 2.5MB untuk stabilitas di jaringan lambat
-      const fileSize = file.size;
-      let offset = 0;
-      let retries = 0;
-      const MAX_RETRIES = 5;
+      const xhr = new XMLHttpRequest();
+      xhr.open("PUT", uploadUrl, true);
+      xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
 
-      const checkStatusAndResume = () => {
-        const xhr = new XMLHttpRequest();
-        xhr.open("PUT", uploadUrl, true);
-        xhr.setRequestHeader("Content-Range", `bytes */${fileSize}`);
-        
-        xhr.onload = () => {
-          if (xhr.status === 308) {
-            const range = xhr.getResponseHeader("Range");
-            if (range) {
-              const match = range.match(/bytes=0-(\d+)/);
-              if (match) {
-                offset = parseInt(match[1], 10) + 1;
-              }
-            }
-            if (offset < fileSize) {
-              uploadChunk();
-            } else {
-              reject(new Error("Upload belum tuntas padahal seluruh file telah terkirim."));
-            }
-          } else if (xhr.status === 200 || xhr.status === 201) {
-            try {
-              const response = JSON.parse(xhr.responseText);
-              if (response.id) resolve(response.id);
-              else reject(new Error("ID tidak ditemukan di respon akhir"));
-            } catch (e) {
-              reject(new Error("Gagal membaca respon final Google Drive"));
-            }
-          } else {
-            reject(new Error(`Gagal memulihkan unggahan (Status: ${xhr.status})`));
-          }
-        };
-        
-        xhr.onerror = () => {
-          reject(new Error("Gagal terhubung ke server saat memulihkan unggahan. Pastikan internet stabil."));
-        };
-        
-        xhr.send();
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          const percentComplete = (e.loaded / e.total) * 100;
+          setUploadProgress(Math.round(percentComplete));
+        }
       };
 
-      const uploadChunk = () => {
-        const xhr = new XMLHttpRequest();
-        const end = Math.min(offset + chunkSize, fileSize);
-        const chunk = file.slice(offset, end);
-
-        xhr.open("PUT", uploadUrl, true);
-        xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
-        xhr.setRequestHeader("Content-Range", `bytes ${offset}-${end - 1}/${fileSize}`);
-
-        xhr.upload.onprogress = (e) => {
-          if (e.lengthComputable) {
-            const loadedGlobally = offset + e.loaded;
-            const percentComplete = (loadedGlobally / fileSize) * 100;
-            setUploadProgress(Math.round(percentComplete));
+      xhr.onload = () => {
+        if (xhr.status === 200 || xhr.status === 201) {
+          try {
+            const response = JSON.parse(xhr.responseText);
+            if (response.id) resolve(response.id);
+            else reject(new Error("ID tidak ditemukan di respon akhir"));
+          } catch (e) {
+            reject(new Error("Gagal membaca respon final Google Drive"));
           }
-        };
-
-        xhr.onload = () => {
-          if (xhr.status === 308) {
-            offset = end;
-            retries = 0; // Reset retries
-            if (offset < fileSize) {
-              uploadChunk();
-            } else {
-              reject(new Error("Upload belum tuntas padahal seluruh file telah terkirim."));
-            }
-          } else if (xhr.status === 200 || xhr.status === 201) {
-            try {
-              const response = JSON.parse(xhr.responseText);
-              if (response.id) resolve(response.id);
-              else reject(new Error("ID tidak ditemukan di respon akhir"));
-            } catch (e) {
-              reject(new Error("Gagal membaca respon final Google Drive"));
-            }
-          } else {
-            if (retries < MAX_RETRIES) {
-              retries++;
-              setTimeout(checkStatusAndResume, 2000);
-            } else {
-              reject(new Error(`Gagal (Status: ${xhr.status}) di potongan ${Math.round(offset / 1024 / 1024)}MB`));
-            }
-          }
-        };
-
-        xhr.onerror = () => {
-          if (retries < MAX_RETRIES) {
-            retries++;
-            // Jangan langsung uploadChunk ulang, melainkan cek status dulu
-            setTimeout(checkStatusAndResume, 3000);
-          } else {
-            reject(new Error("Koneksi internet terputus di tengah jalan. Pastikan jaringan stabil."));
-          }
-        };
-
-        xhr.send(chunk);
+        } else {
+          reject(new Error(`Gagal (Status: ${xhr.status}) saat mengunggah`));
+        }
       };
 
-      uploadChunk();
+      xhr.onerror = () => {
+        reject(new Error("Koneksi internet terputus di tengah jalan. Pastikan jaringan stabil."));
+      };
+
+      // Upload entire file seamlessly, browser handles streaming automatically
+      xhr.send(file);
     });
   };
 

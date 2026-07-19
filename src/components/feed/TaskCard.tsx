@@ -277,6 +277,14 @@ export function TaskCard({
     commentMutation.mutate();
   };
 
+  const [isExpanded, setIsExpanded] = useState(false);
+  const maxLength = 100;
+  const shouldTruncate = caption.length > maxLength;
+  const displayedCaption =
+    isExpanded || !shouldTruncate
+      ? caption
+      : `${caption.substring(0, maxLength)}...`;
+
   return (
     <>
       <Card className="mb-6 overflow-hidden border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white transition-all rounded-3xl">
@@ -302,7 +310,7 @@ export function TaskCard({
             <p className="text-sm font-bold text-slate-900 leading-none truncate flex items-center gap-2">
               {getDisplayNames()}
             </p>
-            <p className="text-xs text-slate-500 mt-1 font-medium">
+            <p className="text-xs text-slate-500 mt-1 font-medium truncate">
               {projectTitle} • {timeAgo}
             </p>
           </div>
@@ -501,7 +509,17 @@ export function TaskCard({
                 </div>
               </div>
             ) : (
-              <span>{caption}</span>
+              <span>
+                {displayedCaption}
+                {shouldTruncate && (
+                  <button
+                    onClick={() => setIsExpanded(!isExpanded)}
+                    className="text-blue-400 font-semibold ml-1 hover:underline focus:outline-none"
+                  >
+                    {isExpanded ? "less" : "read more"}
+                  </button>
+                )}
+              </span>
             )}
           </div>
         </CardContent>

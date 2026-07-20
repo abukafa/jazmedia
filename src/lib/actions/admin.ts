@@ -95,6 +95,22 @@ export async function getAllMentors() {
   }
 }
 
+export async function getAllUsersForSelect() {
+  const user = await getAuthUser();
+  if (!user) return { success: false, error: "Unauthorized" };
+  
+  try {
+    await dbConnect();
+    const users = await User.find({}).select("name _id").sort({ name: 1 }).lean();
+    return {
+      success: true,
+      data: users.map(u => ({ id: u._id.toString(), name: u.name }))
+    };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
 // ---------------------------
 // PROJECTS MASTER DATA
 // ---------------------------
@@ -110,7 +126,7 @@ export async function getAllProjects(page = 1, limit = 5) {
     const taskCounts = await Task.aggregate([
       { $group: { _id: "$projectId", count: { $sum: 1 } } }
     ]);
-    const taskCountMap = new Map(taskCounts.map(tc => [tc._id.toString(), tc.count]));
+    const taskCountMap = new Map(taskCounts.map(tc => [tc._id?.toString() || "unassigned", tc.count]));
 
     // Aggregation for current user's task counts
     const myTaskCounts = await Task.aggregate([
@@ -124,14 +140,15 @@ export async function getAllProjects(page = 1, limit = 5) {
       },
       { $group: { _id: "$projectId", count: { $sum: 1 } } }
     ]);
-    const myTaskCountMap = new Map(myTaskCounts.map(tc => [tc._id.toString(), tc.count]));
+    const myTaskCountMap = new Map(myTaskCounts.map(tc => [tc._id?.toString() || "unassigned", tc.count]));
 
     const totalProjects = await Project.countDocuments();
-    const projects = await Project.find({})
+      const projects = await Project.find({})
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .populate("mentorId", "name")
+      .populate("projectManagerId", "name")
       .lean();
 
     return { 
@@ -143,6 +160,8 @@ export async function getAllProjects(page = 1, limit = 5) {
         status: p.status,
         mentorId: p.mentorId?._id?.toString() || "",
         mentorName: p.mentorId?.name || "Belum ada mentor",
+        projectManagerId: p.projectManagerId?._id?.toString() || "",
+        projectManagerName: p.projectManagerId?.name || "Belum ada PM",
         creatorId: p.creatorId?.toString() || "",
         participantsCount: p.participants?.length || 0,
         taskCount: taskCountMap.get(p._id.toString()) || 0,
@@ -173,6 +192,7 @@ export async function createProject(formData: FormData) {
     const description = formData.get("description") as string;
     const status = formData.get("status") as string || "active";
     const mentorId = formData.get("mentorId") as string;
+    const projectManagerId = formData.get("projectManagerId") as string;
     
     const payload: any = { 
       title, 
@@ -181,6 +201,7 @@ export async function createProject(formData: FormData) {
       creatorId: user._id
     };
     if (mentorId) payload.mentorId = mentorId;
+    if (projectManagerId) payload.projectManagerId = projectManagerId;
     
     await Project.create(payload);
     revalidatePath("/profile");
@@ -202,10 +223,21 @@ export async function updateProject(projectId: string, formData: FormData) {
     const description = formData.get("description") as string;
     const status = formData.get("status") as string;
     const mentorId = formData.get("mentorId") as string;
+    const projectManagerId = formData.get("projectManagerId") as string;
     
-    const payload: any = { title, description, status };
-    if (mentorId) payload.mentorId = mentorId;
-    else payload.$unset = { mentorId: 1 };
+    const $set: any = { title, description, status };
+    const $unset: any = {};
+    
+    if (mentorId) $set.mentorId = mentorId;
+    else $unset.mentorId = 1;
+    
+    if (projectManagerId) $set.projectManagerId = projectManagerId;
+    else $unset.projectManagerId = 1;
+    
+    const payload: any = { $set };
+    if (Object.keys($unset).length > 0) {
+      payload.$unset = $unset;
+    }
     
     await Project.findByIdAndUpdate(projectId, payload);
     revalidatePath("/profile");

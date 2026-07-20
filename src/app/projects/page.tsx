@@ -86,16 +86,18 @@ export default function Projects() {
               <CardContent className="pt-2">
                 <div className="flex justify-between items-start">
                   <div>
-                    <h3 className="font-bold text-slate-900 leading-tight">
+                    <h3 className="font-bold text-slate-900 leading-tight inline">
                       {p.title}
                     </h3>
-                    <p>
-                      <span className="text-[11px] text-slate-500 font-medium mt-1">
-                        PIC: {p.mentorName}{" "}
-                      </span>
+                    <span>
                       <Clock className="w-3.5 h-3.5 mx-1.5 text-slate-400 inline" />
                       <span className="text-[11px] text-slate-500 font-medium mt-1">
                         Berjalan {calculateDays(p.createdAt)}
+                      </span>
+                    </span>
+                    <p>
+                      <span className="text-[11px] text-slate-500 font-medium mt-1">
+                        PIC: {p.mentorName} • PM: {p.projectManagerName || "-"}
                       </span>
                     </p>
                   </div>

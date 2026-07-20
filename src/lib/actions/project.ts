@@ -21,6 +21,7 @@ export async function getPublicProjects(statusFilter: string = "all") {
     const projects = await Project.find(query)
       .sort({ createdAt: -1 })
       .populate("mentorId", "name")
+      .populate("projectManagerId", "name")
       .lean();
 
     // Fetch tasks for these projects
@@ -52,6 +53,7 @@ export async function getPublicProjects(statusFilter: string = "all") {
         description: p.description,
         status: p.status,
         mentorName: p.mentorId?.name || "Tanpa Mentor",
+        projectManagerName: p.projectManagerId?.name || "",
         createdAt: p.createdAt,
         participantsCount: p.participants?.length || 0, // Fallback to raw array length if any
         tasks: tasksByProject[p._id.toString()] || []
@@ -69,6 +71,7 @@ export async function getProjectById(projectId: string) {
     
     const project = await Project.findById(projectId)
       .populate("mentorId", "name")
+      .populate("projectManagerId", "name")
       .lean();
       
     if (!project) return { success: false, error: "Project not found" };
@@ -86,6 +89,8 @@ export async function getProjectById(projectId: string) {
       description: project.description,
       status: project.status,
       mentorName: project.mentorId?.name || "Tanpa Mentor",
+      projectManagerId: project.projectManagerId?._id?.toString() || "",
+      projectManagerName: project.projectManagerId?.name || "",
       createdAt: project.createdAt,
       participantsCount: project.participants?.length || 0,
       tasks: JSON.parse(JSON.stringify(tasks))

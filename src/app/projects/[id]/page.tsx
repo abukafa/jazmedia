@@ -247,6 +247,7 @@ export default function ProjectDetailPage() {
                   project: {
                     id: project.id,
                     title: project.title,
+                    managerId: project.projectManagerId,
                   },
                   projectTitle: project.title,
                   review: task.review

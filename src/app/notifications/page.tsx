@@ -8,11 +8,12 @@ import {
   getSystemReminders,
 } from "@/lib/actions/notification";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Bell, ChevronLeft, Star, Loader2, AlertCircle } from "lucide-react";
+import { Bell, ChevronLeft, Star, Loader2, AlertCircle, Download } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { TaskCard } from "@/components/feed/TaskCard";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 
 function AutoScroll({
   refNode,
@@ -31,6 +32,8 @@ function NotificationsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const defaultTab = searchParams.get("tab") || "tasks";
+  const { data: session } = useSession();
+  const sessionUserId = (session?.user as any)?.id;
 
   const [activeTab, setActiveTab] = useState(defaultTab);
 
@@ -40,6 +43,28 @@ function NotificationsContent() {
   } | null>(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const [isPwaInstallable, setIsPwaInstallable] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && (window as any).deferredPWAPrompt) {
+      setIsPwaInstallable(true);
+    }
+    const handleInstallable = () => setIsPwaInstallable(true);
+    window.addEventListener("pwaInstallable", handleInstallable);
+    return () => window.removeEventListener("pwaInstallable", handleInstallable);
+  }, []);
+
+  const handleInstallPWA = async () => {
+    const deferredPrompt = (window as any).deferredPWAPrompt;
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === "accepted") {
+      setIsPwaInstallable(false);
+      (window as any).deferredPWAPrompt = null;
+    }
+  };
 
   const { data: pendingTasks = [], isFetching: loadingTasks } = useQuery({
     queryKey: ["notifications", "tasks"],
@@ -112,14 +137,14 @@ function NotificationsContent() {
             value="reviews"
             className="flex-1 data-[state=active]:shadow-none data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 rounded-none h-full transition-all text-slate-500 font-bold"
           >
-            Reviews
+            Reviews {reviewedTasks.length > 0 && `(${reviewedTasks.length})`}
           </TabsTrigger>
           <TabsTrigger
             value="system"
             className="flex-1 data-[state=active]:shadow-none data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 rounded-none h-full transition-all text-slate-500 font-bold relative"
           >
             Sistem
-            {systemReminders.length > 0 && (
+            {(systemReminders.length > 0 || isPwaInstallable) && (
               <div className="absolute top-2 right-3 w-2 h-2 bg-red-500 rounded-full" />
             )}
           </TabsTrigger>
@@ -221,7 +246,7 @@ function NotificationsContent() {
                       <span className="font-bold">{task.authorId?.name}</span>
                     </p>
                     <p className="text-xs text-slate-600 mt-0.5 line-clamp-1">
-                      Direview oleh:{" "}
+                      {task.status === "rejected" ? "Ditolak oleh:" : "Direview oleh:"}{" "}
                       <span className="font-bold">
                         {task.review?.mentorId?.name}
                       </span>
@@ -234,12 +259,18 @@ function NotificationsContent() {
                   </div>
 
                   <div className="flex-shrink-0 flex flex-col items-center justify-center">
-                    <div className="flex items-center text-amber-500">
-                      <Star className="w-5 h-5 fill-current" />
-                      <span className="font-black text-sm ml-1">
-                        {task.review?.grade}
-                      </span>
-                    </div>
+                    {task.status === "rejected" ? (
+                      <div className="flex items-center text-red-500">
+                        <AlertCircle className="w-5 h-5 fill-red-100" />
+                      </div>
+                    ) : (
+                      <div className="flex items-center text-amber-500">
+                        <Star className="w-5 h-5 fill-current" />
+                        <span className="font-black text-sm ml-1">
+                          {task.review?.grade}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
@@ -253,7 +284,7 @@ function NotificationsContent() {
             <div className="flex justify-center py-20">
               <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
             </div>
-          ) : systemReminders.length === 0 ? (
+          ) : systemReminders.length === 0 && !isPwaInstallable ? (
             <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
               <div className="w-16 h-16 bg-slate-200 rounded-full flex items-center justify-center mb-4">
                 <AlertCircle className="w-8 h-8 text-slate-400" />
@@ -267,6 +298,30 @@ function NotificationsContent() {
             </div>
           ) : (
             <div className="p-4 space-y-3">
+              {isPwaInstallable && (
+                <div className="bg-blue-50/50 border border-blue-100 p-4 rounded-2xl flex items-center justify-between gap-3">
+                  <div className="flex gap-3 items-center">
+                    <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center shrink-0">
+                      <Download className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-blue-700">
+                        Install Jazmedia
+                      </h4>
+                      <p className="text-xs text-blue-600 mt-0.5">
+                        Dapatkan pengalaman aplikasi yang lebih cepat & ringan!
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleInstallPWA}
+                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition-colors shrink-0 whitespace-nowrap"
+                  >
+                    Install App
+                  </button>
+                </div>
+              )}
+
               {systemReminders.map((reminder: any, idx: number) => (
                 <div
                   key={idx}
@@ -325,8 +380,9 @@ function NotificationsContent() {
                     ? {
                         id: task.projectId._id.toString(),
                         title: task.projectId.title,
+                        managerId: task.projectId.projectManagerId?.toString(),
                       }
-                    : null,
+                    : undefined,
                   projectTitle: task.projectId?.title || "",
                   review: task.review
                     ? {
@@ -335,6 +391,12 @@ function NotificationsContent() {
                         mentorName: task.review.mentorId?.name || "Mentor",
                       }
                     : undefined,
+                  status: task.status,
+                  collaborators: task.collaborators || [],
+                  isLikedByMe: sessionUserId
+                    ? task.likes?.some((id: string) => id === sessionUserId)
+                    : false,
+                  commentsCount: 0,
                 };
 
                 return (
@@ -351,17 +413,22 @@ function NotificationsContent() {
           </div>
         </div>
       )}
+
+      {/* Auto-scroll effect */}
+      {overlayData !== null && <AutoScroll refNode={scrollRef} />}
     </div>
   );
 }
 
 export default function NotificationsPage() {
   return (
-    <Suspense fallback={
-      <div className="flex justify-center items-center min-h-screen">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="flex justify-center items-center min-h-screen">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+        </div>
+      }
+    >
       <NotificationsContent />
     </Suspense>
   );

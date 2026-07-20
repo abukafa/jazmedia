@@ -115,7 +115,7 @@ export async function getPublicProfile(userId: string) {
         select: "name image username",
         model: User,
       })
-      .populate({ path: "projectId", select: "title", model: Project })
+      .populate({ path: "projectId", select: "title projectManagerId", model: Project })
       .populate({ path: "review.mentorId", select: "name", model: User })
       .sort({ createdAt: -1 })
       .lean();
@@ -164,6 +164,7 @@ export async function getPublicProfile(userId: string) {
         ? {
             id: task.projectId._id.toString(),
             title: task.projectId.title,
+            managerId: task.projectId?.projectManagerId?.toString(),
           }
         : null,
       status: task.status,

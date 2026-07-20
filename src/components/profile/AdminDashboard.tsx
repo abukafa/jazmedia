@@ -59,7 +59,8 @@ export default function AdminDashboard({ currentUserId }: AdminDashboardProps) {
 
   const handleDeleteUser = (userId: string) => {
     showConfirm({
-      message: "Apakah Anda yakin ingin menghapus pengguna ini? Semua data yang terkait mungkin juga terhapus.",
+      message:
+        "Apakah Anda yakin ingin menghapus pengguna ini? Semua data yang terkait mungkin juga terhapus.",
       onConfirm: async () => {
         const res = await deleteUser(userId);
         if (res.success) {
@@ -71,7 +72,7 @@ export default function AdminDashboard({ currentUserId }: AdminDashboardProps) {
             type: "error",
           });
         }
-      }
+      },
     });
   };
 
@@ -89,7 +90,7 @@ export default function AdminDashboard({ currentUserId }: AdminDashboardProps) {
             type: "error",
           });
         }
-      }
+      },
     });
   };
 
@@ -257,7 +258,7 @@ export default function AdminDashboard({ currentUserId }: AdminDashboardProps) {
                     {task.projectTitle}
                   </h4>
                   <span
-                    className={`text-[10px] font-black uppercase px-2 py-0.5 rounded ${task.status === "approved" ? "bg-green-100 text-green-700" : task.status === "reviewed" ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-600"}`}
+                    className={`text-[10px] font-black uppercase px-2 py-0.5 rounded ${task.status === "approved" ? "bg-green-100 text-green-700" : task.status === "reviewed" ? "bg-amber-100 text-amber-700" : task.status === "rejected" ? "bg-red-100 text-red-700" : "bg-slate-100 text-slate-600"}`}
                   >
                     {task.status}
                   </span>

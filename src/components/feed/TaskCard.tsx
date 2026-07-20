@@ -17,6 +17,7 @@ import {
   Edit3,
   AlertCircle,
   Undo2,
+  CheckCircle2,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion, AnimatePresence } from "framer-motion";
@@ -31,6 +32,7 @@ import {
   getComments,
   updateTaskCaption,
   deleteTask,
+  approveTask,
 } from "@/lib/actions/task";
 import {
   Dialog,
@@ -72,6 +74,11 @@ export interface TaskCardProps {
   timeAgo: string;
   createdAt: string;
   status?: string;
+  project?: {
+    id: string;
+    title: string;
+    managerId?: string;
+  };
 }
 
 export function TaskCard({
@@ -90,6 +97,7 @@ export function TaskCard({
   timeAgo,
   createdAt,
   status,
+  project,
 }: TaskCardProps) {
   const { data: session } = useSession();
   const user = session?.user as any;
@@ -106,6 +114,8 @@ export function TaskCard({
   const [isSubmittingEdit, setIsSubmittingEdit] = useState(false);
 
   const isAuthor = user?.id === author.id;
+  const isProjectManager = project?.managerId && project.managerId === user?.id;
+  const isAdmin = user?.role === "admin";
 
   useEffect(() => {
     setLikes(likesCount);
@@ -273,6 +283,19 @@ export function TaskCard({
     }
   };
 
+  const approveMutation = useMutation({
+    mutationFn: () => approveTask(id),
+    onSuccess: (data) => {
+      if (data.success) {
+        setLocalStatus("approved");
+        showAlert({ message: "Tugas berhasil di-approve", type: "success" });
+        queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      } else {
+        showAlert({ message: "Gagal menyetujui tugas: " + data.error, type: "error" });
+      }
+    }
+  });
+
   const deleteMutation = useMutation({
     mutationFn: async () => deleteTask(id),
     onSuccess: (data) => {
@@ -375,7 +398,7 @@ export function TaskCard({
           </div>
 
           {/* Menu Dropdown */}
-          {(isMentor || isAuthor || user?.role === "admin") && (
+          {(isMentor || isAuthor || isAdmin || (localStatus === "reviewed" && isProjectManager)) && (
             <div className="relative ml-2">
               <button
                 onClick={() => setShowMenu(!showMenu)}
@@ -418,6 +441,22 @@ export function TaskCard({
                       >
                         <Undo2 className="w-4 h-4 text-blue-500" /> Kembalikan
                         ke Pending
+                      </button>
+                    )}
+
+                    {localStatus === "reviewed" && (isAdmin || isProjectManager) && (
+                      <button
+                        onClick={() => {
+                          setShowMenu(false);
+                          showConfirm({
+                            message: "Approve tugas ini? Tugas yang sudah di-approve tidak bisa diubah statusnya.",
+                            onConfirm: () => approveMutation.mutate(),
+                          });
+                        }}
+                        disabled={approveMutation.isPending}
+                        className="w-full text-left px-4 py-2.5 text-sm font-medium text-emerald-700 hover:bg-emerald-50 flex items-center gap-2"
+                      >
+                        <Star className="w-4 h-4 text-emerald-600 fill-current" /> Approve Tugas
                       </button>
                     )}
 
@@ -617,42 +656,43 @@ export function TaskCard({
         </CardContent>
 
         {localReview && localStatus !== "rejected" && (
-          <div className="bg-amber-50/50 border-t border-amber-100/50 p-4 relative overflow-hidden">
+          <div className={`p-4 relative overflow-hidden border-t ${localStatus === "approved" ? "bg-emerald-50/50 border-emerald-100/50" : "bg-amber-50/50 border-amber-100/50"}`}>
             {/* Dekorasi halus */}
-            <div className="absolute top-0 right-0 w-24 h-24 bg-amber-100/30 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none" />
+            <div className={`absolute top-0 right-0 w-24 h-24 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none ${localStatus === "approved" ? "bg-emerald-100/30" : "bg-amber-100/30"}`} />
 
             <div className="flex items-center justify-between mb-3 relative z-10">
               <div className="flex items-center gap-2">
-                <div className="bg-amber-100 p-1.5 rounded-lg border border-amber-200/50">
-                  <Star className="w-4 h-4 text-amber-600 fill-amber-500" />
+                <div className={`p-1.5 rounded-lg border ${localStatus === "approved" ? "bg-emerald-100 border-emerald-200/50" : "bg-amber-100 border-amber-200/50"}`}>
+                  {localStatus === "approved" ? <CheckCircle2 className="w-4 h-4 text-emerald-600" /> : <Star className="w-4 h-4 text-amber-600 fill-amber-500" />}
                 </div>
                 <h4 className="font-bold text-slate-800 text-sm">
                   {localReview.mentorName}{" "}
                   <span className="text-slate-500 font-medium ml-1">
-                    mengulas:
+                    {localStatus === "approved" ? "telah disetujui (Approved)" : "mengulas:"}
                   </span>
                 </h4>
               </div>
-              <Badge
-                variant="outline"
-                className="bg-white border-amber-200 text-amber-700 font-black shadow-sm"
-              >
-                Nilai: {localReview.grade}/100
-              </Badge>
+              <div className="flex items-baseline gap-1">
+                <span className={`text-2xl font-black tracking-tight ${localStatus === "approved" ? "text-emerald-500" : "text-amber-500"}`}>
+                  {localReview.grade}
+                </span>
+                <span className="text-slate-400 font-bold text-sm">/100</span>
+              </div>
             </div>
 
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              className="overflow-hidden relative z-10"
-            >
-              <div className="bg-white/60 backdrop-blur-sm rounded-xl p-3 border border-amber-100 shadow-sm mt-1">
-                <p className="text-sm text-slate-700 italic">
-                  {localReview.comment}
-                </p>
-              </div>
-            </motion.div>
+            {localReview.comment && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                className="overflow-hidden relative z-10"
+              >
+                <div className={`bg-white/60 backdrop-blur-sm rounded-xl p-3 border shadow-sm mt-1 ${localStatus === "approved" ? "border-emerald-100" : "border-amber-100"}`}>
+                  <p className="text-sm text-slate-700 italic">
+                    {localReview.comment}
+                  </p>
+                </div>
+              </motion.div>
+            )}
           </div>
         )}
 

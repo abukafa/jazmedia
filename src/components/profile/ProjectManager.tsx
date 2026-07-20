@@ -3,18 +3,13 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAlert } from "@/components/providers/AlertProvider";
-import {
-  Folder,
-  Edit2,
-  ChevronLeft,
-  ChevronRight,
-  Plus,
-} from "lucide-react";
+import { Folder, Edit2, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import {
   getAllProjects,
   createProject,
   updateProject,
   getAllMentors,
+  getAllUsersForSelect,
   deleteProject,
 } from "@/lib/actions/admin";
 import { Button } from "@/components/ui/button";
@@ -43,7 +38,11 @@ interface ProjectManagerProps {
   readonly?: boolean;
 }
 
-export function ProjectManager({ currentUserId, isAdmin, readonly = false }: ProjectManagerProps) {
+export function ProjectManager({
+  currentUserId,
+  isAdmin,
+  readonly = false,
+}: ProjectManagerProps) {
   const { showAlert, showConfirm } = useAlert();
   const queryClient = useQueryClient();
 
@@ -51,25 +50,35 @@ export function ProjectManager({ currentUserId, isAdmin, readonly = false }: Pro
   const [projectPage, setProjectPage] = useState(1);
 
   const { data: projectsData, isFetching: loadingProjects } = useQuery({
-    queryKey: ['admin', 'projects', projectPage],
+    queryKey: ["admin", "projects", projectPage],
     queryFn: async () => {
       const res = await getAllProjects(projectPage, 5);
       return res;
-    }
+    },
   });
 
   const projects = projectsData?.success ? projectsData.data || [] : [];
-  const projectTotalPages = projectsData?.success ? projectsData.pagination?.totalPages || 1 : 1;
+  const projectTotalPages = projectsData?.success
+    ? projectsData.pagination?.totalPages || 1
+    : 1;
 
   const { data: mentors = [], isFetching: loadingMentors } = useQuery({
-    queryKey: ['admin', 'mentors'],
+    queryKey: ["admin", "mentors"],
     queryFn: async () => {
       const res = await getAllMentors();
       return res.success ? res.data || [] : [];
-    }
+    },
   });
 
-  const loading = loadingProjects || loadingMentors;
+  const { data: users = [], isFetching: loadingUsers } = useQuery({
+    queryKey: ["admin", "users_select"],
+    queryFn: async () => {
+      const res = await getAllUsersForSelect();
+      return res.success ? res.data || [] : [];
+    },
+  });
+
+  const loading = loadingProjects || loadingMentors || loadingUsers;
 
   // Modal State
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
@@ -78,7 +87,8 @@ export function ProjectManager({ currentUserId, isAdmin, readonly = false }: Pro
 
   // Controlled Select States
   const [selectedStatus, setSelectedStatus] = useState("active");
-  const [selectedMentor, setSelectedMentor] = useState("");
+  const [selectedMentor, setSelectedMentor] = useState("none");
+  const [selectedPM, setSelectedPM] = useState("none");
 
   const handleProjectSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -87,40 +97,51 @@ export function ProjectManager({ currentUserId, isAdmin, readonly = false }: Pro
 
     let res;
     if (editingProject) {
-      res = await updateProject(editingProject._id, formData);
+      res = await updateProject(editingProject.id, formData);
     } else {
       res = await createProject(formData);
     }
 
     if (res.success) {
-      showAlert({ message: `Proyek berhasil ${editingProject ? "diperbarui" : "dibuat"}`, type: "success" });
+      showAlert({
+        message: `Proyek berhasil ${editingProject ? "diperbarui" : "dibuat"}`,
+        type: "success",
+      });
       setIsProjectModalOpen(false);
-      queryClient.invalidateQueries({ queryKey: ['admin', 'projects'] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "projects"] });
     } else {
-      showAlert({ message: "Gagal menyimpan proyek: " + res.error, type: "error" });
+      showAlert({
+        message: "Gagal menyimpan proyek: " + res.error,
+        type: "error",
+      });
     }
     setIsSubmitting(false);
   };
 
   const handleDeleteProject = (projectId: string) => {
     showConfirm({
-      message: "Apakah Anda yakin ingin menghapus proyek ini? Semua tugas yang terkait tidak akan memiliki induk proyek lagi.",
+      message:
+        "Apakah Anda yakin ingin menghapus proyek ini? Semua tugas yang terkait tidak akan memiliki induk proyek lagi.",
       onConfirm: async () => {
         const res = await deleteProject(projectId);
         if (res.success) {
           showAlert({ message: "Proyek berhasil dihapus", type: "success" });
-          queryClient.invalidateQueries({ queryKey: ['admin', 'projects'] });
+          queryClient.invalidateQueries({ queryKey: ["admin", "projects"] });
         } else {
-          showAlert({ message: "Gagal menghapus proyek: " + res.error, type: "error" });
+          showAlert({
+            message: "Gagal menghapus proyek: " + res.error,
+            type: "error",
+          });
         }
-      }
+      },
     });
   };
 
   const openEditProject = (project: any) => {
     setEditingProject(project);
     setSelectedStatus(project.status || "active");
-    setSelectedMentor(project.mentorId || "");
+    setSelectedMentor(project.mentorId || "none");
+    setSelectedPM(project.projectManagerId || "none");
     setIsProjectModalOpen(true);
   };
 
@@ -129,14 +150,17 @@ export function ProjectManager({ currentUserId, isAdmin, readonly = false }: Pro
   const openCreateProject = () => {
     setEditingProject(null);
     setSelectedStatus("active");
-    setSelectedMentor(isMentorRole ? currentUserId : "");
+    setSelectedMentor(isMentorRole ? currentUserId : "none");
+    setSelectedPM("none");
     setIsProjectModalOpen(true);
   };
 
   const hasEditRights = (project: any) => {
     if (isAdmin) return true;
     if (readonly) return false;
-    return project.creatorId === currentUserId || project.mentorId === currentUserId;
+    return (
+      project.creatorId === currentUserId || project.mentorId === currentUserId
+    );
   };
 
   const showCreateButton = !readonly;
@@ -172,13 +196,7 @@ export function ProjectManager({ currentUserId, isAdmin, readonly = false }: Pro
                 <h4 className="font-bold text-sm text-slate-900">
                   {project.title}
                 </h4>
-                <span className="text-[10px] text-slate-500 font-medium">
-                  Mentor:{" "}
-                  <strong className="text-slate-900">
-                    {project.mentorName}
-                  </strong>
-                </span>
-                <div>
+                <div className="mb-1">
                   <span
                     className={`text-[10px] font-bold bg-green-50 px-1.5 py-0.5 rounded w-fit
                 ${
@@ -195,6 +213,17 @@ export function ProjectManager({ currentUserId, isAdmin, readonly = false }: Pro
                     {project.taskCount} Tasks Terhubung
                   </span>
                 </div>
+                <span className="text-[10px] text-slate-500 font-medium">
+                  PIC:{" "}
+                  <strong className="text-slate-900">
+                    {project.mentorName}
+                  </strong>
+                  {" • "}
+                  PM:{" "}
+                  <span className="font-bold text-slate-700">
+                    {project.projectManagerName || "-"}
+                  </span>
+                </span>
               </div>
               <div className="flex gap-2">
                 {!readonly && isAdmin && (
@@ -331,22 +360,28 @@ export function ProjectManager({ currentUserId, isAdmin, readonly = false }: Pro
                     <Label htmlFor="mentorId" className="text-xs font-bold">
                       Mentor PIC
                     </Label>
-                    <Select
+                    <input
+                      type="hidden"
                       name="mentorId"
+                      value={selectedMentor === "none" ? "" : selectedMentor}
+                    />
+                    <Select
                       value={selectedMentor}
-                      onValueChange={(val) => setSelectedMentor(val || "")}
+                      onValueChange={(val) => setSelectedMentor(val || "none")}
                       disabled={isMentorRole}
                     >
                       <SelectTrigger className="text-sm">
                         <SelectValue>
-                          {selectedMentor
+                          {selectedMentor !== "none"
                             ? mentors.find((m) => m.id === selectedMentor)
                                 ?.name || "Pilih Mentor"
                             : "Pilih Mentor"}
                         </SelectValue>
                       </SelectTrigger>
                       <SelectContent>
-                        {!isMentorRole && <SelectItem value="">-- Kosong --</SelectItem>}
+                        {!isMentorRole && (
+                          <SelectItem value="none">-- Kosong --</SelectItem>
+                        )}
                         {mentors.map((m) => (
                           <SelectItem key={m.id} value={m.id}>
                             {m.name}
@@ -355,6 +390,42 @@ export function ProjectManager({ currentUserId, isAdmin, readonly = false }: Pro
                       </SelectContent>
                     </Select>
                   </div>
+                </div>
+
+                {/* Project Manager Field */}
+                <div className="flex flex-col gap-2">
+                  <Label
+                    htmlFor="projectManagerId"
+                    className="text-xs font-bold"
+                  >
+                    Project Manager (Opsional)
+                  </Label>
+                  <input
+                    type="hidden"
+                    name="projectManagerId"
+                    value={selectedPM === "none" ? "" : selectedPM}
+                  />
+                  <Select
+                    value={selectedPM}
+                    onValueChange={(val) => setSelectedPM(val || "none")}
+                  >
+                    <SelectTrigger className="text-sm">
+                      <SelectValue>
+                        {selectedPM !== "none"
+                          ? users.find((u: any) => u.id === selectedPM)?.name ||
+                            "Pilih Project Manager"
+                          : "Pilih Project Manager"}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">-- Kosong --</SelectItem>
+                      {users.map((u: any) => (
+                        <SelectItem key={u.id} value={u.id}>
+                          {u.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               <DialogFooter>

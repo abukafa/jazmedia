@@ -19,7 +19,7 @@ export async function getPendingTaskNotifications() {
     const tasks = await Task.find({ status: "pending" })
       .populate({ path: "authorId", select: "name image", model: User })
       .populate({ path: "collaborators", select: "name image", model: User })
-      .populate({ path: "projectId", select: "title", model: Project })
+      .populate({ path: "projectId", select: "title projectManagerId", model: Project })
       .sort({ createdAt: -1 })
       .lean();
 
@@ -32,10 +32,10 @@ export async function getPendingTaskNotifications() {
 export async function getReviewedTaskNotifications() {
   try {
     await dbConnect();
-    const tasks = await Task.find({ status: { $in: ["reviewed", "approved"] } })
+    const tasks = await Task.find({ status: { $in: ["reviewed", "rejected"] } })
       .populate({ path: "authorId", select: "name image", model: User })
       .populate({ path: "collaborators", select: "name image", model: User })
-      .populate({ path: "projectId", select: "title", model: Project })
+      .populate({ path: "projectId", select: "title projectManagerId", model: Project })
       .populate({ path: "review.mentorId", select: "name image", model: User })
       .sort({ "review.reviewedAt": -1, updatedAt: -1 })
       .lean();
@@ -102,8 +102,8 @@ export async function getUnreadCount() {
     if (user.role === "mentor" || user.role === "admin") {
       count = await Task.countDocuments({ status: "pending" });
     } else {
-      // Untuk member, hitung task yang sudah di-review
-      count = await Task.countDocuments({ status: { $in: ["reviewed", "approved"] } });
+      // Untuk member, hitung task yang sudah di-review atau direject
+      count = await Task.countDocuments({ status: { $in: ["reviewed", "approved", "rejected"] } });
     }
 
     return count;

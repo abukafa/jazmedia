@@ -6,6 +6,7 @@ export interface IProject extends Document {
   status: "active" | "completed" | "archived";
   participants: mongoose.Types.ObjectId[];
   mentorId?: mongoose.Types.ObjectId;
+  projectManagerId?: mongoose.Types.ObjectId;
   creatorId?: mongoose.Types.ObjectId;
 }
 
@@ -16,6 +17,7 @@ const ProjectSchema = new Schema<IProject>(
     status: { type: String, enum: ["active", "completed", "archived"], default: "active" },
     participants: [{ type: Schema.Types.ObjectId, ref: "User" }],
     mentorId: { type: Schema.Types.ObjectId, ref: "User" },
+    projectManagerId: { type: Schema.Types.ObjectId, ref: "User" },
     creatorId: { type: Schema.Types.ObjectId, ref: "User" },
   },
   { timestamps: true }

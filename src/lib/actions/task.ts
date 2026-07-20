@@ -97,7 +97,7 @@ export async function getTasks({ pageParam = 1 }: { pageParam?: number }) {
       .limit(limit)
       .populate("authorId", "name image")
       .populate("collaborators", "name image")
-      .populate("projectId", "title")
+      .populate("projectId", "title projectManagerId")
       .lean();
 
     // Calculate time ago helper
@@ -131,6 +131,11 @@ export async function getTasks({ pageParam = 1 }: { pageParam?: number }) {
           image: c.image || "https://i.pravatar.cc/150",
         })) || [],
         projectTitle: task.projectId?.title || "Project",
+        project: task.projectId ? {
+          id: task.projectId._id?.toString(),
+          title: task.projectId.title,
+          managerId: task.projectId.projectManagerId?.toString(),
+        } : undefined,
         mediaUrl: task.mediaUrl,
         mediaUrls: task.mediaUrls || [task.mediaUrl],
         mediaType: task.mediaType,
@@ -332,6 +337,42 @@ export async function submitReview(taskId: string, grade: number, comment: strin
     }
     
     await task.save();
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function approveTask(taskId: string) {
+  const session = await getServerSession(authOptions);
+  const user = session?.user as any;
+  if (!user) return { success: false, error: "Unauthorized" };
+  
+  await dbConnect();
+  try {
+    const task = await Task.findById(taskId).populate("projectId");
+    if (!task) return { success: false, error: "Not found" };
+    
+    // Authorization check
+    const isAdmin = user.role === "admin";
+    const isProjectManager = task.projectId && task.projectId.projectManagerId && task.projectId.projectManagerId.toString() === user.id;
+    
+    if (!isAdmin && !isProjectManager) {
+      return { success: false, error: "Forbidden: You don't have permission to approve this task" };
+    }
+    
+    // Make sure it is reviewed first (optional, based on requirement)
+    if (task.status !== "reviewed") {
+      return { success: false, error: "Tugas harus di-review terlebih dahulu" };
+    }
+    
+    task.status = "approved";
+    await task.save();
+    
+    revalidatePath("/");
+    revalidatePath("/explore");
+    revalidatePath("/profile");
+    
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message };

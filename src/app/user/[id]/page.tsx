@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { TaskCard } from "@/components/feed/TaskCard";
 import { getDirectMediaUrl } from "@/lib/utils/media";
+import { useSession } from "next-auth/react";
 
 // Komponen bantu untuk memicu scroll otomatis saat dirender
 function AutoScroll({
@@ -32,6 +33,8 @@ export default function PublicProfilePage() {
   const params = useParams();
   const router = useRouter();
   const userId = params.id as string;
+  const { data: session } = useSession();
+  const sessionUserId = (session?.user as any)?.id;
 
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<any>(null);
@@ -196,6 +199,14 @@ export default function PublicProfilePage() {
                     <FileTextIcon className="w-8 h-8 text-blue-300" />
                   </div>
                 )}
+                {task.status === "rejected" && (
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20 bg-black/10">
+                    <div className="bg-red-600 text-white font-black text-[10px] sm:text-xs tracking-widest px-30 py-0.5 uppercase rotate-[-35deg] shadow-lg rounded-sm">
+                      REJECTED
+                    </div>
+                  </div>
+                )}
+
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
               </div>
             ))}
@@ -228,15 +239,54 @@ export default function PublicProfilePage() {
           </div>
           <div className="flex-1 overflow-y-auto w-full px-4">
             <div className="max-w-md mx-auto w-full pb-20 pt-4">
-              {tasks.map((task, index) => (
-                <div
-                  key={task._id}
-                  ref={index === selectedTaskIndex ? scrollRef : null}
-                  className="mb-6"
-                >
-                  <TaskCard {...task} id={task._id} />
-                </div>
-              ))}
+              {tasks.map((task, index) => {
+                const serializedTask = {
+                  id: task._id.toString(),
+                  caption: task.caption,
+                  mediaUrl: task.mediaUrl,
+                  mediaUrls: task.mediaUrls || [task.mediaUrl],
+                  mediaType: task.mediaType || "image",
+                  likesCount: task.likes ? task.likes.length : 0,
+                  createdAt: task.createdAt,
+                  timeAgo: new Date(task.createdAt).toLocaleDateString("id-ID"),
+                  author: {
+                    id: task.authorId?._id?.toString(),
+                    name: task.authorId?.name || "Unknown",
+                    image: task.authorId?.image || "",
+                    username: task.authorId?.username,
+                  },
+                  project: task.projectId
+                    ? {
+                        id: task.projectId._id?.toString(),
+                        title: task.projectId.title,
+                      }
+                    : undefined,
+                  projectTitle: task.projectId?.title || "Unknown Project",
+                  review: task.review
+                    ? {
+                        grade: task.review.grade,
+                        comment: task.review.comment,
+                        mentorName: task.review.mentorId?.name || "Mentor",
+                      }
+                    : undefined,
+                  status: task.status,
+                  collaborators: task.collaborators || [],
+                  isLikedByMe: sessionUserId
+                    ? task.likes?.some((id: string) => id === sessionUserId)
+                    : false,
+                  commentsCount: 0, // Fallback since we don't fetch counts in user profile
+                };
+
+                return (
+                  <div
+                    key={task._id}
+                    ref={index === selectedTaskIndex ? scrollRef : null}
+                    className="mb-6"
+                  >
+                    <TaskCard {...serializedTask} />
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>

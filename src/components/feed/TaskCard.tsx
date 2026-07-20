@@ -15,7 +15,10 @@ import {
   MoreVertical,
   Trash2,
   Edit3,
+  AlertCircle,
+  Undo2,
 } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion, AnimatePresence } from "framer-motion";
 import { MediaCarousel } from "./media/MediaCarousel";
 import { useSession } from "next-auth/react";
@@ -68,6 +71,7 @@ export interface TaskCardProps {
   commentsCount?: number;
   timeAgo: string;
   createdAt: string;
+  status?: string;
 }
 
 export function TaskCard({
@@ -85,6 +89,7 @@ export function TaskCard({
   commentsCount = 0,
   timeAgo,
   createdAt,
+  status,
 }: TaskCardProps) {
   const { data: session } = useSession();
   const user = session?.user as any;
@@ -108,10 +113,12 @@ export function TaskCard({
   }, [likesCount, isLikedByMe]);
 
   const [localReview, setLocalReview] = useState(review);
+  const [localStatus, setLocalStatus] = useState(status || "pending");
 
   useEffect(() => {
     setLocalReview(review);
-  }, [review]);
+    setLocalStatus(status || "pending");
+  }, [review, status]);
 
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [reviewGrade, setReviewGrade] = useState(review ? review.grade : 0);
@@ -214,14 +221,28 @@ export function TaskCard({
   };
 
   const reviewMutation = useMutation({
-    mutationFn: async () => submitReview(id, reviewGrade, reviewComment),
-    onSuccess: (data) => {
+    mutationFn: async ({
+      grade,
+      comment,
+      status,
+    }: {
+      grade: number;
+      comment: string;
+      status: "reviewed" | "rejected" | "pending";
+    }) => submitReview(id, grade, comment, status),
+    onSuccess: (data, variables) => {
       if (data.success) {
-        setLocalReview({
-          grade: reviewGrade,
-          comment: reviewComment,
-          mentorName: user?.name || "Mentor",
-        });
+        if (variables.status === "pending") {
+          setLocalReview(undefined);
+          setLocalStatus("pending");
+        } else {
+          setLocalReview({
+            grade: variables.grade,
+            comment: variables.comment,
+            mentorName: user?.name || "Mentor",
+          });
+          setLocalStatus(variables.status);
+        }
         setIsReviewModalOpen(false);
         queryClient.invalidateQueries({ queryKey: ["tasks"] });
       } else {
@@ -270,9 +291,26 @@ export function TaskCard({
     },
   });
 
-  const handleSubmitReview = (e: React.FormEvent) => {
-    e.preventDefault();
-    reviewMutation.mutate();
+  const handleSubmitReview = (action: "reviewed" | "rejected") => {
+    if (action === "reviewed" && !reviewGrade) {
+      showAlert({
+        message: "Nilai harus diisi untuk menerima postingan",
+        type: "error",
+      });
+      return;
+    }
+    if (!reviewComment.trim()) {
+      showAlert({
+        message: "Catatan atau deskripsi evaluasi harus diisi",
+        type: "error",
+      });
+      return;
+    }
+    reviewMutation.mutate({
+      grade: action === "rejected" ? 0 : reviewGrade,
+      comment: reviewComment,
+      status: action,
+    });
   };
 
   const commentMutation = useMutation({
@@ -306,7 +344,9 @@ export function TaskCard({
 
   return (
     <>
-      <Card className="mb-6 overflow-hidden border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white transition-all rounded-3xl snap-center snap-always">
+      <Card
+        className={`mb-6 overflow-hidden ${localStatus === "rejected" ? "border-2 border-red-600" : "border-none"} shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white transition-all rounded-3xl snap-center snap-always`}
+      >
         <CardHeader className="flex flex-row items-center gap-3 px-4 pb-3 py-0">
           <div className="flex -space-x-3">
             <Avatar className="h-10 w-10 border-2 border-white shadow-sm ring-1 ring-slate-100 relative z-30">
@@ -363,6 +403,24 @@ export function TaskCard({
                       </button>
                     )}
 
+                    {isMentor && localStatus === "rejected" && (
+                      <button
+                        onClick={() => {
+                          setShowMenu(false);
+                          reviewMutation.mutate({
+                            grade: 0,
+                            comment: "",
+                            status: "pending",
+                          });
+                        }}
+                        disabled={reviewMutation.isPending}
+                        className="w-full text-left px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                      >
+                        <Undo2 className="w-4 h-4 text-blue-500" /> Kembalikan
+                        ke Pending
+                      </button>
+                    )}
+
                     {isAuthor && (
                       <button
                         onClick={() => {
@@ -388,7 +446,10 @@ export function TaskCard({
                         disabled={deleteMutation.isPending}
                         className="w-full text-left px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 flex items-center gap-2"
                       >
-                        <Trash2 className="w-4 h-4" /> {deleteMutation.isPending ? "Menghapus..." : "Hapus Postingan"}
+                        <Trash2 className="w-4 h-4" />{" "}
+                        {deleteMutation.isPending
+                          ? "Menghapus..."
+                          : "Hapus Postingan"}
                       </button>
                     )}
                   </div>
@@ -403,12 +464,27 @@ export function TaskCard({
           onDoubleClick={handleDoubleClick}
         >
           {/* Main Media Carousel extracted to component */}
-          <MediaCarousel
-            urls={urls}
-            mediaType={mediaType}
-            activeSlide={activeSlide}
-            onActiveSlideChange={setActiveSlide}
-          />
+          <div
+            className={`w-full h-full ${localStatus === "rejected" ? "grayscale opacity-90" : ""}`}
+          >
+            <MediaCarousel
+              urls={urls}
+              mediaType={mediaType}
+              activeSlide={activeSlide}
+              onActiveSlideChange={setActiveSlide}
+            />
+          </div>
+
+          {localStatus === "rejected" && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+              <div className="bg-red-600 text-white font-black text-2xl md:text-3xl tracking-widest px-60 py-2 uppercase rotate-[-35deg] shadow-2xl rounded-sm flex flex-col items-center">
+                REJECTED
+                <span className="text-xs tracking-normal font-bold uppercase mt-1 text-red-100">
+                  Need Revision
+                </span>
+              </div>
+            </div>
+          )}
 
           {/* Fullscreen Button */}
           <button
@@ -540,7 +616,7 @@ export function TaskCard({
           </div>
         </CardContent>
 
-        {localReview && (
+        {localReview && localStatus !== "rejected" && (
           <div className="bg-amber-50/50 border-t border-amber-100/50 p-4 relative overflow-hidden">
             {/* Dekorasi halus */}
             <div className="absolute top-0 right-0 w-24 h-24 bg-amber-100/30 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none" />
@@ -579,6 +655,38 @@ export function TaskCard({
             </motion.div>
           </div>
         )}
+
+        {localStatus === "rejected" && localReview && (
+          <div className="bg-red-50/50 border-t border-red-100/50 p-4 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-red-100/30 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none" />
+
+            <div className="flex items-center justify-between mb-3 relative z-10">
+              <div className="flex items-center gap-2">
+                <div className="bg-red-500 p-1.5 rounded-lg border border-red-200/50">
+                  <AlertCircle className="w-4 h-4 text-red-100" />
+                </div>
+                <h4 className="font-bold text-slate-800 text-sm">
+                  {localReview.mentorName}{" "}
+                  <span className="text-slate-500 font-medium ml-1">
+                    menolak post ini:
+                  </span>
+                </h4>
+              </div>
+            </div>
+
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              className="overflow-hidden relative z-10"
+            >
+              <div className="bg-white/60 backdrop-blur-sm rounded-xl p-3 border border-red-100 shadow-sm mt-1">
+                <p className="text-sm text-slate-700 italic">
+                  {localReview.comment}
+                </p>
+              </div>
+            </motion.div>
+          </div>
+        )}
       </Card>
 
       {/* Review Form Modal */}
@@ -587,9 +695,15 @@ export function TaskCard({
           <DialogHeader>
             <DialogTitle>Beri Ulasan Tugas</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleSubmitReview} className="space-y-4">
+
+          <div className="space-y-4 py-2">
             <div className="space-y-2">
-              <Label htmlFor="grade">Nilai / Rating (1-100)</Label>
+              <Label htmlFor="grade">
+                Nilai / Rating (1-100){" "}
+                <span className="text-slate-400 font-normal">
+                  (Opsional jika menolak)
+                </span>
+              </Label>
               <Input
                 id="grade"
                 type="number"
@@ -597,39 +711,56 @@ export function TaskCard({
                 max="100"
                 value={reviewGrade || ""}
                 onChange={(e) => setReviewGrade(Number(e.target.value))}
-                required
                 className="w-full"
                 placeholder="Contoh: 85"
               />
-              <p className="text-xs text-slate-500">
-                Nilai akan dikonversi menjadi bintang. (cth: 80-100 = 5 bintang,
-                60-79 = 4 bintang, dll)
+              <p className="text-xs text-slate-500 pt-1">
+                Nilai akan dikonversi menjadi bintang. (cth: 80-100 = 5 bintang)
               </p>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="comment">Komentar / Deskripsi Evaluasi</Label>
+
+            <div className="space-y-2 pt-2">
+              <Label htmlFor="comment">Catatan / Deskripsi Evaluasi</Label>
               <Textarea
                 id="comment"
                 value={reviewComment}
                 onChange={(e) => setReviewComment(e.target.value)}
-                required
                 className="w-full min-h-[100px]"
-                placeholder="Tulis ulasan Anda di sini..."
+                placeholder="Tulis ulasan atau catatan perbaikan di sini..."
               />
             </div>
-            <DialogFooter>
+          </div>
+
+          <DialogFooter className="pt-2 sm:justify-between flex flex-col sm:flex-row gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full sm:w-auto"
+              onClick={() => setIsReviewModalOpen(false)}
+            >
+              Batal
+            </Button>
+            <div className="flex w-full sm:w-auto gap-2">
               <Button
                 type="button"
-                variant="outline"
-                onClick={() => setIsReviewModalOpen(false)}
+                disabled={reviewMutation.isPending}
+                variant="destructive"
+                className="flex-1 sm:flex-none"
+                onClick={() => handleSubmitReview("rejected")}
               >
-                Batal
+                Tolak
               </Button>
-              <Button type="submit" disabled={reviewMutation.isPending}>
-                {reviewMutation.isPending ? "Menyimpan..." : "Simpan Ulasan"}
+              <Button
+                type="button"
+                disabled={reviewMutation.isPending}
+                variant="default"
+                className="flex-1 sm:flex-none bg-blue-600 hover:bg-blue-700"
+                onClick={() => handleSubmitReview("reviewed")}
+              >
+                Terima & Nilai
               </Button>
-            </DialogFooter>
-          </form>
+            </div>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

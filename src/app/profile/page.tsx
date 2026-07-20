@@ -465,18 +465,27 @@ export default function Profile() {
                       <img
                         src={getDirectMediaUrl(task.mediaUrl, "image")}
                         alt={`Task ${i}`}
-                        className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-500"
+                        className={`object-cover w-full h-full group-hover:scale-110 transition-transform duration-500 ${task.status === 'rejected' ? 'grayscale opacity-90' : ''}`}
                         loading="lazy"
                       />
                     ) : task.mediaType === "video" ? (
-                      <div className="w-full h-full bg-slate-800 flex items-center justify-center">
+                      <div className={`w-full h-full flex items-center justify-center ${task.status === 'rejected' ? 'bg-slate-700 grayscale' : 'bg-slate-800'}`}>
                         <Play className="w-8 h-8 text-white/50" />
                       </div>
                     ) : (
-                      <div className="w-full h-full bg-blue-50 flex items-center justify-center">
-                        <FileTextIcon className="w-8 h-8 text-blue-300" />
+                      <div className={`w-full h-full flex items-center justify-center ${task.status === 'rejected' ? 'bg-slate-200 grayscale' : 'bg-blue-50'}`}>
+                        <FileTextIcon className={`w-8 h-8 ${task.status === 'rejected' ? 'text-slate-400' : 'text-blue-300'}`} />
                       </div>
                     )}
+                    
+                    {task.status === "rejected" && (
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20 bg-black/10">
+                        <div className="bg-red-600 text-white font-black text-[10px] sm:text-xs tracking-widest px-2 py-0.5 uppercase rotate-[-12deg] shadow-lg rounded-sm">
+                          REJECTED
+                        </div>
+                      </div>
+                    )}
+                    
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
                   </div>
                 ))}

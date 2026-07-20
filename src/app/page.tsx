@@ -1,11 +1,7 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import { useInfiniteQuery } from "@tanstack/react-query";
-
-const TaskCard = dynamic(() => import("@/components/feed/TaskCard").then(mod => mod.TaskCard), {
-  loading: () => <div className="h-96 w-full bg-slate-100 animate-pulse rounded-3xl mb-6"></div>,
-});
+import { TaskCard } from "@/components/feed/TaskCard";
 import { getTasks } from "@/lib/actions/task";
 import { useEffect } from "react";
 import { useInView } from "react-intersection-observer";
@@ -29,8 +25,7 @@ export default function Home() {
     },
     initialPageParam: 1,
     getNextPageParam: (lastPage) => lastPage.nextPage,
-    refetchInterval: 15000, // Poll for new posts every 15 seconds
-    staleTime: 5000,
+    staleTime: 60 * 1000,
   });
 
   useEffect(() => {

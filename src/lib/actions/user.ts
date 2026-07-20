@@ -110,7 +110,13 @@ export async function getPublicProfile(userId: string) {
         select: "name image username",
         model: User,
       })
+      .populate({
+        path: "collaborators",
+        select: "name image username",
+        model: User,
+      })
       .populate({ path: "projectId", select: "title", model: Project })
+      .populate({ path: "review.mentorId", select: "name", model: User })
       .sort({ createdAt: -1 })
       .lean();
 
@@ -146,12 +152,23 @@ export async function getPublicProfile(userId: string) {
             username: task.authorId.username,
           }
         : null,
+      collaborators: task.collaborators
+        ? task.collaborators.map((c: any) => ({
+            id: c._id.toString(),
+            name: c.name,
+            image: c.image,
+            username: c.username,
+          }))
+        : [],
       project: task.projectId
         ? {
             id: task.projectId._id.toString(),
             title: task.projectId.title,
           }
         : null,
+      status: task.status,
+      review: task.review ? JSON.parse(JSON.stringify(task.review)) : undefined,
+      likes: task.likes ? JSON.parse(JSON.stringify(task.likes)) : [],
     }));
 
     return {

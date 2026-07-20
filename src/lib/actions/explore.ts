@@ -78,7 +78,7 @@ export async function searchTasks(query: string) {
       mediaType: task.mediaType,
       caption: task.caption,
       timeAgo: timeAgo(task.createdAt) + " yang lalu",
-      review: task.review?.grade ? {
+      review: task.review ? {
         grade: task.review.grade,
         comment: task.review.comment,
         mentorName: "Mentor", // Should populate properly later
@@ -86,6 +86,7 @@ export async function searchTasks(query: string) {
       likesCount: task.likes?.length || 0,
       isLikedByMe: sessionUserId ? task.likes?.some((id: any) => id.toString() === sessionUserId.toString()) : false,
       commentsCount,
+      status: task.status,
       createdAt: task.createdAt.toISOString(),
     };
   }));

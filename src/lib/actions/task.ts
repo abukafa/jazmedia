@@ -136,7 +136,7 @@ export async function getTasks({ pageParam = 1 }: { pageParam?: number }) {
         mediaType: task.mediaType,
         caption: task.caption,
         timeAgo: timeAgo(task.createdAt) + " yang lalu",
-        review: task.review?.grade ? {
+        review: task.review ? {
           grade: task.review.grade,
           comment: task.review.comment,
           mentorName: "Mentor", // Should probably populate this later
@@ -144,6 +144,7 @@ export async function getTasks({ pageParam = 1 }: { pageParam?: number }) {
         likesCount: task.likes?.length || 0,
         isLikedByMe: userId ? task.likes?.some((id: any) => id.toString() === userId.toString()) : false,
         commentsCount,
+        status: task.status,
         createdAt: task.createdAt.toISOString(),
       };
     }));
@@ -234,7 +235,7 @@ export async function getUserTasks(userId: string) {
         mediaType: task.mediaType,
         caption: task.caption,
         timeAgo: timeAgo(task.createdAt) + " yang lalu",
-        review: task.review?.grade ? {
+        review: task.review ? {
           grade: task.review.grade,
           comment: task.review.comment,
           mentorName: "Mentor",
@@ -242,6 +243,7 @@ export async function getUserTasks(userId: string) {
         likesCount: task.likes?.length || 0,
         isLikedByMe: sessionUserId ? task.likes?.some((id: any) => id.toString() === sessionUserId.toString()) : false,
         commentsCount,
+        status: task.status,
         createdAt: task.createdAt.toISOString(),
       };
     }));
@@ -305,7 +307,7 @@ export async function getComments(taskId: string) {
   }
 }
 
-export async function submitReview(taskId: string, grade: number, comment: string) {
+export async function submitReview(taskId: string, grade: number, comment: string, status: "reviewed" | "rejected" | "pending" = "reviewed") {
   const session = await getServerSession(authOptions);
   const user = session?.user as any;
   if (!user || (user.role !== "mentor" && user.role !== "admin")) {
@@ -316,13 +318,19 @@ export async function submitReview(taskId: string, grade: number, comment: strin
     const task = await Task.findById(taskId);
     if (!task) return { success: false, error: "Not found" };
     
-    task.review = {
-      mentorId: user.id as any,
-      grade,
-      comment,
-      reviewedAt: new Date()
-    };
-    task.status = "reviewed";
+    if (status === "pending") {
+      task.review = undefined;
+      task.status = "pending";
+    } else {
+      task.review = {
+        mentorId: user.id as any,
+        grade: status === "rejected" ? 0 : grade,
+        comment,
+        reviewedAt: new Date()
+      };
+      task.status = status;
+    }
+    
     await task.save();
     return { success: true };
   } catch (error: any) {

@@ -123,7 +123,7 @@ export default function Profile() {
     null,
   );
 
-
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (status === "unauthenticated") {

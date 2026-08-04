@@ -6,37 +6,39 @@ import {
   Search,
   Hash,
   User,
-  Flame,
   Loader2,
   ArrowLeft,
   Play,
   FileTextIcon,
-  Folder,
+  FolderOpen,
+  Clock,
+  ClipboardList,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TaskCard } from "@/components/feed/TaskCard";
-import {
-  searchTasks,
-  searchUsers,
-  getMemberStreaks,
-} from "@/lib/actions/explore";
+import { searchTasks, searchUsers } from "@/lib/actions/explore";
+import { getPublicProjects } from "@/lib/actions/project";
 import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getDirectMediaUrl } from "@/lib/utils/media";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { Card, CardContent } from "@/components/ui/card";
 
 export default function Explore() {
   const { data: session } = useSession();
   const userRole = (session?.user as any)?.role || "member";
+  const router = useRouter();
 
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [activeTab, setActiveTab] = useState(
-    userRole === "mentor" || userRole === "admin" ? "streak" : "tasks",
+    userRole === "mentor" || userRole === "admin" ? "projects" : "tasks"
   );
   const [selectedTaskIndex, setSelectedTaskIndex] = useState<number | null>(
-    null,
+    null
   );
+  const [projectFilter, setProjectFilter] = useState("all");
 
   // Fungsi untuk scroll otomatis
   const scrollRef = (node: HTMLDivElement | null) => {
@@ -64,19 +66,44 @@ export default function Explore() {
     enabled: debouncedQuery.trim().length > 0 && activeTab === "users",
   });
 
-  const { data: streaks = [], isFetching: loadingStreaks } = useQuery({
-    queryKey: ["explore", "streaks", debouncedQuery],
-    queryFn: () => getMemberStreaks(debouncedQuery),
-    enabled: activeTab === "streak",
+  const { data: projects = [], isFetching: loadingProjects } = useQuery({
+    queryKey: ["explore", "projects", projectFilter],
+    queryFn: async () => {
+      const res = await getPublicProjects(projectFilter);
+      return res.success ? res.data || [] : [];
+    },
+    enabled: activeTab === "projects",
   });
+
+  const filteredProjects = debouncedQuery.trim()
+    ? projects.filter(
+        (p: any) =>
+          p.title?.toLowerCase().includes(debouncedQuery.toLowerCase()) ||
+          p.mentorName?.toLowerCase().includes(debouncedQuery.toLowerCase())
+      )
+    : projects;
 
   const loading =
     activeTab === "tasks"
       ? loadingTasks
       : activeTab === "users"
-        ? loadingUsers
-        : loadingStreaks;
+      ? loadingUsers
+      : loadingProjects;
+
   const hasSearched = debouncedQuery.trim().length > 0;
+
+  // Kalkulasi durasi berjalan
+  const calculateDays = (createdAt: string) => {
+    if (!createdAt) return "Hari ini";
+    const start = new Date(createdAt).getTime();
+    const now = new Date().getTime();
+    const diffDays = Math.floor((now - start) / (1000 * 60 * 60 * 24));
+    return diffDays <= 0 ? "Hari ini" : `${diffDays} Hari`;
+  };
+
+  const openProjectDetails = (project: any) => {
+    router.push(`/projects/${project.id}`);
+  };
 
   return (
     <div className="pt-6 pb-24 bg-slate-50 min-h-screen">
@@ -113,10 +140,10 @@ export default function Explore() {
             <User className="w-4 h-4 mr-2" /> Users
           </TabsTrigger>
           <TabsTrigger
-            value="streak"
-            className="flex-1 data-[state=active]:shadow-none data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-orange-500 data-[state=active]:text-orange-500 rounded-none h-full transition-all text-slate-500 font-bold"
+            value="projects"
+            className="flex-1 data-[state=active]:shadow-none data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 rounded-none h-full transition-all text-slate-500 font-bold"
           >
-            <Flame className="w-4 h-4 mr-2" /> Streak
+            <FolderOpen className="w-4 h-4 mr-2" /> Projects
           </TabsTrigger>
         </TabsList>
 
@@ -141,19 +168,39 @@ export default function Explore() {
                     <img
                       src={getDirectMediaUrl(task.mediaUrl, "image")}
                       alt={`Task ${i}`}
-                      className={`object-cover w-full h-full group-hover:scale-110 transition-transform duration-500 ${task.status === 'rejected' ? 'grayscale opacity-90' : ''}`}
+                      className={`object-cover w-full h-full group-hover:scale-110 transition-transform duration-500 ${
+                        task.status === "rejected" ? "grayscale opacity-90" : ""
+                      }`}
                       loading="lazy"
                     />
                   ) : task.mediaType === "video" ? (
-                    <div className={`w-full h-full flex items-center justify-center ${task.status === 'rejected' ? 'bg-slate-700 grayscale' : 'bg-slate-800'}`}>
+                    <div
+                      className={`w-full h-full flex items-center justify-center ${
+                        task.status === "rejected"
+                          ? "bg-slate-700 grayscale"
+                          : "bg-slate-800"
+                      }`}
+                    >
                       <Play className="w-8 h-8 text-white/50" />
                     </div>
                   ) : (
-                    <div className={`w-full h-full flex items-center justify-center ${task.status === 'rejected' ? 'bg-slate-200 grayscale' : 'bg-blue-50'}`}>
-                      <FileTextIcon className={`w-8 h-8 ${task.status === 'rejected' ? 'text-slate-400' : 'text-blue-300'}`} />
+                    <div
+                      className={`w-full h-full flex items-center justify-center ${
+                        task.status === "rejected"
+                          ? "bg-slate-200 grayscale"
+                          : "bg-blue-50"
+                      }`}
+                    >
+                      <FileTextIcon
+                        className={`w-8 h-8 ${
+                          task.status === "rejected"
+                            ? "text-slate-400"
+                            : "text-blue-300"
+                        }`}
+                      />
                     </div>
                   )}
-                  
+
                   {task.status === "rejected" && (
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20 bg-black/10">
                       <div className="bg-red-600 text-white font-black text-[10px] sm:text-xs tracking-widest px-2 py-0.5 uppercase rotate-[-12deg] shadow-lg rounded-sm">
@@ -161,7 +208,7 @@ export default function Explore() {
                       </div>
                     </div>
                   )}
-                  
+
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
                 </div>
               ))}
@@ -243,62 +290,99 @@ export default function Explore() {
           )}
         </TabsContent>
 
-        <TabsContent value="streak" className="mt-4 px-4">
+        <TabsContent value="projects" className="mt-4 px-4">
+          {/* Filter Buttons */}
+          <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-hide mb-2">
+            <button
+              onClick={() => setProjectFilter("all")}
+              className={`px-4 py-1.5 text-sm font-bold rounded-full whitespace-nowrap transition-colors ${
+                projectFilter === "all"
+                  ? "bg-slate-900 text-white"
+                  : "bg-white text-slate-600 border border-slate-200 shadow-sm hover:bg-slate-50"
+              }`}
+            >
+              Semua
+            </button>
+            <button
+              onClick={() => setProjectFilter("active")}
+              className={`px-4 py-1.5 text-sm font-bold rounded-full whitespace-nowrap transition-colors ${
+                projectFilter === "active"
+                  ? "bg-slate-900 text-white"
+                  : "bg-white text-slate-600 border border-slate-200 shadow-sm hover:bg-slate-50"
+              }`}
+            >
+              Sedang Aktif
+            </button>
+            <button
+              onClick={() => setProjectFilter("completed")}
+              className={`px-4 py-1.5 text-sm font-bold rounded-full whitespace-nowrap transition-colors ${
+                projectFilter === "completed"
+                  ? "bg-slate-900 text-white"
+                  : "bg-white text-slate-600 border border-slate-200 shadow-sm hover:bg-slate-50"
+              }`}
+            >
+              Selesai
+            </button>
+          </div>
+
           {loading ? (
             <div className="flex justify-center py-10">
-              <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
+              <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
             </div>
-          ) : streaks.length > 0 ? (
-            <div className="space-y-3">
-              {streaks.map((member: any) => (
-                <Link key={member.id} href={`/user/${member.id}`}>
-                  <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-[0_2px_10px_rgb(0,0,0,0.02)] flex items-center justify-between hover:shadow-md transition-shadow cursor-pointer mb-3">
-                    <div className="flex items-center gap-3">
-                      <Avatar className="w-12 h-12 rounded-full border-2 border-slate-100">
-                        <AvatarImage src={member.image} />
-                        <AvatarFallback className="bg-slate-100 text-slate-500 font-bold">
-                          {member.name.charAt(0)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <h4 className="text-sm font-bold text-slate-900 leading-none mb-1">
-                          {member.name}
-                        </h4>
-                        <p className="text-[11px] text-slate-500">
-                          {member.totalTasks} Tasks • {member.totalCollabs}{" "}
-                          Collabs
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex flex-col items-end">
-                      <div
-                        className={`flex items-center px-2 py-1 rounded-full border ${member.streakCount > 0 ? "border-orange-100 bg-orange-100" : "border-slate-200 bg-slate-100"} text-slate-700 font-bold text-[11px]`}
-                      >
-                        <Flame
-                          className={`w-3.5 h-3.5 ${member.streakCount > 0 ? "text-orange-500 fill-current" : "text-slate-400"} mr-1`}
-                        />
-                        <span
-                          className={`text-xs font-black ${member.streakCount > 0 ? "text-orange-600" : "text-slate-500"}`}
-                        >
-                          {member.totalTasks + member.totalCollabs}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-              ))}
+          ) : filteredProjects.length === 0 ? (
+            <div className="text-center py-10 text-slate-500">
+              Belum ada proyek yang sesuai.
             </div>
           ) : (
-            <div className="p-8 mt-6 text-center flex flex-col items-center">
-              <div className="w-16 h-16 bg-white shadow-sm border border-slate-100 rounded-full flex items-center justify-center mb-4">
-                <Flame className="w-8 h-8 text-slate-300" />
-              </div>
-              <p className="text-sm font-bold text-slate-900">
-                Belum Ada Streak
-              </p>
-              <p className="text-xs text-slate-500 mt-1">
-                Belum ada member yang aktif.
-              </p>
+            <div className="flex flex-col gap-4">
+              {filteredProjects.map((p: any) => (
+                <Card
+                  key={p.id}
+                  onClick={() => openProjectDetails(p)}
+                  className="border-none shadow-[0_4px_20px_rgb(0,0,0,0.03)] rounded-3xl hover:shadow-md transition-shadow cursor-pointer bg-white"
+                >
+                  <CardContent className="pt-2">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="font-bold text-slate-900 leading-tight inline">
+                          {p.title}
+                        </h3>
+                        <span>
+                          <Clock className="w-3.5 h-3.5 mx-1.5 text-slate-400 inline" />
+                          <span className="text-[11px] text-slate-500 font-medium mt-1">
+                            Berjalan {calculateDays(p.createdAt)}
+                          </span>
+                        </span>
+                        <p>
+                          <span className="text-[11px] text-slate-500 font-medium mt-1">
+                            PIC: {p.mentorName} • PM:{" "}
+                            {p.projectManagerName || "-"}
+                          </span>
+                        </p>
+                      </div>
+                      <div className="text-center">
+                        <span
+                          className={`text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider ${
+                            p.status === "active"
+                              ? "bg-emerald-100 text-emerald-700"
+                              : "bg-slate-100 text-slate-600"
+                          }`}
+                        >
+                          {p.status}
+                        </span>
+                        <div
+                          className={`flex items-center text-[11px] ${
+                            p.tasks?.length ? "text-blue-700" : "text-slate-400"
+                          } font-bold px-2.5 py-1.5`}
+                        >
+                          <ClipboardList className="w-3.5 h-3.5 mr-1.5" />
+                          {p.tasks?.length || 0} Tasks
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
           )}
         </TabsContent>
@@ -347,8 +431,7 @@ function AutoScroll({
   refNode: (node: HTMLDivElement | null) => void;
 }) {
   useEffect(() => {
-    // Scroll will be handled by the ref callback automatically,
-    // but this component's mount ensures it runs at the right time.
+    // Scroll will be handled by the ref callback automatically
   }, []);
   return null;
 }

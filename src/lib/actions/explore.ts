@@ -152,6 +152,12 @@ export async function getMemberStreaks(query: string = "") {
       }
     }
 
+    const hasTaskThisWeek = [...authoredTasks, ...collabTasks].some(t => {
+      const daysAgo =
+        (now - new Date(t.createdAt).getTime()) / (1000 * 60 * 60 * 24);
+      return daysAgo < 7;
+    });
+
     return {
       id: memberIdStr,
       name: member.name,
@@ -159,7 +165,8 @@ export async function getMemberStreaks(query: string = "") {
       image: member.image || "https://i.pravatar.cc/150",
       totalTasks: authoredTasks.length,
       totalCollabs: collabTasks.length,
-      streakCount: streakTaskCount
+      streakCount: streakTaskCount,
+      hasTaskThisWeek,
     };
   });
 

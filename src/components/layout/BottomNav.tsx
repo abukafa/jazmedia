@@ -1,6 +1,6 @@
 "use client";
 
-import { Home, FolderOpen, Plus, Search, User } from "lucide-react";
+import { Home, Play, Plus, Search, User } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
@@ -18,7 +18,7 @@ export default function BottomNav() {
 
   const navItems = [
     { name: "Home", href: "/", icon: Home },
-    { name: "Projects", href: "/projects", icon: FolderOpen },
+    { name: "Tasks", href: "/tasks", icon: Play },
     { name: "Post", href: "/post", icon: Plus, isAction: true },
     { name: "Explore", href: "/explore", icon: Search },
     { name: "Profile", href: "/profile", icon: User },

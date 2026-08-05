@@ -33,10 +33,10 @@ export default function Explore() {
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [activeTab, setActiveTab] = useState(
-    userRole === "mentor" || userRole === "admin" ? "projects" : "tasks"
+    userRole === "mentor" || userRole === "admin" ? "projects" : "tasks",
   );
   const [selectedTaskIndex, setSelectedTaskIndex] = useState<number | null>(
-    null
+    null,
   );
   const [projectFilter, setProjectFilter] = useState("all");
 
@@ -79,7 +79,7 @@ export default function Explore() {
     ? projects.filter(
         (p: any) =>
           p.title?.toLowerCase().includes(debouncedQuery.toLowerCase()) ||
-          p.mentorName?.toLowerCase().includes(debouncedQuery.toLowerCase())
+          p.mentorName?.toLowerCase().includes(debouncedQuery.toLowerCase()),
       )
     : projects;
 
@@ -87,8 +87,8 @@ export default function Explore() {
     activeTab === "tasks"
       ? loadingTasks
       : activeTab === "users"
-      ? loadingUsers
-      : loadingProjects;
+        ? loadingUsers
+        : loadingProjects;
 
   const hasSearched = debouncedQuery.trim().length > 0;
 
@@ -292,7 +292,7 @@ export default function Explore() {
 
         <TabsContent value="projects" className="mt-4 px-4">
           {/* Filter Buttons */}
-          <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-hide mb-2">
+          <div className="flex gap-2 justify-center overflow-x-auto pb-4 scrollbar-hide mb-2">
             <button
               onClick={() => setProjectFilter("all")}
               className={`px-4 py-1.5 text-sm font-bold rounded-full whitespace-nowrap transition-colors ${
@@ -322,6 +322,16 @@ export default function Explore() {
               }`}
             >
               Selesai
+            </button>
+            <button
+              onClick={() => setProjectFilter("archived")}
+              className={`px-4 py-1.5 text-sm font-bold rounded-full whitespace-nowrap transition-colors ${
+                projectFilter === "archived"
+                  ? "bg-slate-900 text-white"
+                  : "bg-white text-slate-600 border border-slate-200 shadow-sm hover:bg-slate-50"
+              }`}
+            >
+              Diarsipkan
             </button>
           </div>
 

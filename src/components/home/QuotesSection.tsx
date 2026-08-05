@@ -290,7 +290,7 @@ export default function QuotesSection() {
               </p>
 
               <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-black/5">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 mt-3">
                   <div
                     className={`h-0.5 w-6 rounded-full ${currentTheme.progressBg}`}
                   />

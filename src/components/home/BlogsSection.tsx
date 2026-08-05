@@ -1,15 +1,12 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Heart, ArrowRight, Clock } from "lucide-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { DUMMY_BLOGS } from "@/lib/data/blogs";
-
-// Tripled array for infinite swipe: [0..4] (left buffer), [5..9] (middle set), [10..14] (right buffer)
-const LOOP_BLOGS = [...DUMMY_BLOGS, ...DUMMY_BLOGS, ...DUMMY_BLOGS];
-const SET_SIZE = DUMMY_BLOGS.length;
+import { getBlogs, likeBlog } from "@/lib/actions/blog";
 
 export default function BlogsSection() {
   const router = useRouter();
@@ -18,12 +15,32 @@ export default function BlogsSection() {
   const resetTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const hasInitializedRef = useRef(false);
 
-  // activeCardIndex tracks 0..14 (the exact card in viewport center)
-  const [activeCardIndex, setActiveCardIndex] = useState(SET_SIZE);
+  const [blogItems, setBlogItems] = useState<any[]>(DUMMY_BLOGS);
   const [likedPosts, setLikedPosts] = useState<Record<string, boolean>>({});
 
-  // Real 0..4 index for pagination dots & header counter
-  const activeIndex = activeCardIndex % SET_SIZE;
+  useEffect(() => {
+    async function loadLiveBlogs() {
+      const res = await getBlogs({ limit: 5 });
+      if (res && res.data && res.data.length > 0) {
+        setBlogItems(res.data);
+      }
+    }
+    loadLiveBlogs();
+  }, []);
+
+  const setSize = blogItems.length;
+
+  // Tripled array for infinite swipe: left buffer, middle set, right buffer
+  const loopBlogs = useMemo(
+    () => [...blogItems, ...blogItems, ...blogItems],
+    [blogItems]
+  );
+
+  // activeCardIndex tracks the exact card in viewport center
+  const [activeCardIndex, setActiveCardIndex] = useState(setSize);
+
+  // Real index for pagination dots & header counter
+  const activeIndex = setSize > 0 ? activeCardIndex % setSize : 0;
 
   const updateCardStyles = useCallback(() => {
     const container = scrollRef.current;
@@ -36,7 +53,7 @@ export default function BlogsSection() {
     let closestIndex = 0;
     let minDistance = Infinity;
 
-    LOOP_BLOGS.forEach((_, index) => {
+    loopBlogs.forEach((_, index) => {
       const cardEl = cardRefs.current[index];
       if (!cardEl) return;
       const cardRect = cardEl.getBoundingClientRect();
@@ -63,7 +80,7 @@ export default function BlogsSection() {
     }
 
     return closestIndex;
-  }, [activeCardIndex]);
+  }, [activeCardIndex, loopBlogs]);
 
   const handleScroll = useCallback(() => {
     const closestIndex = updateCardStyles();
@@ -75,16 +92,16 @@ export default function BlogsSection() {
 
     resetTimeoutRef.current = setTimeout(() => {
       const el = scrollRef.current;
-      if (!el) return;
+      if (!el || setSize === 0) return;
 
       let targetIndex = -1;
-      // If drifted into left clone group (indices 0..4)
-      if (closestIndex < SET_SIZE) {
-        targetIndex = closestIndex + SET_SIZE;
+      // If drifted into left clone group
+      if (closestIndex < setSize) {
+        targetIndex = closestIndex + setSize;
       }
-      // If drifted into right clone group (indices 10..14)
-      else if (closestIndex >= SET_SIZE * 2) {
-        targetIndex = closestIndex - SET_SIZE;
+      // If drifted into right clone group
+      else if (closestIndex >= setSize * 2) {
+        targetIndex = closestIndex - setSize;
       }
 
       if (targetIndex !== -1) {
@@ -92,21 +109,17 @@ export default function BlogsSection() {
         const targetCard = cardRefs.current[targetIndex];
         if (currentCard && targetCard) {
           const diff = targetCard.offsetLeft - currentCard.offsetLeft;
-          // 1. Temporarily disable scroll-snap so browser doesn't animate jump
           el.style.scrollSnapType = "none";
-          // 2. Reposition scrollLeft instantaneously
           el.scrollLeft += diff;
-          // 3. Immediately update activeCardIndex & synchronously apply scale/opacity
           setActiveCardIndex(targetIndex);
           updateCardStyles();
-          // 4. Restore scroll-snap cleanly on next frame
           requestAnimationFrame(() => {
             el.style.scrollSnapType = "";
           });
         }
       }
     }, 150);
-  }, [updateCardStyles]);
+  }, [updateCardStyles, setSize]);
 
   const scrollToCardInstant = useCallback((index: number) => {
     const cardEl = cardRefs.current[index];
@@ -120,16 +133,17 @@ export default function BlogsSection() {
   }, []);
 
   useEffect(() => {
-    if (!hasInitializedRef.current) {
-      // Immediately center the first item of the middle set (index 5)
-      scrollToCardInstant(SET_SIZE);
+    if (!hasInitializedRef.current && setSize > 0) {
+      scrollToCardInstant(setSize);
       hasInitializedRef.current = true;
       updateCardStyles();
     }
+  }, [setSize, scrollToCardInstant, updateCardStyles]);
 
+  useEffect(() => {
     window.addEventListener("resize", handleScroll);
     return () => window.removeEventListener("resize", handleScroll);
-  }, [handleScroll, scrollToCardInstant, updateCardStyles]);
+  }, [handleScroll]);
 
   const scrollToCard = (index: number) => {
     const cardEl = cardRefs.current[index];
@@ -142,9 +156,12 @@ export default function BlogsSection() {
     }
   };
 
-  const toggleLike = (e: React.MouseEvent, id: string) => {
+  const toggleLike = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     setLikedPosts((prev) => ({ ...prev, [id]: !prev[id] }));
+    if (!likedPosts[id]) {
+      await likeBlog(id);
+    }
   };
 
   return (
@@ -153,13 +170,13 @@ export default function BlogsSection() {
         <h2 className="text-xl sm:text-2xl font-bold text-blue-600 tracking-tight">
           Blogs &amp; Insights
         </h2>
-        {/* {activeIndex + 1} of {SET_SIZE} -> link ke /blogs */}
+        {/* {activeIndex + 1} of {setSize} -> link ke /blogs */}
         <Link
           href="/blogs"
           className="text-xs font-semibold text-slate-500 hover:text-blue-600 transition-colors cursor-pointer flex items-center gap-1 bg-slate-100 hover:bg-blue-50 px-2.5 py-1 rounded-full"
           title="Lihat semua artikel blog"
         >
-          {activeIndex + 1} of {SET_SIZE}
+          {activeIndex + 1} of {setSize}
         </Link>
       </div>
 
@@ -169,18 +186,18 @@ export default function BlogsSection() {
         onScroll={handleScroll}
         className="flex items-center gap-3.5 overflow-x-auto snap-x snap-mandatory scrollbar-hide px-[12.5%] py-6 -my-3 select-none"
       >
-        {LOOP_BLOGS.map((blog, index) => {
-          const isLiked = !!likedPosts[blog.id];
+        {loopBlogs.map((blog, index) => {
+          const isLiked = !!likedPosts[blog.id || blog._id];
           // Use modulo so all clones of the active blog share the same border/shadow state (0 shadow flicker on jump)
-          const isCenter = index % SET_SIZE === activeIndex;
+          const isCenter = setSize > 0 && index % setSize === activeIndex;
 
           return (
             <div
-              key={`${blog.id}-${index}`}
+              key={`${blog.id || blog._id}-${index}`}
               ref={(el) => {
                 cardRefs.current[index] = el;
               }}
-              onClick={() => router.push(`/blogs/${blog.id}`)}
+              onClick={() => router.push(`/blogs/${blog.slug || blog.id}`)}
               className="w-[75%] sm:w-[320px] flex-shrink-0 snap-center cursor-pointer rounded-3xl mb-4"
               style={{
                 transformOrigin: "center center",
@@ -211,7 +228,7 @@ export default function BlogsSection() {
                   {/* Heart / Like Button */}
                   <motion.button
                     whileTap={{ scale: 0.8 }}
-                    onClick={(e) => toggleLike(e, blog.id)}
+                    onClick={(e) => toggleLike(e, blog.id || blog._id)}
                     className={`absolute top-3 right-3 w-9 h-9 rounded-full bg-white/95 backdrop-blur-md shadow-md flex items-center justify-center transition-colors ${
                       isLiked
                         ? "text-rose-600 bg-rose-50/95"
@@ -228,7 +245,7 @@ export default function BlogsSection() {
                   {/* Read time badge */}
                   <div className="absolute bottom-2.5 left-3 flex items-center gap-1 text-white/90 text-[11px] font-medium bg-black/30 backdrop-blur-sm px-2.5 py-0.5 rounded-full">
                     <Clock className="w-3 h-3" />
-                    <span>{blog.readTime}</span>
+                    <span>{blog.readTime || "4 min read"}</span>
                   </div>
                 </div>
 
@@ -262,12 +279,12 @@ export default function BlogsSection() {
 
       {/* Pagination Dots */}
       <div className="flex items-center justify-center gap-1.5 mt-1">
-        {DUMMY_BLOGS.map((_, idx) => (
+        {blogItems.map((_, idx) => (
           <button
             key={idx}
             onClick={(e) => {
               e.stopPropagation();
-              scrollToCard(idx + SET_SIZE); // Jump to corresponding card in middle set
+              scrollToCard(idx + setSize); // Jump to corresponding card in middle set
             }}
             aria-label={`Go to slide ${idx + 1}`}
             className={`h-1.5 rounded-full transition-all duration-300 ${

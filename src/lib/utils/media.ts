@@ -19,7 +19,7 @@ export const getPreviewUrl = (url: string) => {
   return url;
 };
 
-export const getDirectMediaUrl = (url: string, mediaType: "image" | "video") => {
+export const getDirectMediaUrl = (url: string, mediaType: "image" | "video" | "document") => {
   if (!url) return url;
   const id = extractDriveId(url);
   if (id) {

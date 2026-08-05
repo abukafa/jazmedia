@@ -106,7 +106,10 @@ export default function PostTask() {
     return new Promise<string>((resolve, reject) => {
       const xhr = new XMLHttpRequest();
       xhr.open("PUT", uploadUrl, true);
-      xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
+      xhr.setRequestHeader(
+        "Content-Type",
+        file.type || "application/octet-stream",
+      );
 
       xhr.upload.onprogress = (e) => {
         if (e.lengthComputable) {
@@ -130,7 +133,11 @@ export default function PostTask() {
       };
 
       xhr.onerror = () => {
-        reject(new Error("Koneksi internet terputus di tengah jalan. Pastikan jaringan stabil."));
+        reject(
+          new Error(
+            "Koneksi internet terputus di tengah jalan. Pastikan jaringan stabil.",
+          ),
+        );
       };
 
       // Upload entire file seamlessly, browser handles streaming automatically
@@ -167,7 +174,7 @@ export default function PostTask() {
             file.type,
             file.size,
             mediaType + "s",
-            typeof window !== "undefined" ? window.location.origin : undefined
+            typeof window !== "undefined" ? window.location.origin : undefined,
           );
 
           if (!resSession.success || !resSession.uploadUrl) {
@@ -348,7 +355,7 @@ export default function PostTask() {
           {previews.length > 0 && (
             <div className="mt-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
               <h4 className="text-xs font-bold text-slate-500 mb-3">Preview</h4>
-              <div className="flex gap-3 overflow-x-auto pb-2">
+              <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100">
                 {previews.map((src, i) => (
                   <div
                     key={i}

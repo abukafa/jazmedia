@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { ImagePostEmbed } from "./ImagePostEmbed";
 import { VideoPostEmbed } from "./VideoPostEmbed";
-import { DocumentPostEmbed } from "./DocumentPostEmbed";
+import dynamic from "next/dynamic";
+const DocumentPostEmbed = dynamic(() => import('./DocumentPostEmbed').then(mod => mod.DocumentPostEmbed), { ssr: false });
 
 interface MediaCarouselProps {
   urls: string[];

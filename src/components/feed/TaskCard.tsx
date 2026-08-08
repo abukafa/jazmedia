@@ -559,7 +559,7 @@ export function TaskCard({
               className="focus:outline-none flex items-center gap-1.5"
             >
               <Heart
-                className={`w-7 h-7 transition-colors ${isLiked && isLikedByMe ? "fill-red-500 text-red-500" : "text-slate-800 hover:text-slate-600"}`}
+                className={`w-7 h-7 transition-colors ${isLiked ? "fill-red-500 text-red-500" : "text-slate-800 hover:text-slate-600"}`}
               />
               {likes > 0 && (
                 <span className="text-sm font-bold text-slate-700">

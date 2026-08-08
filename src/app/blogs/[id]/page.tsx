@@ -22,6 +22,7 @@ import {
   getBlogComments,
   addBlogComment,
 } from "@/lib/actions/blog";
+import { getDirectMediaUrl } from "@/lib/utils/media";
 import { useAlert } from "@/components/providers/AlertProvider";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
@@ -180,16 +181,11 @@ export default function BlogDetailPage() {
       {/* Hero Image Container */}
       <div className="relative mt-2 h-[260px] sm:h-[280px] rounded-[30px] overflow-hidden bg-slate-900 shadow-lg shadow-slate-300/50 group">
         <img
-          src={blog.image}
+          src={getDirectMediaUrl(blog.image, "image")}
           alt={blog.title}
           className="w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent" />
-
-        {/* Top Left Category Badge */}
-        <div className="absolute top-4 left-4 px-3 py-1 rounded-full bg-blue-600/90 backdrop-blur-md text-white text-[11px] font-bold uppercase tracking-wider">
-          {blog.category}
-        </div>
 
         {/* Bottom Hero Overlay */}
         <div className="absolute bottom-4 left-5 right-5 text-white space-y-1.5">

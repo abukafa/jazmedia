@@ -24,7 +24,8 @@ export const getDirectMediaUrl = (url: string, mediaType: "image" | "video" | "d
   const id = extractDriveId(url);
   if (id) {
     if (mediaType === 'image') {
-      return `https://lh3.googleusercontent.com/d/${id}`;
+      // Use internal proxy stream to bypass Google Drive public lh3 restrictions
+      return `/api/drive/stream/${id}`;
     }
     return `https://drive.google.com/uc?export=view&id=${id}`;
   }

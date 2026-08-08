@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { DUMMY_BLOGS } from "@/lib/data/blogs";
 import { getBlogs, likeBlog } from "@/lib/actions/blog";
+import { getDirectMediaUrl } from "@/lib/utils/media";
 
 export default function BlogsSection() {
   const router = useRouter();
@@ -23,6 +24,13 @@ export default function BlogsSection() {
       const res = await getBlogs({ limit: 5 });
       if (res && res.data && res.data.length > 0) {
         setBlogItems(res.data);
+        const initialLikes: Record<string, boolean> = {};
+        res.data.forEach((b: any) => {
+          if (b.isLikedByMe) {
+            initialLikes[b.id || b._id] = true;
+          }
+        });
+        setLikedPosts(initialLikes);
       }
     }
     loadLiveBlogs();
@@ -237,7 +245,7 @@ export default function BlogsSection() {
                 {/* Landscape Image Header without hover scale jitter */}
                 <div className="h-[150px] sm:h-[160px] relative overflow-hidden bg-slate-100 group">
                   <img
-                    src={blog.image}
+                    src={getDirectMediaUrl(blog.image, "image")}
                     alt={blog.title}
                     className="w-full h-full object-cover"
                     loading="lazy"

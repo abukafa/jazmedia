@@ -10,6 +10,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { uploadToGDrive } from "@/lib/actions/upload";
+import { getDirectMediaUrl } from "@/lib/utils/media";
 
 interface CoverUploaderProps {
   value: string;
@@ -71,7 +72,7 @@ export default function CoverUploader({ value, onChange }: CoverUploaderProps) {
       <div className="flex items-center justify-between">
         <label className="text-sm font-semibold text-slate-800 flex items-center gap-1.5">
           <ImageIcon className="w-4 h-4 text-blue-600" />
-          Cover / Hero Image
+          Cover Image
         </label>
 
         <button
@@ -80,7 +81,7 @@ export default function CoverUploader({ value, onChange }: CoverUploaderProps) {
           className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1 bg-blue-50/80 hover:bg-blue-100/80 px-2.5 py-1 rounded-full transition-colors"
         >
           <Link2 className="w-3.5 h-3.5" />
-          {isUrlMode ? "Unggah Berkas" : "Gunakan URL Gambar"}
+          {isUrlMode ? "Unggah Berkas" : "Gunakan URL"}
         </button>
       </div>
 
@@ -106,13 +107,13 @@ export default function CoverUploader({ value, onChange }: CoverUploaderProps) {
       ) : null}
 
       {value ? (
-        <div className="relative h-60 sm:h-72 w-full rounded-3xl overflow-hidden border border-slate-200/80 bg-slate-900 group shadow-md">
+        <div className="relative h-60 sm:h-72 w-full rounded-3xl overflow-hidden border border-slate-200/80 bg-slate-900 shadow-md">
           <img
-            src={value}
+            src={getDirectMediaUrl(value, "image")}
             alt="Cover preview"
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            className="w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+          <div className="absolute inset-0 bg-black/40 flex items-center justify-center gap-3">
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}

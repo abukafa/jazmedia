@@ -455,6 +455,9 @@ export async function getBestPerformanceTasks() {
       .populate("projectId", "title projectManagerId")
       .lean();
 
+    const session = await getServerSession(authOptions);
+    const userId = session?.user ? (session.user as any).id : null;
+
     const formattedData = tasks.map((t: any) => ({
       id: t._id.toString(),
       caption: t.caption,
@@ -464,7 +467,7 @@ export async function getBestPerformanceTasks() {
       status: t.status,
       createdAt: t.createdAt.toISOString(),
       likesCount: t.likes?.length || 0,
-      isLikedByMe: false, // Home page is public, simplify or fetch session if needed
+      isLikedByMe: userId && t.likes ? t.likes.some((id: any) => id.toString() === userId.toString()) : false,
       author: {
         id: t.authorId?._id?.toString(),
         name: t.authorId?.name,

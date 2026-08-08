@@ -125,9 +125,18 @@ export async function getBlogs(
     }
 
     const blogs = await queryBuilder.lean();
+    const session = await getServerSession(authOptions);
+    const userId = session?.user ? (session.user as any).id : null;
+
     return {
       success: true,
-      data: blogs.map(serializeBlog),
+      data: blogs.map((b: any) => {
+        const serialized = serializeBlog(b);
+        return {
+          ...serialized,
+          isLikedByMe: userId && b.likedBy ? b.likedBy.some((id: any) => id.toString() === userId.toString()) : false,
+        };
+      }),
     };
   } catch (error: any) {
     console.error("Error fetching blogs:", error);

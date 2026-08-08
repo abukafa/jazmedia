@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { getBlogs, getBlogCategories, deleteBlog } from "@/lib/actions/blog";
+import { getDirectMediaUrl } from "@/lib/utils/media";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useAlert } from "@/components/providers/AlertProvider";
@@ -64,6 +65,13 @@ export default function BlogsPage() {
       });
       if (res && res.data) {
         setBlogs(res.data);
+        const initialFavs: Record<string, boolean> = {};
+        res.data.forEach((b: any) => {
+          if (b.isLikedByMe) {
+            initialFavs[b.id || b._id] = true;
+          }
+        });
+        setFavorites(initialFavs);
       }
       setIsLoading(false);
     }
@@ -123,7 +131,7 @@ export default function BlogsPage() {
 
         <div className="flex items-center gap-1">
           <Link
-            href="/blogs/create"
+            href={session ? "/blogs/create" : "/login"}
             className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-xs font-bold flex items-center gap-1 shadow-sm transition-transform hover:scale-105 active:scale-95"
             title="Tulis artikel baru"
           >
@@ -155,7 +163,9 @@ export default function BlogsPage() {
       </div>
 
       {/* Categories Horizontal Scroll */}
-      <div className={`flex items-center gap-2 overflow-x-auto scrollbar-hide pb-3 mb-1 -mx-4 px-4 ${showFilter ? "" : "hidden"}`}>
+      <div
+        className={`flex items-center gap-2 overflow-x-auto scrollbar-hide pb-3 mb-1 -mx-4 px-4 ${showFilter ? "" : "hidden"}`}
+      >
         {categories.map((cat) => (
           <button
             key={cat}
@@ -197,7 +207,7 @@ export default function BlogsPage() {
                 {/* Hero Image Container */}
                 <div className="relative h-[180px] rounded-[20px] overflow-hidden bg-slate-100">
                   <img
-                    src={blog.image}
+                    src={getDirectMediaUrl(blog.image, "image")}
                     alt={blog.title}
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                   />
@@ -216,7 +226,7 @@ export default function BlogsPage() {
                   >
                     <Heart
                       className="w-3.5 h-3.5"
-                      fill={isFav ? "currentColor" : "none"}
+                      fill={isFav ? "#f43f5e" : "none"}
                       color={isFav ? "#f43f5e" : "currentColor"}
                     />
                   </motion.button>
@@ -238,7 +248,10 @@ export default function BlogsPage() {
                 <div className="flex items-center justify-between px-2 pt-3 pb-1">
                   <div className="flex items-center gap-2">
                     <Avatar className="w-7 h-7 ring-1 ring-white shadow-sm border border-slate-100">
-                      <AvatarImage src={blog.authorAvatar} alt={blog.authorName} />
+                      <AvatarImage
+                        src={blog.authorAvatar}
+                        alt={blog.authorName}
+                      />
                       <AvatarFallback className="bg-blue-100 text-blue-600 text-[10px] font-bold">
                         {blog.authorName ? blog.authorName.charAt(0) : "T"}
                       </AvatarFallback>

@@ -132,6 +132,8 @@ export default function BlogsSection() {
     }
   }, []);
 
+  const [isHovered, setIsHovered] = useState(false);
+
   useEffect(() => {
     if (!hasInitializedRef.current && setSize > 0) {
       scrollToCardInstant(setSize);
@@ -144,6 +146,23 @@ export default function BlogsSection() {
     window.addEventListener("resize", handleScroll);
     return () => window.removeEventListener("resize", handleScroll);
   }, [handleScroll]);
+
+  // Auto-swipe (Blogs & Insights swipe left: activeCardIndex + 1)
+  useEffect(() => {
+    if (setSize === 0 || isHovered) return;
+    const timer = setInterval(() => {
+      const nextIndex = activeCardIndex + 1;
+      const cardEl = cardRefs.current[nextIndex];
+      const container = scrollRef.current;
+      if (cardEl && container) {
+        container.scrollTo({
+          left: cardEl.offsetLeft - (container.clientWidth - cardEl.clientWidth) / 2,
+          behavior: "smooth",
+        });
+      }
+    }, 4500);
+    return () => clearInterval(timer);
+  }, [activeCardIndex, isHovered, setSize]);
 
   const scrollToCard = (index: number) => {
     const cardEl = cardRefs.current[index];
@@ -184,7 +203,12 @@ export default function BlogsSection() {
       <div
         ref={scrollRef}
         onScroll={handleScroll}
-        className="flex items-center gap-3.5 overflow-x-auto snap-x snap-mandatory scrollbar-hide px-[12.5%] py-6 -my-3 select-none"
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        onTouchStart={() => setIsHovered(true)}
+        onTouchEnd={() => setIsHovered(false)}
+        className="flex items-center gap-4 overflow-x-auto snap-x snap-mandatory scrollbar-hide px-[10vw] py-8 pb-12 -my-4"
+        style={{ scrollBehavior: "auto" }}
       >
         {loopBlogs.map((blog, index) => {
           const isLiked = !!likedPosts[blog.id || blog._id];

@@ -94,14 +94,8 @@ export default function WelcomeHeader() {
 
   const displayMembers = sortedMembers.slice(0, 6);
 
-  const getRankRing = (index: number) => {
-    if (index === 0)
-      return "bg-gradient-to-tr from-amber-400 via-yellow-500 to-orange-500 p-[2.5px] shadow-md shadow-amber-500/30";
-    if (index === 1)
-      return "bg-gradient-to-tr from-slate-300 via-blue-400 to-indigo-500 p-[2px]";
-    if (index === 2)
-      return "bg-gradient-to-tr from-orange-400 via-rose-400 to-pink-500 p-[2px]";
-    return "bg-gradient-to-tr from-[#0a1931] via-blue-900 to-indigo-950 p-[2px]";
+  const getRankRing = () => {
+    return "bg-blue-600 p-[2.5px] shadow-sm"; // static biru tema
   };
 
   return (
@@ -111,7 +105,7 @@ export default function WelcomeHeader() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
       >
-        <h1 className="text-[32px] font-black tracking-tight leading-tight">
+        <h1 className="text-[30px]  font-black tracking-tight leading-tight">
           Welcome to <span className="text-blue-600">Jaz Academy</span>
         </h1>
         <p className="text-lg text-slate-500 font-medium mt-0.5 ms-0.5">
@@ -119,7 +113,7 @@ export default function WelcomeHeader() {
         </p>
       </motion.div>
 
-      {/* Avatars Carousel / Row sorted by streak ranking */}
+      {/* Avatars Carousel / Row */}
       <div className="flex items-start gap-2 sm:gap-3 mt-6 overflow-x-auto scrollbar-hide -my-1">
         {displayMembers.map((member, index) => {
           const shortName = member.name.split(" ")[0];
@@ -130,15 +124,15 @@ export default function WelcomeHeader() {
               key={member.id}
               className="shrink-0"
             >
-              <div className="flex flex-col items-center gap-1.5 w-[64px] sm:w-[72px] cursor-pointer select-none group">
+              {/* Increased wrapper width by ~10%: 64px -> 70px, 72px -> 80px */}
+              <div className="flex flex-col items-center gap-1.5 w-[70px] sm:w-[80px] cursor-pointer select-none group">
                 <div className="relative">
-                  {/* Avatar Outer Ring with Rank Colors (+10% larger: w-[58px] sm:w-16) */}
+                  {/* Avatar Outer Ring: increased size by ~10%: 58px -> 64px, 64px(w-16) -> 70px */}
                   <div
-                    className={`w-[58px] h-[58px] sm:w-16 sm:h-16 rounded-full bg-white transition-all duration-300 ${getRankRing(
-                      index,
-                    )}`}
+                    className={`w-[64px] h-[64px] sm:w-[70px] sm:h-[70px] rounded-full transition-all duration-300 ${getRankRing()}`}
                   >
-                    <Avatar className="w-full h-full rounded-full border border-white">
+                    {/* border-[3px] border-white adds the visual gap between the blue border and the pic */}
+                    <Avatar className="w-full h-full rounded-full border-[3px] border-white bg-white">
                       <AvatarImage
                         src={member.image}
                         alt={member.name}

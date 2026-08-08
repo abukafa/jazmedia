@@ -373,8 +373,8 @@ export function TaskCard({
         <CardHeader className="flex flex-row items-center gap-3 px-4 pb-3 py-0">
           <div className="flex -space-x-3">
             <Avatar className="h-10 w-10 border-2 border-white shadow-sm ring-1 ring-slate-100 relative z-30">
-              <AvatarImage src={author.image} alt={author.name} />
-              <AvatarFallback>{author.name.charAt(0)}</AvatarFallback>
+              <AvatarImage src={author?.image} alt={author?.name || "Author"} />
+              <AvatarFallback>{author?.name?.charAt(0) || "U"}</AvatarFallback>
             </Avatar>
             {collaborators.slice(0, 2).map((collab, i) => (
               <Avatar
@@ -383,8 +383,8 @@ export function TaskCard({
                   i === 0 ? "z-20" : "z-10"
                 }`}
               >
-                <AvatarImage src={collab.image} alt={collab.name} />
-                <AvatarFallback>{collab.name.charAt(0)}</AvatarFallback>
+                <AvatarImage src={collab.image} alt={collab.name || "Collab"} />
+                <AvatarFallback>{collab.name?.charAt(0) || "?"}</AvatarFallback>
               </Avatar>
             ))}
           </div>

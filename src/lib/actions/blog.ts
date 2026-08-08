@@ -61,6 +61,18 @@ export async function seedBlogsIfEmpty() {
 
 function serializeBlog(doc: any) {
   if (!doc) return null;
+  
+  // Try to use populated authorId first
+  let resolvedAuthorName = doc.authorName || "Tim Jazmedia";
+  let resolvedAuthorAvatar = doc.authorAvatar || "";
+  let resolvedAuthorId = doc.authorId ? doc.authorId.toString() : null;
+
+  if (doc.authorId && typeof doc.authorId === 'object') {
+    resolvedAuthorId = doc.authorId._id ? doc.authorId._id.toString() : doc.authorId.toString();
+    if (doc.authorId.name) resolvedAuthorName = doc.authorId.name;
+    if (doc.authorId.image) resolvedAuthorAvatar = doc.authorId.image;
+  }
+
   return {
     id: doc._id ? doc._id.toString() : doc.id,
     _id: doc._id ? doc._id.toString() : doc.id,
@@ -75,9 +87,9 @@ function serializeBlog(doc: any) {
     likes: doc.likes || 0,
     rating: doc.rating || 4.9,
     reviewsCount: doc.reviewsCount || 0,
-    authorId: doc.authorId ? doc.authorId.toString() : null,
-    authorName: doc.authorName || "Tim Jazmedia",
-    authorAvatar: doc.authorAvatar || "",
+    authorId: resolvedAuthorId,
+    authorName: resolvedAuthorName,
+    authorAvatar: resolvedAuthorAvatar,
     status: doc.status || "PUBLISHED",
     likedBy: (doc.likedBy || []).map((id: any) => id.toString()),
     createdAt: doc.createdAt ? new Date(doc.createdAt).toISOString() : null,
@@ -107,7 +119,7 @@ export async function getBlogs(
       ];
     }
 
-    let queryBuilder = Blog.find(filter).sort({ createdAt: -1 });
+    let queryBuilder = Blog.find(filter).sort({ createdAt: -1 }).populate("authorId", "name image");
     if (limit) {
       queryBuilder = queryBuilder.limit(limit);
     }
@@ -132,12 +144,12 @@ export async function getBlogById(idOrSlug: string) {
     let blog = null;
 
     if (idOrSlug.match(/^[0-9a-fA-F]{24}$/)) {
-      blog = await Blog.findById(idOrSlug).lean();
+      blog = await Blog.findById(idOrSlug).populate("authorId", "name image").lean();
     }
     if (!blog) {
       blog = await Blog.findOne({
         $or: [{ slug: idOrSlug }, { title: idOrSlug }],
-      }).lean();
+      }).populate("authorId", "name image").lean();
     }
 
     if (!blog) {

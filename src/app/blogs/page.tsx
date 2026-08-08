@@ -20,6 +20,7 @@ import { getBlogs, getBlogCategories, deleteBlog } from "@/lib/actions/blog";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useAlert } from "@/components/providers/AlertProvider";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export default function BlogsPage() {
   const router = useRouter();
@@ -236,9 +237,12 @@ export default function BlogsPage() {
                 {/* Card Bottom Bar */}
                 <div className="flex items-center justify-between px-2 pt-3 pb-1">
                   <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs">
-                      {blog.authorName ? blog.authorName.charAt(0) : "T"}
-                    </div>
+                    <Avatar className="w-7 h-7 ring-1 ring-white shadow-sm border border-slate-100">
+                      <AvatarImage src={blog.authorAvatar} alt={blog.authorName} />
+                      <AvatarFallback className="bg-blue-100 text-blue-600 text-[10px] font-bold">
+                        {blog.authorName ? blog.authorName.charAt(0) : "T"}
+                      </AvatarFallback>
+                    </Avatar>
                     <div>
                       <span className="text-xs font-bold text-slate-900 block">
                         {blog.authorName || "Tim Jazmedia"}

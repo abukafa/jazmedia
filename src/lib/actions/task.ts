@@ -437,3 +437,62 @@ export async function deleteTask(taskId: string) {
     return { success: false, error: error.message };
   }
 }
+
+export async function getBestPerformanceTasks() {
+  await dbConnect();
+  try {
+    const oneMonthAgo = new Date();
+    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+    
+    const tasks = await Task.find({ 
+      createdAt: { $gte: oneMonthAgo },
+      "review.grade": { $exists: true }
+    })
+      .sort({ "review.grade": -1 })
+      .limit(5)
+      .populate("authorId", "name image")
+      .populate("collaborators", "name image")
+      .populate("projectId", "title projectManagerId")
+      .lean();
+
+    const formattedData = tasks.map((t: any) => ({
+      id: t._id.toString(),
+      caption: t.caption,
+      mediaUrl: t.mediaUrl,
+      mediaUrls: t.mediaUrls || [],
+      mediaType: t.mediaType,
+      status: t.status,
+      createdAt: t.createdAt.toISOString(),
+      likesCount: t.likes?.length || 0,
+      isLikedByMe: false, // Home page is public, simplify or fetch session if needed
+      author: {
+        id: t.authorId?._id?.toString(),
+        name: t.authorId?.name,
+        image: t.authorId?.image,
+      },
+      collaborators: t.collaborators?.map((c: any) => ({
+        name: c.name,
+        image: c.image,
+      })) || [],
+      projectTitle: t.projectId?.title,
+      project: {
+        id: t.projectId?._id?.toString(),
+        title: t.projectId?.title,
+        managerId: t.projectId?.projectManagerId?.toString()
+      },
+      review: t.review ? {
+        grade: t.review.grade,
+        comment: t.review.comment,
+        mentorName: "Mentor", 
+      } : undefined
+    }));
+
+    return { 
+      success: true, 
+      data: formattedData
+    };
+  } catch (error: any) {
+    console.error("getBestPerformanceTasks error:", error);
+    return { success: false, data: [] };
+  }
+}

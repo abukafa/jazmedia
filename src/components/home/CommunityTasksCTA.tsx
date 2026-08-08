@@ -17,9 +17,6 @@ export default function CommunityTasksCTA() {
         <div className="absolute -left-6 -top-6 w-28 h-28 rounded-full bg-indigo-500/15 blur-2xl pointer-events-none" />
 
         <div className="flex items-center gap-3.5 relative z-10 min-w-0 pr-2">
-          <div className="w-11 h-11 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center shrink-0 border border-white/15">
-            <FolderKanban className="w-5 h-5 text-blue-200" />
-          </div>
           <div className="min-w-0">
             <h3 className="font-bold text-sm sm:text-base tracking-tight truncate">
               Community Projects &amp; Tasks

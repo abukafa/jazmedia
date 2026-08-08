@@ -311,7 +311,7 @@ export default function Explore() {
                   : "bg-white text-slate-600 border border-slate-200 shadow-sm hover:bg-slate-50"
               }`}
             >
-              Sedang Aktif
+              Aktif
             </button>
             <button
               onClick={() => setProjectFilter("completed")}
@@ -331,7 +331,7 @@ export default function Explore() {
                   : "bg-white text-slate-600 border border-slate-200 shadow-sm hover:bg-slate-50"
               }`}
             >
-              Diarsipkan
+              Arsip
             </button>
           </div>
 
@@ -360,7 +360,7 @@ export default function Explore() {
                         <span>
                           <Clock className="w-3.5 h-3.5 mx-1.5 text-slate-400 inline" />
                           <span className="text-[11px] text-slate-500 font-medium mt-1">
-                            Berjalan {calculateDays(p.createdAt)}
+                            {calculateDays(p.createdAt)}
                           </span>
                         </span>
                         <p>
@@ -383,9 +383,8 @@ export default function Explore() {
                         <div
                           className={`flex items-center text-[11px] ${
                             p.tasks?.length ? "text-blue-700" : "text-slate-400"
-                          } font-bold px-2.5 py-1.5`}
+                          } font-bold px-3 py-1`}
                         >
-                          <ClipboardList className="w-3.5 h-3.5 mr-1.5" />
                           {p.tasks?.length || 0} Tasks
                         </div>
                       </div>

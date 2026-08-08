@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { useSession } from "next-auth/react";
 import { useAlert } from "@/components/providers/AlertProvider";
+import { useState, useEffect } from "react";
 
 export default function BottomNav() {
   const pathname = usePathname();
@@ -13,6 +14,32 @@ export default function BottomNav() {
   const { data: session, status } = useSession();
   const userRole = (session?.user as { role?: string })?.role;
   const { showAlert } = useAlert();
+
+  const [isVisible, setIsVisible] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
+
+  useEffect(() => {
+    const mainElement = document.querySelector("main");
+    if (!mainElement) return;
+
+    const handleScroll = () => {
+      const currentScrollY = mainElement.scrollTop;
+
+      // Scroll down
+      if (currentScrollY > lastScrollY && currentScrollY > 60) {
+        setIsVisible(false);
+      }
+      // Scroll up
+      else if (currentScrollY < lastScrollY) {
+        setIsVisible(true);
+      }
+
+      setLastScrollY(currentScrollY);
+    };
+
+    mainElement.addEventListener("scroll", handleScroll, { passive: true });
+    return () => mainElement.removeEventListener("scroll", handleScroll);
+  }, [lastScrollY]);
 
   if (pathname === "/post" || pathname === "/profile/edit") return null;
 
@@ -25,7 +52,12 @@ export default function BottomNav() {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 mx-auto max-w-md bg-white/90 backdrop-blur-lg border-t border-slate-100 pb-safe pt-2 px-2 shadow-[0_-8px_30px_rgba(0,0,0,0.04)]">
+    <motion.nav
+      initial={{ y: 0 }}
+      animate={{ y: isVisible ? 0 : 120 }}
+      transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
+      className="fixed bottom-0 left-0 right-0 z-50 mx-auto max-w-md bg-white/90 backdrop-blur-lg border-t border-slate-100 pb-safe pt-2 px-2 shadow-[0_-8px_30px_rgba(0,0,0,0.04)]"
+    >
       <div className="flex items-center justify-around h-14">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
@@ -105,6 +137,6 @@ export default function BottomNav() {
           );
         })}
       </div>
-    </nav>
+    </motion.nav>
   );
 }

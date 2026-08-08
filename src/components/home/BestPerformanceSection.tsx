@@ -89,7 +89,7 @@ export default function BestPerformanceSection() {
   }
 
   return (
-    <div className="my-3">
+    <div className="mt-3 mb-0">
       <div
         ref={scrollRef}
         onMouseEnter={() => setIsHovered(true)}

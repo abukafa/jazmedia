@@ -149,7 +149,7 @@ export default function AdminDashboard({ currentUserId }: AdminDashboardProps) {
             >
               <div className="flex items-center gap-3">
                 <img
-                  src={user.image || "https://i.pravatar.cc/150"}
+                  src={user.image || "/no-photo.png"}
                   alt={user.name}
                   className="w-10 h-10 rounded-full bg-slate-100"
                 />

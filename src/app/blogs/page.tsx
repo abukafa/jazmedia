@@ -22,6 +22,7 @@ import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useAlert } from "@/components/providers/AlertProvider";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useQuery } from "@tanstack/react-query";
 
 export default function BlogsPage() {
   const router = useRouter();
@@ -32,7 +33,6 @@ export default function BlogsPage() {
   const [categories, setCategories] = useState<string[]>(["All"]);
   const [showFilter, setShowFilter] = useState(false);
   const [blogs, setBlogs] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
 
@@ -44,9 +44,9 @@ export default function BlogsPage() {
       } else {
         setCategories([
           "All",
-          "Creative",
-          "Tips",
           "Technology",
+          "Lifestyle",
+          "Education",
           "Community",
           "Journal",
           "Design",
@@ -56,28 +56,30 @@ export default function BlogsPage() {
     fetchCategories();
   }, []);
 
-  useEffect(() => {
-    async function fetchBlogsData() {
-      setIsLoading(true);
+  const { data: blogsData = [], isLoading } = useQuery({
+    queryKey: ["blogs", selectedCategory, searchQuery],
+    queryFn: async () => {
       const res = await getBlogs({
         category: selectedCategory === "All" ? undefined : selectedCategory,
         query: searchQuery,
       });
-      if (res && res.data) {
-        setBlogs(res.data);
-        const initialFavs: Record<string, boolean> = {};
-        res.data.forEach((b: any) => {
-          if (b.isLikedByMe) {
-            initialFavs[b.id || b._id] = true;
-          }
-        });
-        setFavorites(initialFavs);
-      }
-      setIsLoading(false);
-    }
+      return res?.data ? res.data : [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
-    fetchBlogsData();
-  }, [selectedCategory, searchQuery]);
+  useEffect(() => {
+    if (blogsData.length > 0) {
+      setBlogs(blogsData);
+      const initialFavs: Record<string, boolean> = {};
+      blogsData.forEach((b: any) => {
+        if (b.isLikedByMe) {
+          initialFavs[b.id || b._id] = true;
+        }
+      });
+      setFavorites(initialFavs);
+    }
+  }, [blogsData]);
 
   const toggleFavorite = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();

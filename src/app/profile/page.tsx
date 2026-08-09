@@ -248,7 +248,7 @@ export default function Profile() {
   const name = dbUser?.name || sessionUser?.name || "User";
   const username = dbUser?.username || "";
   const image =
-    dbUser?.image || sessionUser?.image || "https://i.pravatar.cc/150";
+    dbUser?.image || sessionUser?.image || "/no-photo.png";
   const bio = dbUser
     ? dbUser.bio
     : "Halo! Saya menggunakan Jazmedia untuk membangun portofolio dan berbagi perjalanan belajar saya.";

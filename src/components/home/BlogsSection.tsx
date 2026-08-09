@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Heart, ArrowRight, Clock } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -19,22 +20,27 @@ export default function BlogsSection() {
   const [blogItems, setBlogItems] = useState<any[]>(DUMMY_BLOGS);
   const [likedPosts, setLikedPosts] = useState<Record<string, boolean>>({});
 
-  useEffect(() => {
-    async function loadLiveBlogs() {
+  const { data: blogs = [], isLoading: loadingBlogs } = useQuery({
+    queryKey: ["home", "blogs"],
+    queryFn: async () => {
       const res = await getBlogs({ limit: 5 });
-      if (res && res.data && res.data.length > 0) {
-        setBlogItems(res.data);
-        const initialLikes: Record<string, boolean> = {};
-        res.data.forEach((b: any) => {
-          if (b.isLikedByMe) {
-            initialLikes[b.id || b._id] = true;
-          }
-        });
-        setLikedPosts(initialLikes);
-      }
+      return res?.data ? res.data : [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  useEffect(() => {
+    if (blogs.length > 0) {
+      setBlogItems(blogs);
+      const initialLikes: Record<string, boolean> = {};
+      blogs.forEach((b: any) => {
+        if (b.isLikedByMe) {
+          initialLikes[b.id || b._id] = true;
+        }
+      });
+      setLikedPosts(initialLikes);
     }
-    loadLiveBlogs();
-  }, []);
+  }, [blogs]);
 
   const setSize = blogItems.length;
 

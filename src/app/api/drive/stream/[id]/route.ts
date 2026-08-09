@@ -42,6 +42,7 @@ export async function GET(
       headers.set("Content-Length", (end - start + 1).toString());
     } else {
       headers.set("Content-Length", fileSize.toString());
+      headers.set("Cache-Control", "public, max-age=31536000, immutable"); // Cache for 1 year
     }
 
     const response = await drive.files.get(

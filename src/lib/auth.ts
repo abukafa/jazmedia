@@ -128,7 +128,17 @@ export const authOptions: NextAuthOptions = {
         (session.user as any).id = token.sub;
         (session.user as any).role = token.role || "member";
         (session.user as any).username = token.username;
-        if (token.picture) session.user.image = token.picture;
+        if (token.picture) {
+          if (
+            token.picture.includes("pravatar") ||
+            token.picture.includes("dicebear") ||
+            token.picture.includes("unsplash")
+          ) {
+            session.user.image = "/no-photo.png";
+          } else {
+            session.user.image = token.picture;
+          }
+        }
       }
       return session;
     },

@@ -55,7 +55,9 @@ export async function seedBlogsIfEmpty() {
       status: "PUBLISHED",
     }));
 
-    await Blog.insertMany(seedData);
+    if (seedData.length > 0) {
+      await Blog.insertMany(seedData);
+    }
   }
 }
 
@@ -141,8 +143,8 @@ export async function getBlogs(
   } catch (error: any) {
     console.error("Error fetching blogs:", error);
     return {
-      success: true,
-      data: DUMMY_BLOGS.map((b) => ({ ...b, _id: b.id, slug: b.id })),
+      success: false,
+      data: [],
     };
   }
 }
@@ -162,41 +164,13 @@ export async function getBlogById(idOrSlug: string) {
     }
 
     if (!blog) {
-      const dummy = DUMMY_BLOGS.find(
-        (b) => b.id === idOrSlug || b.title === idOrSlug
-      );
-      if (dummy) {
-        return {
-          success: true,
-          data: {
-            ...dummy,
-            _id: dummy.id,
-            slug: dummy.id,
-            authorName: dummy.authorName || "Tim Jazmedia",
-          },
-        };
-      }
       return { success: false, error: "Artikel blog tidak ditemukan." };
     }
 
     return { success: true, data: serializeBlog(blog) };
   } catch (error: any) {
     console.error("Error fetching blog by ID:", error);
-    const dummy = DUMMY_BLOGS.find(
-      (b) => b.id === idOrSlug || b.title === idOrSlug
-    );
-    if (dummy) {
-      return {
-        success: true,
-        data: {
-          ...dummy,
-          _id: dummy.id,
-          slug: dummy.id,
-          authorName: dummy.authorName || "Tim Jazmedia",
-        },
-      };
-    }
-    return { success: false, error: "Artikel blog tidak ditemukan." };
+    return { success: false, error: "Gagal mengambil data artikel." };
   }
 }
 
@@ -249,7 +223,7 @@ export async function createBlog(formData: FormData) {
 
     const cleanContent = content.replace(/<[^>]+>/g, "").trim();
     const excerpt = rawExcerpt || (cleanContent.substring(0, 120) + "...");
-    const image = rawImage || "https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=800&auto=format&fit=crop&q=80";
+    const image = rawImage || "/no-photo.png";
     const finalCategory = category || "Creative";
 
     const baseSlug =
@@ -481,7 +455,7 @@ export async function updateBlog(id: string, formData: FormData) {
 
     const cleanContent = content.replace(/<[^>]+>/g, "").trim();
     const excerpt = rawExcerpt || (cleanContent.substring(0, 120) + "...");
-    const image = rawImage || "https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=800&auto=format&fit=crop&q=80";
+    const image = rawImage || "/no-photo.png";
     const finalCategory = category || "Creative";
 
     blog.title = title;

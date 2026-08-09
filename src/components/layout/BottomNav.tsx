@@ -110,7 +110,13 @@ export default function BottomNav() {
             >
               {item.name === "Profile" && session?.user?.image ? (
                 <img
-                  src={session.user.image}
+                  src={
+                    session.user.image.includes("pravatar") ||
+                    session.user.image.includes("dicebear") ||
+                    session.user.image.includes("unsplash")
+                      ? "/no-photo.png"
+                      : session.user.image
+                  }
                   alt="Profile"
                   className={`h-7 w-7 rounded-full object-cover transition-all duration-200 ${
                     isActive

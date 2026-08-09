@@ -423,7 +423,7 @@ export default function PostTask() {
                       className="flex items-center gap-1.5 bg-blue-50 text-blue-700 px-2.5 py-1.5 rounded-full text-xs font-bold border border-blue-100"
                     >
                       <img
-                        src={user.image || "https://i.pravatar.cc/150"}
+                        src={user.image || "/no-photo.png"}
                         alt={user.name}
                         className="w-4 h-4 rounded-full"
                       />
@@ -455,7 +455,7 @@ export default function PostTask() {
                     <SelectItem key={u.id} value={u.id}>
                       <div className="flex items-center gap-2">
                         <img
-                          src={u.image || "https://i.pravatar.cc/150"}
+                          src={u.image || "/no-photo.png"}
                           alt={u.name}
                           className="w-5 h-5 rounded-full bg-slate-100"
                         />

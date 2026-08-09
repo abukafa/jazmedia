@@ -66,11 +66,11 @@ export async function searchTasks(query: string) {
       author: {
         id: task.authorId?._id?.toString() || "",
         name: task.authorId?.name || "Member",
-        image: task.authorId?.image || "https://i.pravatar.cc/150",
+        image: task.authorId?.image || "/no-photo.png",
       },
       collaborators: task.collaborators?.map((c: any) => ({
         name: c.name,
-        image: c.image || "https://i.pravatar.cc/150",
+        image: c.image || "/no-photo.png",
       })) || [],
       projectTitle: task.projectId?.title || "Project",
       mediaUrl: task.mediaUrl,
@@ -162,7 +162,7 @@ export async function getMemberStreaks(query: string = "") {
       id: memberIdStr,
       name: member.name,
       username: member.username,
-      image: member.image || "https://i.pravatar.cc/150",
+      image: member.image || "/no-photo.png",
       totalTasks: authoredTasks.length,
       totalCollabs: collabTasks.length,
       streakCount: streakTaskCount,
@@ -170,10 +170,12 @@ export async function getMemberStreaks(query: string = "") {
     };
   });
 
-  // Sort by streakCount descending, then by totalTasks
+  // Sort by total activity (tasks + collabs), then by streakCount
   streaks.sort((a, b) => {
-    if (b.streakCount !== a.streakCount) return b.streakCount - a.streakCount;
-    return b.totalTasks - a.totalTasks;
+    const totalA = (a.totalTasks || 0) + (a.totalCollabs || 0);
+    const totalB = (b.totalTasks || 0) + (b.totalCollabs || 0);
+    if (totalA !== totalB) return totalB - totalA;
+    return (b.streakCount || 0) - (a.streakCount || 0);
   });
 
   return JSON.parse(JSON.stringify(streaks));

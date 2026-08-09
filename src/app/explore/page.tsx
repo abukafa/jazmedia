@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TaskCard } from "@/components/feed/TaskCard";
-import { searchTasks, searchUsers } from "@/lib/actions/explore";
+import { searchTasks, searchUsers, getMemberStreaks } from "@/lib/actions/explore";
 import { getPublicProjects } from "@/lib/actions/project";
 import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -24,6 +24,7 @@ import { getDirectMediaUrl } from "@/lib/utils/media";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
+import StreakList from "@/components/explore/StreakList";
 
 export default function Explore() {
   const { data: session } = useSession();
@@ -32,13 +33,22 @@ export default function Explore() {
 
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
-  const [activeTab, setActiveTab] = useState(
-    userRole === "mentor" || userRole === "admin" ? "projects" : "tasks",
-  );
+  const [activeTab, setActiveTab] = useState("users");
   const [selectedTaskIndex, setSelectedTaskIndex] = useState<number | null>(
     null,
   );
   const [projectFilter, setProjectFilter] = useState("all");
+
+  const getRoleBadgeColors = (role: string) => {
+    switch (role?.toLowerCase()) {
+      case 'admin':
+        return 'bg-red-100 text-red-700 border border-red-200';
+      case 'mentor':
+        return 'bg-purple-100 text-purple-700 border border-purple-200';
+      default:
+        return 'bg-slate-100 text-slate-600 border border-transparent';
+    }
+  };
 
   // Fungsi untuk scroll otomatis
   const scrollRef = (node: HTMLDivElement | null) => {
@@ -66,6 +76,12 @@ export default function Explore() {
     enabled: debouncedQuery.trim().length > 0 && activeTab === "users",
   });
 
+  const { data: streaks = [], isFetching: loadingStreaks } = useQuery({
+    queryKey: ["explore", "streaks"],
+    queryFn: () => getMemberStreaks(),
+    enabled: debouncedQuery.trim().length === 0 && activeTab === "users",
+  });
+
   const { data: projects = [], isFetching: loadingProjects } = useQuery({
     queryKey: ["explore", "projects", projectFilter],
     queryFn: async () => {
@@ -83,14 +99,14 @@ export default function Explore() {
       )
     : projects;
 
+  const hasSearched = debouncedQuery.trim().length > 0;
+
   const loading =
     activeTab === "tasks"
       ? loadingTasks
       : activeTab === "users"
-        ? loadingUsers
+        ? hasSearched ? loadingUsers : loadingStreaks
         : loadingProjects;
-
-  const hasSearched = debouncedQuery.trim().length > 0;
 
   // Kalkulasi durasi berjalan
   const calculateDays = (createdAt: string) => {
@@ -248,7 +264,7 @@ export default function Explore() {
                       <AvatarImage
                         src={
                           user.image ||
-                          `https://api.dicebear.com/7.x/initials/svg?seed=${user.name}`
+                          `/no-photo.png`
                         }
                       />
                       <AvatarFallback>
@@ -270,7 +286,7 @@ export default function Explore() {
                         </p>
                       )}
                     </div>
-                    <div className="text-[10px] font-bold px-2 py-1 bg-slate-100 text-slate-600 rounded-lg capitalize">
+                    <div className={`text-[10px] font-bold px-2 py-1 rounded-lg capitalize ${getRoleBadgeColors(user.role)}`}>
                       {user.role}
                     </div>
                   </div>
@@ -278,15 +294,7 @@ export default function Explore() {
               ))}
             </div>
           ) : (
-            <div className="p-8 mt-6 text-center flex flex-col items-center">
-              <div className="w-16 h-16 bg-white shadow-sm border border-slate-100 rounded-full flex items-center justify-center mb-4">
-                <User className="w-8 h-8 text-slate-300" />
-              </div>
-              <p className="text-sm font-bold text-slate-900">Cari Member</p>
-              <p className="text-xs text-slate-500 mt-1">
-                Temukan member, mentor, atau teman kolaborasimu.
-              </p>
-            </div>
+            <StreakList streaks={streaks} loading={loadingStreaks} />
           )}
         </TabsContent>
 

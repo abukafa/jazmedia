@@ -114,7 +114,7 @@ export default function CreateBlogPage() {
         excerpt.trim() || cleanContent.substring(0, 120) + "...";
       const finalImage =
         image.trim() ||
-        "https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=800&auto=format&fit=crop&q=80";
+        "/no-photo.png";
 
       const formData = new FormData();
       formData.append("title", title.trim());

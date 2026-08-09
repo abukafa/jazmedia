@@ -18,63 +18,7 @@ interface MemberStreakItem {
   hasTaskThisWeek: boolean;
 }
 
-const DUMMY_MEMBERS: MemberStreakItem[] = [
-  {
-    id: "user-1",
-    name: "Alex",
-    username: "alex_dev",
-    image:
-      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80",
-    totalTasks: 14,
-    totalCollabs: 5,
-    streakCount: 12,
-    hasTaskThisWeek: true,
-  },
-  {
-    id: "user-2",
-    name: "Nadia",
-    username: "nadia_ui",
-    image:
-      "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80",
-    totalTasks: 10,
-    totalCollabs: 3,
-    streakCount: 8,
-    hasTaskThisWeek: true,
-  },
-  {
-    id: "user-3",
-    name: "Sarah",
-    username: "sarah_k",
-    image:
-      "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&auto=format&fit=crop&q=80",
-    totalTasks: 7,
-    totalCollabs: 2,
-    streakCount: 5,
-    hasTaskThisWeek: false,
-  },
-  {
-    id: "user-4",
-    name: "Marcus",
-    username: "marcus_j",
-    image:
-      "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&auto=format&fit=crop&q=80",
-    totalTasks: 4,
-    totalCollabs: 1,
-    streakCount: 3,
-    hasTaskThisWeek: true,
-  },
-  {
-    id: "user-5",
-    name: "Alya",
-    username: "alya_dsgn",
-    image:
-      "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=200&auto=format&fit=crop&q=80",
-    totalTasks: 2,
-    totalCollabs: 0,
-    streakCount: 0,
-    hasTaskThisWeek: false,
-  },
-];
+const DUMMY_MEMBERS: MemberStreakItem[] = [];
 
 export default function WelcomeHeader() {
   const { data: members = [] } = useQuery({

@@ -91,7 +91,7 @@ export default function CoverUploader({ value, onChange }: CoverUploaderProps) {
             type="url"
             value={urlInput}
             onChange={(e) => setUrlInput(e.target.value)}
-            placeholder="https://images.unsplash.com/..."
+            placeholder="/no-photo.png"
             className="flex-1 bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
           />
           <button

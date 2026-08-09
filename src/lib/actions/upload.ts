@@ -41,7 +41,7 @@ export async function uploadToGDrive(file: File, folderName?: string) {
   
   if (!process.env.GOOGLE_DRIVE_CLIENT_ID || !rootFolderId) {
     console.warn("Mock upload enabled because Google Drive credentials are not set.");
-    return "https://images.unsplash.com/photo-1618761714954-0b8cd0026356?auto=format&fit=crop&q=80&w=1000";
+    return "/no-photo.png";
   }
 
   let targetFolderId = rootFolderId;

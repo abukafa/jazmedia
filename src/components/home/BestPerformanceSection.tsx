@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Trophy } from "lucide-react";
 import { getBestPerformanceTasks } from "@/lib/actions/task";
 import { TaskCard } from "@/components/feed/TaskCard";
@@ -31,20 +32,16 @@ function getTimeAgo(dateString: string) {
 
 export default function BestPerformanceSection() {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [tasks, setTasks] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [isHovered, setIsHovered] = useState(false);
 
-  useEffect(() => {
-    async function loadBestTasks() {
+  const { data: tasks = [], isLoading: loading } = useQuery({
+    queryKey: ["home", "bestTasks"],
+    queryFn: async () => {
       const res = await getBestPerformanceTasks();
-      if (res && res.success && res.data) {
-        setTasks(res.data);
-      }
-      setLoading(false);
-    }
-    loadBestTasks();
-  }, []);
+      return res?.success && res.data ? res.data : [];
+    },
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+  });
 
   // Auto-swipe right (moving items right, scrolling left)
   useEffect(() => {

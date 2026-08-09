@@ -111,7 +111,7 @@ export default function PublicProfilePage() {
               <AvatarImage
                 src={
                   profile.image ||
-                  `https://api.dicebear.com/7.x/initials/svg?seed=${profile.name}`
+                  `/no-photo.png`
                 }
               />
               <AvatarFallback>{profile.name?.substring(0, 2)}</AvatarFallback>

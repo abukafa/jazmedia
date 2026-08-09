@@ -124,11 +124,11 @@ export async function getTasks({ pageParam = 1 }: { pageParam?: number }) {
         author: {
           id: task.authorId?._id?.toString() || "",
           name: task.authorId?.name || "Member",
-          image: task.authorId?.image || "https://i.pravatar.cc/150",
+          image: task.authorId?.image || "/no-photo.png",
         },
         collaborators: task.collaborators?.map((c: any) => ({
           name: c.name,
-          image: c.image || "https://i.pravatar.cc/150",
+          image: c.image || "/no-photo.png",
         })) || [],
         projectTitle: task.projectId?.title || "Project",
         project: task.projectId ? {
@@ -228,11 +228,11 @@ export async function getUserTasks(userId: string) {
         author: {
           id: task.authorId?._id?.toString() || "",
           name: task.authorId?.name || "Member",
-          image: task.authorId?.image || "https://i.pravatar.cc/150",
+          image: task.authorId?.image || "/no-photo.png",
         },
         collaborators: task.collaborators?.map((c: any) => ({
           name: c.name,
-          image: c.image || "https://i.pravatar.cc/150",
+          image: c.image || "/no-photo.png",
         })) || [],
         projectTitle: task.projectId?.title || "Project",
         mediaUrl: task.mediaUrl,

@@ -8,6 +8,9 @@ export async function GET() {
   try {
     await connectToDatabase();
     
+    // Ensure models are registered (prevents tree-shaking from removing them)
+    if (!User || !Comment) console.warn("Models not loaded");
+    
     // Get date for 1 week ago
     const oneWeekAgo = new Date();
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);

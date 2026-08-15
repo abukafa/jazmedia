@@ -14,6 +14,9 @@ export async function GET(
 
     await connectToDatabase();
     
+    // Ensure models are registered (prevents tree-shaking from removing them)
+    if (!User || !Comment) console.warn("Models not loaded");
+    
     // We fetch tasks by authorId. We also populate likes and comments.
     const tasks = await Task.find({ authorId: id })
       .populate({

@@ -11,14 +11,9 @@ export async function GET() {
     // Ensure models are registered (prevents tree-shaking from removing them)
     if (!User || !Comment) console.warn("Models not loaded");
     
-    // Get date for 1 week ago
-    const oneWeekAgo = new Date();
-    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-
-    // Get 10 best tasks from the last 1 week, sorted by mentor review grade
+    // Get 10 best tasks of all time, sorted by mentor review grade
     const bestTasks = await Task.find({
-      "review.grade": { $exists: true, $ne: null },
-      createdAt: { $gte: oneWeekAgo }
+      "review.grade": { $exists: true, $ne: null }
     })
       .sort({ "review.grade": -1 })
       .limit(10)

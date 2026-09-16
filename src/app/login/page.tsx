@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Script from "next/script";
+import { signIn } from "next-auth/react";
 
 declare global {
   interface Window {
@@ -60,26 +61,23 @@ const InstagramIcon = ({ className }: { className?: string }) => (
 export default function LoginPage() {
   const [hasLinkedInstagram, setHasLinkedInstagram] = useState(false);
 
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+
   useEffect(() => {
     try {
-      const isLinked = localStorage.getItem("jazmedia_linked_instagram") === "true";
+      const isLinked =
+        localStorage.getItem("jazmedia_linked_instagram") === "true";
       setHasLinkedInstagram(isLinked);
     } catch (e) {}
   }, []);
 
-  const handleSsoClick = () => {
-    const idpUrl =
-      process.env.NEXT_PUBLIC_JAZACADEMY_URL || "http://localhost:8000";
-
-    if (typeof window !== "undefined" && window.JazId) {
-      window.JazId.signIn({
-        client_id: "jazmedia",
-        ux_mode: "redirect",
-        idp_url: idpUrl,
-        auth_url: `${idpUrl}/sso/jazmedia`,
-      });
-    } else {
-      window.location.href = `${idpUrl}/sso/jazmedia`;
+  const handleSsoClick = async () => {
+    setIsLoggingIn(true);
+    try {
+      await signIn("jazacademy", { callbackUrl: "/" });
+    } catch (error) {
+      console.error("SSO OAuth Login error:", error);
+      setIsLoggingIn(false);
     }
   };
 
@@ -88,16 +86,12 @@ export default function LoginPage() {
       <Script src="/sdk/jaz-sso.js" strategy="afterInteractive" />
 
       <div className="w-full max-w-sm bg-white p-8 rounded-3xl shadow-sm border border-slate-100 text-center">
-        {/* JazMedia Brand Icon */}
-        <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl mx-auto flex items-center justify-center mb-5 font-black text-2xl shadow-inner border border-blue-100">
-          JM
-        </div>
-
         <h1 className="text-2xl font-black text-slate-900 mb-2">
           Masuk ke Jazmedia
         </h1>
         <p className="text-sm text-slate-500 mb-8 leading-relaxed">
-          Gunakan akun resmi <strong>JazAcademy</strong> Anda untuk mengakses karya, portofolio, dan kolaborasi.
+          Gunakan akun resmi <strong>JazAcademy</strong> Anda untuk mengakses
+          karya, portofolio, dan kolaborasi.
         </p>
 
         {/* SSO Button */}
@@ -105,15 +99,16 @@ export default function LoginPage() {
           <button
             type="button"
             onClick={handleSsoClick}
-            className="jaz-btn-base jaz-btn-lg jaz-theme-filled jaz-shape-rounded w-full flex items-center justify-center gap-2.5 h-12 text-sm font-semibold !rounded-xl !shadow-md transition-all active:scale-[0.98] cursor-pointer"
+            disabled={isLoggingIn}
+            className="jaz-btn-base jaz-btn-lg jaz-theme-filled jaz-shape-rounded w-full flex items-center justify-center gap-2.5 h-12 text-sm font-semibold !rounded-xl !shadow-md transition-all active:scale-[0.98] cursor-pointer disabled:opacity-75 disabled:cursor-not-allowed"
             style={{
               backgroundColor: "#7367F0",
               color: "#ffffff",
               boxShadow: "0 3px 12px rgba(115, 103, 240, 0.35)",
             }}
           >
-            <JazLogoIcon className="w-5 h-5 flex-shrink-0 transition-transform group-hover:scale-105" />
-            <span>Login jazacademy.id</span>
+            <JazLogoIcon className={`w-5 h-5 flex-shrink-0 transition-transform ${isLoggingIn ? "animate-spin" : "group-hover:scale-105"}`} />
+            <span>{isLoggingIn ? "Menghubungkan ke JazAcademy..." : "Login jazacademy.id"}</span>
           </button>
 
           {/* Instagram Button - Only displayed if account is already linked */}

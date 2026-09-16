@@ -7,7 +7,14 @@ interface ImagePostEmbedProps {
 }
 
 export function ImagePostEmbed({ url, index, isFs = false }: ImagePostEmbedProps) {
+  if (!url || typeof url !== "string" || !url.trim()) {
+    return null;
+  }
+
   const directUrl = getDirectMediaUrl(url, "image");
+  if (!directUrl || !directUrl.trim()) {
+    return null;
+  }
   
   return (
     <img 

@@ -1,17 +1,10 @@
 import { NextResponse } from "next/server";
-import connectToDatabase from "@/lib/db";
-import User from "@/models/User";
+import { apiClient } from "@/lib/api-client";
 
 export async function GET() {
   try {
-    await connectToDatabase();
-    
-    // Get all members, exclude password, but include email as requested
-    const members = await User.find({ role: "member" })
-      .select("-password")
-      .lean();
-      
-    return NextResponse.json({ success: true, data: members });
+    const res = await apiClient.get("/public/members");
+    return NextResponse.json(res);
   } catch (error: any) {
     console.error("Error fetching members:", error);
     return NextResponse.json(

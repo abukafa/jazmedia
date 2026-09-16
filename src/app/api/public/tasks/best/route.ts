@@ -1,55 +1,14 @@
 import { NextResponse } from "next/server";
-import connectToDatabase from "@/lib/db";
-import Task from "@/models/Task";
-import User from "@/models/User";
-import Comment from "@/models/Comment";
+import { apiClient } from "@/lib/api-client";
 
 export async function GET() {
   try {
-    await connectToDatabase();
-    
-    // Ensure models are registered (prevents tree-shaking from removing them)
-    if (!User || !Comment) console.warn("Models not loaded");
-    
-    // Get 10 best tasks of all time, sorted by mentor review grade
-    const bestTasks = await Task.find({
-      "review.grade": { $exists: true, $ne: null }
-    })
-      .sort({ "review.grade": -1 })
-      .limit(10)
-      .populate({
-        path: "authorId",
-        select: "name image username email _id",
-      })
-      .populate({
-        path: "likes",
-        select: "name image username email _id",
-      })
-      .lean();
-      
-    // Fetch comments for these tasks
-    const tasksWithComments = await Promise.all(
-      bestTasks.map(async (task) => {
-        const comments = await Comment.find({ taskId: task._id })
-          .populate({
-            path: "authorId",
-            select: "name image username email _id",
-          })
-          .sort({ createdAt: -1 })
-          .lean();
-          
-        return {
-          ...task,
-          comments,
-        };
-      })
-    );
-      
-    return NextResponse.json({ success: true, data: tasksWithComments });
+    const res = await apiClient.get("/public/tasks/best");
+    return NextResponse.json(res);
   } catch (error: any) {
     console.error("Error fetching best tasks:", error);
     return NextResponse.json(
-      { success: false, error: "Failed to fetch best tasks" },
+      { success: false, error: error.message || "Failed to fetch best tasks" },
       { status: 500 }
     );
   }

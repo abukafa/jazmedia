@@ -46,7 +46,7 @@ export default function TasksPage() {
              <span className="text-sm font-medium">Memuat tugas terbaru...</span>
           </div>
         ) : status === "error" ? (
-          <div className="py-20 text-center text-red-500 font-bold">Error mengambil data dari server. Pastikan MongoDB berjalan.</div>
+          <div className="py-20 text-center text-red-500 font-bold">Error mengambil data dari server. Silakan coba beberapa saat lagi.</div>
         ) : (
           <>
             {data.pages.map((page, i) => (

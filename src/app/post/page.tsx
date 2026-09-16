@@ -9,6 +9,9 @@ import {
   FileText,
   CheckCircle2,
   X,
+  Sparkles,
+  PenLine,
+  TrendingUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +26,7 @@ import {
 } from "@/components/ui/select";
 import { submitTask, getPostFormData } from "@/lib/actions/task";
 import { createDriveUploadSession } from "@/lib/actions/upload";
+import { getDirectMediaUrl } from "@/lib/utils/media";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useAlert } from "@/components/providers/AlertProvider";
@@ -276,6 +280,48 @@ export default function PostTask() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Card Terpisah: Refleksi Mingguan Siswa */}
+        <div className="mt-8 pt-6 border-t border-slate-200/80">
+          <div className="bg-gradient-to-br from-indigo-50/80 via-white to-blue-50/50 rounded-2xl border border-indigo-100 p-5 shadow-sm transition-all hover:shadow-md">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600">
+                <Sparkles className="w-6 h-6" />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <h3 className="font-bold text-slate-900 text-base">
+                    Laporan dan Refleksi
+                  </h3>
+                  <span className="text-[10px] font-semibold tracking-wide uppercase px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700">
+                    Weekly
+                  </span>
+                </div>
+                <p className="text-xs text-slate-600 leading-relaxed mb-4">
+                  Tinjau performa belajar mingguan Anda meliputi capaian,
+                  kendala, pelajaran yang dipetik, dan fokus prioritas ke depan.
+                  Dilengkapi metrik slider dan grafik progres mingguan.
+                </p>
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <Link
+                    href="/reflections/create"
+                    className="inline-flex items-center justify-center px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition shadow-sm hover:shadow"
+                  >
+                    <PenLine className="w-3.5 h-3.5 mr-1.5" />
+                    Isi Form Refleksi
+                  </Link>
+                  <Link
+                    href="/reflections"
+                    className="inline-flex items-center justify-center px-4 py-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold border border-slate-200 transition shadow-sm"
+                  >
+                    <TrendingUp className="w-3.5 h-3.5 mr-1.5 text-indigo-600" />
+                    Lihat Feed Refleksi
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -423,9 +469,13 @@ export default function PostTask() {
                       className="flex items-center gap-1.5 bg-blue-50 text-blue-700 px-2.5 py-1.5 rounded-full text-xs font-bold border border-blue-100"
                     >
                       <img
-                        src={user.image || "/no-photo.png"}
+                        src={
+                          user.image
+                            ? getDirectMediaUrl(user.image, "image")
+                            : "/no-photo.png"
+                        }
                         alt={user.name}
-                        className="w-4 h-4 rounded-full"
+                        className="w-4 h-4 rounded-full object-cover"
                       />
                       {user.name}
                       <button
@@ -455,9 +505,13 @@ export default function PostTask() {
                     <SelectItem key={u.id} value={u.id}>
                       <div className="flex items-center gap-2">
                         <img
-                          src={u.image || "/no-photo.png"}
+                          src={
+                            u.image
+                              ? getDirectMediaUrl(u.image, "image")
+                              : "/no-photo.png"
+                          }
                           alt={u.name}
-                          className="w-5 h-5 rounded-full bg-slate-100"
+                          className="w-5 h-5 rounded-full bg-slate-100 object-cover"
                         />
                         <span className="font-medium">{u.name}</span>{" "}
                         <span className="text-[10px] text-slate-400">
@@ -506,6 +560,48 @@ export default function PostTask() {
           </div>
         </Button>
       </form>
+
+      {/* Card Terpisah: Refleksi Mingguan Siswa */}
+      <div className="mt-8 pt-6 border-t border-slate-200/80">
+        <div className="bg-gradient-to-br from-indigo-50/70 via-white to-blue-50/50 rounded-2xl border border-indigo-100 p-5 shadow-sm transition-all hover:shadow-md">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-200 flex-shrink-0">
+              <Sparkles className="w-6 h-6" />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                <h3 className="font-bold text-slate-900 text-base">
+                  Laporan dan Refleksi
+                </h3>
+                <span className="text-[10px] font-semibold tracking-wide uppercase px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700">
+                  Weekly
+                </span>
+              </div>
+              <p className="text-xs text-slate-600 leading-relaxed mb-4">
+                Tinjau performa belajar mingguan Anda meliputi capaian, kendala,
+                pelajaran yang dipetik, dan fokus prioritas ke depan. Dilengkapi
+                metrik slider dan grafik progres mingguan.
+              </p>
+              <div className="flex flex-wrap items-center gap-2.5">
+                <Link
+                  href="/reflections/create"
+                  className="inline-flex items-center justify-center px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition shadow-sm hover:shadow"
+                >
+                  <PenLine className="w-3.5 h-3.5 mr-1.5" />
+                  Isi Refleksi Mingguan
+                </Link>
+                <Link
+                  href="/reflections"
+                  className="inline-flex items-center justify-center px-4 py-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold border border-slate-200 transition shadow-sm"
+                >
+                  <TrendingUp className="w-3.5 h-3.5 mr-1.5 text-indigo-600" />
+                  Lihat Feed Refleksi
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

@@ -3,6 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getInitials } from "@/lib/utils/avatar";
 import { Flame, Loader2 } from "lucide-react";
 
 export interface StreakMember {
@@ -51,7 +52,7 @@ export function StreakList({ streaks, loading }: StreakListProps) {
               <Avatar className="w-12 h-12 rounded-full border-2 border-slate-100">
                 <AvatarImage src={member.image} />
                 <AvatarFallback className="bg-slate-100 text-slate-500 font-bold">
-                  {member.name?.charAt(0) || "M"}
+                  {getInitials(member.name)}
                 </AvatarFallback>
               </Avatar>
               <div>

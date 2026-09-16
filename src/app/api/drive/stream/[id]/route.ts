@@ -18,10 +18,21 @@ export async function GET(
     const range = req.headers.get("range");
     
     // Get file metadata first
-    const metadata = await drive.files.get({
-      fileId: id,
-      fields: "size, mimeType",
-    });
+    let metadata;
+    try {
+      metadata = await drive.files.get({
+        fileId: id,
+        fields: "size, mimeType",
+      });
+    } catch (fetchErr: any) {
+      // Return 404 with cache control so client/browser doesn't spam requests and fallback triggers immediately
+      return new NextResponse("File not found or inaccessible", {
+        status: 404,
+        headers: {
+          "Cache-Control": "public, max-age=86400, stale-while-revalidate=604800",
+        },
+      });
+    }
     
     const fileSize = parseInt(metadata.data.size || "0", 10);
     const mimeType = metadata.data.mimeType || "video/mp4";
@@ -82,6 +93,11 @@ export async function GET(
     });
   } catch (error: any) {
     console.error("Drive stream error:", error);
-    return new NextResponse("Error fetching video", { status: 500 });
+    return new NextResponse("Error fetching media", { 
+      status: 404,
+      headers: {
+        "Cache-Control": "public, max-age=3600",
+      }
+    });
   }
 }

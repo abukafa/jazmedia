@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import connectToDatabase from "@/lib/db";
-import Task from "@/models/Task";
-import User from "@/models/User";
-import Comment from "@/models/Comment";
+import { apiClient } from "@/lib/api-client";
 
 export async function GET(
   req: NextRequest,
@@ -12,43 +9,12 @@ export async function GET(
     const resolvedParams = await params;
     const { id } = resolvedParams;
 
-    await connectToDatabase();
-    
-    // Ensure models are registered (prevents tree-shaking from removing them)
-    if (!User || !Comment) console.warn("Models not loaded");
-    
-    // We fetch tasks by authorId. We also populate likes and comments.
-    const tasks = await Task.find({ authorId: id })
-      .populate({
-        path: "likes",
-        select: "name image username email _id", // Exclude password
-      })
-      .lean();
-      
-    // Since comments are in a separate collection, we need to fetch them manually
-    // or use virtuals. Here we fetch them manually.
-    const tasksWithComments = await Promise.all(
-      tasks.map(async (task) => {
-        const comments = await Comment.find({ taskId: task._id })
-          .populate({
-            path: "authorId",
-            select: "name image username email _id",
-          })
-          .sort({ createdAt: -1 })
-          .lean();
-          
-        return {
-          ...task,
-          comments,
-        };
-      })
-    );
-      
-    return NextResponse.json({ success: true, data: tasksWithComments });
+    const res = await apiClient.get(`/public/tasks/member/${id}`);
+    return NextResponse.json(res);
   } catch (error: any) {
     console.error("Error fetching tasks by member id:", error);
     return NextResponse.json(
-      { success: false, error: "Failed to fetch tasks" },
+      { success: false, error: error.message || "Failed to fetch tasks" },
       { status: 500 }
     );
   }

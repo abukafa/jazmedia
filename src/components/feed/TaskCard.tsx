@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getInitials } from "@/lib/utils/avatar";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -110,7 +111,7 @@ export function TaskCard({
   const [showBigHeart, setShowBigHeart] = useState(false);
 
   const [isEditing, setIsEditing] = useState(false);
-  const [editedCaption, setEditedCaption] = useState(caption);
+  const [editedCaption, setEditedCaption] = useState(caption || "");
   const [isSubmittingEdit, setIsSubmittingEdit] = useState(false);
 
   const isAuthor = user?.id === author.id;
@@ -144,7 +145,10 @@ export function TaskCard({
 
   const [showMenu, setShowMenu] = useState(false);
 
-  const urls = mediaUrls.length > 0 ? mediaUrls : [mediaUrl];
+  const rawUrls = mediaUrls && mediaUrls.length > 0 ? mediaUrls : (mediaUrl ? [mediaUrl] : []);
+  const urls = rawUrls.filter(
+    (u): u is string => typeof u === "string" && u.trim().length > 0,
+  );
 
   const {
     data: comments = [],
@@ -265,7 +269,7 @@ export function TaskCard({
   });
 
   const handleEditSubmit = async () => {
-    if (!editedCaption.trim() || editedCaption === caption) {
+    if (!editedCaption.trim() || editedCaption === (caption || "")) {
       setIsEditing(false);
       return;
     }
@@ -359,11 +363,12 @@ export function TaskCard({
 
   const [isExpanded, setIsExpanded] = useState(false);
   const maxLength = 100;
-  const shouldTruncate = caption.length > maxLength;
+  const safeCaption = caption || "";
+  const shouldTruncate = safeCaption.length > maxLength;
   const displayedCaption =
     isExpanded || !shouldTruncate
-      ? caption
-      : `${caption.substring(0, maxLength)}...`;
+      ? safeCaption
+      : `${safeCaption.substring(0, maxLength)}...`;
 
   return (
     <>
@@ -374,7 +379,7 @@ export function TaskCard({
           <div className="flex -space-x-3">
             <Avatar className="h-10 w-10 border-2 border-white shadow-sm ring-1 ring-slate-100 relative z-30">
               <AvatarImage src={author?.image} alt={author?.name || "Author"} />
-              <AvatarFallback>{author?.name?.charAt(0) || "U"}</AvatarFallback>
+              <AvatarFallback>{getInitials(author?.name)}</AvatarFallback>
             </Avatar>
             {collaborators.slice(0, 2).map((collab, i) => (
               <Avatar
@@ -384,7 +389,7 @@ export function TaskCard({
                 }`}
               >
                 <AvatarImage src={collab.image} alt={collab.name || "Collab"} />
-                <AvatarFallback>{collab.name?.charAt(0) || "?"}</AvatarFallback>
+                <AvatarFallback>{getInitials(collab.name)}</AvatarFallback>
               </Avatar>
             ))}
           </div>
@@ -498,58 +503,60 @@ export function TaskCard({
           )}
         </CardHeader>
 
-        <div
-          className="relative w-full overflow-hidden group cursor-pointer bg-black"
-          onDoubleClick={handleDoubleClick}
-        >
-          {/* Main Media Carousel extracted to component */}
+        {urls.length > 0 && (
           <div
-            className={`w-full h-full ${localStatus === "rejected" ? "grayscale opacity-90" : ""}`}
+            className="relative w-full overflow-hidden group cursor-pointer bg-black"
+            onDoubleClick={handleDoubleClick}
           >
-            <MediaCarousel
-              urls={urls}
-              mediaType={mediaType}
-              activeSlide={activeSlide}
-              onActiveSlideChange={setActiveSlide}
-            />
-          </div>
-
-          {localStatus === "rejected" && (
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
-              <div className="bg-red-600 text-white font-black text-2xl md:text-3xl tracking-widest px-60 py-2 uppercase rotate-[-35deg] shadow-2xl rounded-sm flex flex-col items-center">
-                REJECTED
-                <span className="text-xs tracking-normal font-bold uppercase mt-1 text-red-100">
-                  Need Revision
-                </span>
-              </div>
+            {/* Main Media Carousel extracted to component */}
+            <div
+              className={`w-full h-full ${localStatus === "rejected" ? "grayscale opacity-90" : ""}`}
+            >
+              <MediaCarousel
+                urls={urls}
+                mediaType={mediaType}
+                activeSlide={activeSlide}
+                onActiveSlideChange={setActiveSlide}
+              />
             </div>
-          )}
 
-          {/* Fullscreen Button */}
-          <button
-            onClick={() => setIsFullscreen(true)}
-            className="absolute top-4 right-4 z-20 text-white/70 hover:text-white p-2 rounded-full bg-black/20 hover:bg-black/50 transition-all opacity-0 group-hover:opacity-100"
-          >
-            <Maximize2 className="w-5 h-5" />
-          </button>
-
-          {/* Double Click Heart Animation */}
-          <AnimatePresence>
-            {showBigHeart && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.5 }}
-                animate={{ opacity: 1, scale: 1.2 }}
-                exit={{ opacity: 0, scale: 1 }}
-                onAnimationComplete={() =>
-                  setTimeout(() => setShowBigHeart(false), 800)
-                }
-                className="absolute inset-0 flex items-center justify-center pointer-events-none z-30"
-              >
-                <Heart className="w-28 h-28 text-white fill-white drop-shadow-2xl opacity-90" />
-              </motion.div>
+            {localStatus === "rejected" && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+                <div className="bg-red-600 text-white font-black text-2xl md:text-3xl tracking-widest px-60 py-2 uppercase rotate-[-35deg] shadow-2xl rounded-sm flex flex-col items-center">
+                  REJECTED
+                  <span className="text-xs tracking-normal font-bold uppercase mt-1 text-red-100">
+                    Need Revision
+                  </span>
+                </div>
+              </div>
             )}
-          </AnimatePresence>
-        </div>
+
+            {/* Fullscreen Button */}
+            <button
+              onClick={() => setIsFullscreen(true)}
+              className="absolute top-4 right-4 z-20 text-white/70 hover:text-white p-2 rounded-full bg-black/20 hover:bg-black/50 transition-all opacity-0 group-hover:opacity-100"
+            >
+              <Maximize2 className="w-5 h-5" />
+            </button>
+
+            {/* Double Click Heart Animation */}
+            <AnimatePresence>
+              {showBigHeart && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.5 }}
+                  animate={{ opacity: 1, scale: 1.2 }}
+                  exit={{ opacity: 0, scale: 1 }}
+                  onAnimationComplete={() =>
+                    setTimeout(() => setShowBigHeart(false), 800)
+                  }
+                  className="absolute inset-0 flex items-center justify-center pointer-events-none z-30"
+                >
+                  <Heart className="w-28 h-28 text-white fill-white drop-shadow-2xl opacity-90" />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        )}
 
         <CardContent className="px-4 pt-3 py-0">
           <div className="flex items-center gap-4 mb-3">
@@ -827,7 +834,7 @@ export function TaskCard({
                     <Avatar className="h-8 w-8">
                       <AvatarImage src={comment.authorId?.image} />
                       <AvatarFallback>
-                        {comment.authorId?.name?.charAt(0)}
+                        {getInitials(comment.authorId?.name)}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 bg-slate-50 rounded-xl rounded-tl-none p-3 relative group">
@@ -864,7 +871,7 @@ export function TaskCard({
 
       {/* Fullscreen Modal */}
       <AnimatePresence>
-        {isFullscreen && (
+        {isFullscreen && urls.length > 0 && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}

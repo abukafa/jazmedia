@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Bell, ChevronLeft, Star, Loader2, AlertCircle, Download } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getInitials } from "@/lib/utils/avatar";
 import { TaskCard } from "@/components/feed/TaskCard";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
@@ -178,7 +179,7 @@ function NotificationsContent() {
                   <Avatar className="w-12 h-12 flex-shrink-0">
                     <AvatarImage src={task.authorId?.image} />
                     <AvatarFallback>
-                      {task.authorId?.name?.substring(0, 2)}
+                      {getInitials(task.authorId?.name)}
                     </AvatarFallback>
                   </Avatar>
 
@@ -237,7 +238,7 @@ function NotificationsContent() {
                   <Avatar className="w-12 h-12 flex-shrink-0">
                     <AvatarImage src={task.authorId?.image} />
                     <AvatarFallback>
-                      {task.authorId?.name?.substring(0, 2)}
+                      {getInitials(task.authorId?.name)}
                     </AvatarFallback>
                   </Avatar>
 

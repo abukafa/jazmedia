@@ -1,33 +1,17 @@
 "use server";
 
-import dbConnect from "@/lib/db";
-import Task from "@/models/Task";
-import User from "@/models/User";
-import Project from "@/models/Project";
-import Comment from "@/models/Comment";
+import { apiClient } from "@/lib/api-client";
 import { uploadToGDrive, finalizeDriveUpload } from "@/lib/actions/upload";
 import { revalidatePath } from "next/cache";
 
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-
 export async function submitTask(formData: FormData) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) return { success: false, error: "Unauthorized" };
-  
-  await dbConnect();
-  const dbUser = await User.findById((session.user as any).id).lean();
-  if (!dbUser) return { success: false, error: "User not found" };
-
-  const authorId = dbUser._id;
-
   const caption = formData.get("caption") as string;
   const projectId = formData.get("projectId") as string;
-  const mediaType = formData.get("mediaType") as string; // image, video, document
-  
+  const mediaType = (formData.get("mediaType") as string) || "image";
+
   const files = formData.getAll("files") as File[];
   const preuploadedIds = formData.getAll("preuploadedIds") as string[];
-  
+
   const collaboratorsStr = formData.get("collaborators") as string;
   const collaborators = collaboratorsStr ? JSON.parse(collaboratorsStr) : [];
 
@@ -39,8 +23,8 @@ export async function submitTask(formData: FormData) {
   }
 
   try {
-    // 1. Upload new files (fallback)
-    let mediaUrls: string[] = [];
+    // 1. Upload new files via Google Drive
+    const mediaUrls: string[] = [];
     if (files && files.length > 0) {
       const newUrls = await Promise.all(
         files.map(async (file) => await uploadToGDrive(file, mediaType + "s"))
@@ -59,23 +43,26 @@ export async function submitTask(formData: FormData) {
       );
       mediaUrls.push(...finalizedUrls);
     }
-    
-    // 3. Save to MongoDB
-    const newTask = await Task.create({
-      mediaUrl: mediaUrls[0],
-      mediaUrls,
+
+    // 3. Submit Task to JazAcademy API
+    const payload = {
+      projectId,
       mediaType,
       caption,
-      projectId,
-      authorId,
+      mediaUrls,
+      mediaUrl: mediaUrls[0] || "",
       collaborators,
-      status: "pending",
-    });
+    };
+
+    const res = await apiClient.post("/media/tasks", payload);
 
     revalidatePath("/");
     revalidatePath("/profile");
-    
-    return { success: true, taskId: newTask._id.toString() };
+
+    return {
+      success: true,
+      taskId: res.taskId || res.data?.id,
+    };
   } catch (error: any) {
     console.error("Submit task error:", error);
     return { success: false, error: error.message };
@@ -84,79 +71,10 @@ export async function submitTask(formData: FormData) {
 
 export async function getTasks({ pageParam = 1 }: { pageParam?: number }) {
   try {
-    await dbConnect();
-    const session = await getServerSession(authOptions);
-    const userId = (session?.user as any)?.id;
-
-    const limit = 5;
-    const skip = (pageParam - 1) * limit;
-
-    const tasks = await Task.find({})
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .populate("authorId", "name image")
-      .populate("collaborators", "name image")
-      .populate("projectId", "title projectManagerId")
-      .lean();
-
-    // Calculate time ago helper
-    const timeAgo = (date: Date) => {
-      const seconds = Math.floor((new Date().getTime() - new Date(date).getTime()) / 1000);
-      let interval = seconds / 31536000;
-      if (interval > 1) return Math.floor(interval) + " tahun";
-      interval = seconds / 2592000;
-      if (interval > 1) return Math.floor(interval) + " bulan";
-      interval = seconds / 86400;
-      if (interval > 1) return Math.floor(interval) + " hari";
-      interval = seconds / 3600;
-      if (interval > 1) return Math.floor(interval) + " jam";
-      interval = seconds / 60;
-      if (interval > 1) return Math.floor(interval) + " menit";
-      return Math.floor(seconds) + " detik";
-    };
-
-    // Map to MVP TaskCard format
-    const formattedTasks = await Promise.all(tasks.map(async (task: any) => {
-      const commentsCount = await Comment.countDocuments({ taskId: task._id });
-      return {
-        id: task._id.toString(),
-        author: {
-          id: task.authorId?._id?.toString() || "",
-          name: task.authorId?.name || "Member",
-          image: task.authorId?.image || "/no-photo.png",
-        },
-        collaborators: task.collaborators?.map((c: any) => ({
-          name: c.name,
-          image: c.image || "/no-photo.png",
-        })) || [],
-        projectTitle: task.projectId?.title || "Project",
-        project: task.projectId ? {
-          id: task.projectId._id?.toString(),
-          title: task.projectId.title,
-          managerId: task.projectId.projectManagerId?.toString(),
-        } : undefined,
-        mediaUrl: task.mediaUrl,
-        mediaUrls: task.mediaUrls || [task.mediaUrl],
-        mediaType: task.mediaType,
-        caption: task.caption,
-        timeAgo: timeAgo(task.createdAt) + " yang lalu",
-        review: task.review ? {
-          grade: task.review.grade,
-          comment: task.review.comment,
-          mentorName: "Mentor", // Should probably populate this later
-        } : undefined,
-        likesCount: task.likes?.length || 0,
-        isLikedByMe: userId ? task.likes?.some((id: any) => id.toString() === userId.toString()) : false,
-        commentsCount,
-        status: task.status,
-        createdAt: task.createdAt.toISOString(),
-      };
-    }));
-
+    const res = await apiClient.get(`/media/tasks?pageParam=${pageParam}&limit=5`);
     return {
-      data: formattedTasks,
-      nextPage: tasks.length === limit ? pageParam + 1 : undefined,
+      data: res.data || [],
+      nextPage: res.nextPage || undefined,
     };
   } catch (error) {
     console.error("Get tasks error:", error);
@@ -167,21 +85,51 @@ export async function getTasks({ pageParam = 1 }: { pageParam?: number }) {
   }
 }
 
-export async function getPostFormData() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) return { success: false, error: "Unauthorized" };
-  
+export interface PostFormData {
+  projects: { id: string; title: string }[];
+  users: { id: string; name: string; username?: string; image?: string }[];
+}
+
+export interface BestPerformanceTask {
+  id: string;
+  caption: string;
+  mediaUrl: string;
+  mediaUrls?: string[];
+  mediaType: "image" | "video" | "document";
+  status: string;
+  createdAt: string;
+  likesCount?: number;
+  isLikedByMe?: boolean;
+  commentsCount?: number;
+  author: {
+    id?: string;
+    name: string;
+    image: string;
+    username?: string;
+  };
+  collaborators?: {
+    name: string;
+    image: string;
+  }[];
+  projectTitle: string;
+  project?: {
+    id: string;
+    title: string;
+    managerId?: string;
+  };
+  review?: {
+    grade: number;
+    comment: string;
+    mentorName: string;
+  };
+}
+
+export async function getPostFormData(): Promise<{ success: boolean; data?: PostFormData; error?: string }> {
   try {
-    await dbConnect();
-    const projects = await Project.find({ status: "active" }).select("title _id").lean();
-    const users = await User.find({ _id: { $ne: (session.user as any).id } }).select("name username image").lean();
-    
+    const res = await apiClient.get<{ success: boolean; data: PostFormData }>("/media/tasks/form-data");
     return {
       success: true,
-      data: {
-        projects: projects.map(p => ({ id: p._id.toString(), title: p.title })),
-        users: users.map(u => ({ id: u._id.toString(), name: u.name, username: u.username, image: u.image }))
-      }
+      data: res.data || { projects: [], users: [] },
     };
   } catch (err: any) {
     return { success: false, error: err.message };
@@ -190,70 +138,11 @@ export async function getPostFormData() {
 
 export async function getUserTasks(userId: string) {
   try {
-    await dbConnect();
-
-    const tasks = await Task.find({
-      $or: [{ authorId: userId }, { collaborators: userId }]
-    })
-      .sort({ createdAt: -1 })
-      .populate("authorId", "name image")
-      .populate("collaborators", "name image")
-      .populate("projectId", "title")
-      .lean();
-
-    // Calculate time ago helper
-    const timeAgo = (date: Date) => {
-      const seconds = Math.floor((new Date().getTime() - new Date(date).getTime()) / 1000);
-      let interval = seconds / 31536000;
-      if (interval > 1) return Math.floor(interval) + " tahun";
-      interval = seconds / 2592000;
-      if (interval > 1) return Math.floor(interval) + " bulan";
-      interval = seconds / 86400;
-      if (interval > 1) return Math.floor(interval) + " hari";
-      interval = seconds / 3600;
-      if (interval > 1) return Math.floor(interval) + " jam";
-      interval = seconds / 60;
-      if (interval > 1) return Math.floor(interval) + " menit";
-      return Math.floor(seconds) + " detik";
+    const res = await apiClient.get(`/media/tasks/user/${userId}`);
+    return {
+      success: true,
+      data: res.data || [],
     };
-
-    const session = await getServerSession(authOptions);
-    const sessionUserId = (session?.user as any)?.id;
-
-    // Map to MVP TaskCard format
-    const formattedTasks = await Promise.all(tasks.map(async (task: any) => {
-      const commentsCount = await Comment.countDocuments({ taskId: task._id });
-      return {
-        id: task._id.toString(),
-        author: {
-          id: task.authorId?._id?.toString() || "",
-          name: task.authorId?.name || "Member",
-          image: task.authorId?.image || "/no-photo.png",
-        },
-        collaborators: task.collaborators?.map((c: any) => ({
-          name: c.name,
-          image: c.image || "/no-photo.png",
-        })) || [],
-        projectTitle: task.projectId?.title || "Project",
-        mediaUrl: task.mediaUrl,
-        mediaUrls: task.mediaUrls || [task.mediaUrl],
-        mediaType: task.mediaType,
-        caption: task.caption,
-        timeAgo: timeAgo(task.createdAt) + " yang lalu",
-        review: task.review ? {
-          grade: task.review.grade,
-          comment: task.review.comment,
-          mentorName: "Mentor",
-        } : undefined,
-        likesCount: task.likes?.length || 0,
-        isLikedByMe: sessionUserId ? task.likes?.some((id: any) => id.toString() === sessionUserId.toString()) : false,
-        commentsCount,
-        status: task.status,
-        createdAt: task.createdAt.toISOString(),
-      };
-    }));
-
-    return { success: true, data: formattedTasks };
   } catch (error: any) {
     console.error("Get user tasks error:", error);
     return { success: false, error: error.message };
@@ -261,238 +150,102 @@ export async function getUserTasks(userId: string) {
 }
 
 export async function toggleLike(taskId: string) {
-  const session = await getServerSession(authOptions);
-  const userId = (session?.user as any)?.id;
-  if (!userId) return { success: false, error: "Unauthorized" };
-  await dbConnect();
   try {
-    const task = await Task.findById(taskId);
-    if (!task) return { success: false, error: "Not found" };
-    
-    const isLiked = task.likes?.some((id: any) => id.toString() === userId.toString());
-    
-    if (isLiked) {
-      await Task.findByIdAndUpdate(taskId, { $pull: { likes: userId } });
-    } else {
-      await Task.findByIdAndUpdate(taskId, { $addToSet: { likes: userId } });
-    }
-    
-    const updatedTask = await Task.findById(taskId);
+    const res = await apiClient.post(`/media/tasks/${taskId}/like`);
     revalidatePath("/");
     revalidatePath("/explore");
-    return { success: true, isLikedByMe: !isLiked, likesCount: updatedTask?.likes?.length || 0 };
+    return {
+      success: true,
+      isLikedByMe: res.isLikedByMe,
+      likesCount: res.likesCount,
+    };
   } catch (error: any) {
     return { success: false, error: error.message };
   }
 }
 
 export async function addComment(taskId: string, content: string) {
-  const session = await getServerSession(authOptions);
-  const userId = (session?.user as any)?.id;
-  if (!userId) return { success: false, error: "Unauthorized" };
-  await dbConnect();
   try {
-    const comment = await Comment.create({ taskId, authorId: userId, content });
-    return { success: true, data: JSON.parse(JSON.stringify(comment)) };
+    const res = await apiClient.post(`/media/tasks/${taskId}/comments`, { content });
+    return { success: true, data: res.data };
   } catch (error: any) {
     return { success: false, error: error.message };
   }
 }
 
 export async function getComments(taskId: string) {
-  await dbConnect();
   try {
-    const comments = await Comment.find({ taskId })
-      .populate("authorId", "name image")
-      .sort({ createdAt: 1 })
-      .lean();
-    return { success: true, data: JSON.parse(JSON.stringify(comments)) };
+    const res = await apiClient.get(`/media/tasks/${taskId}/comments`);
+    return { success: true, data: res.data || [] };
   } catch (error: any) {
     return { success: false, error: error.message };
   }
 }
 
-export async function submitReview(taskId: string, grade: number, comment: string, status: "reviewed" | "rejected" | "pending" = "reviewed") {
-  const session = await getServerSession(authOptions);
-  const user = session?.user as any;
-  if (!user || (user.role !== "mentor" && user.role !== "admin")) {
-    return { success: false, error: "Unauthorized" };
-  }
-  await dbConnect();
+export async function submitReview(
+  taskId: string,
+  grade: number,
+  comment: string,
+  status: "reviewed" | "rejected" | "pending" = "reviewed"
+) {
   try {
-    const task = await Task.findById(taskId);
-    if (!task) return { success: false, error: "Not found" };
-    
-    if (status === "pending") {
-      task.review = undefined;
-      task.status = "pending";
-    } else {
-      task.review = {
-        mentorId: user.id as any,
-        grade: status === "rejected" ? 0 : grade,
-        comment,
-        reviewedAt: new Date()
-      };
-      task.status = status;
-    }
-    
-    await task.save();
-    return { success: true };
+    const res = await apiClient.put(`/media/tasks/${taskId}/review`, {
+      grade,
+      comment,
+      status,
+    });
+    revalidatePath("/");
+    revalidatePath("/profile");
+    return { success: true, ...res };
   } catch (error: any) {
     return { success: false, error: error.message };
   }
 }
 
 export async function approveTask(taskId: string) {
-  const session = await getServerSession(authOptions);
-  const user = session?.user as any;
-  if (!user) return { success: false, error: "Unauthorized" };
-  
-  await dbConnect();
   try {
-    const task = await Task.findById(taskId).populate("projectId");
-    if (!task) return { success: false, error: "Not found" };
-    
-    // Authorization check
-    const isAdmin = user.role === "admin";
-    const isProjectManager = task.projectId && task.projectId.projectManagerId && task.projectId.projectManagerId.toString() === user.id;
-    
-    if (!isAdmin && !isProjectManager) {
-      return { success: false, error: "Forbidden: You don't have permission to approve this task" };
-    }
-    
-    // Make sure it is reviewed first (optional, based on requirement)
-    if (task.status !== "reviewed") {
-      return { success: false, error: "Tugas harus di-review terlebih dahulu" };
-    }
-    
-    task.status = "approved";
-    await task.save();
-    
+    const res = await apiClient.put(`/media/tasks/${taskId}/approve`);
     revalidatePath("/");
     revalidatePath("/explore");
     revalidatePath("/profile");
-    
-    return { success: true };
+    return { success: true, ...res };
   } catch (error: any) {
     return { success: false, error: error.message };
   }
 }
 
 export async function updateTaskCaption(taskId: string, newCaption: string) {
-  const session = await getServerSession(authOptions);
-  const userId = (session?.user as any)?.id;
-  const userRole = (session?.user as any)?.role;
-  
-  if (!userId) {
-    return { success: false, error: "Unauthorized" };
-  }
-
-  await dbConnect();
   try {
-    const task = await Task.findById(taskId);
-    if (!task) return { success: false, error: "Not found" };
-    
-    if (task.authorId.toString() !== userId && userRole !== "admin") {
-      return { success: false, error: "Forbidden: You don't have permission to edit this post" };
-    }
-    
-    task.caption = newCaption;
-    await task.save();
-    
+    const res = await apiClient.put(`/media/tasks/${taskId}/caption`, {
+      caption: newCaption,
+    });
     revalidatePath("/");
     revalidatePath("/explore");
     revalidatePath("/profile");
-    
-    return { success: true };
+    return { success: true, ...res };
   } catch (error: any) {
     return { success: false, error: error.message };
   }
 }
 
 export async function deleteTask(taskId: string) {
-  const session = await getServerSession(authOptions);
-  const user = session?.user as any;
-  
-  if (!user || user.role !== "admin") {
-    return { success: false, error: "Unauthorized: Only admins can delete posts" };
-  }
-
-  await dbConnect();
   try {
-    const task = await Task.findById(taskId);
-    if (!task) return { success: false, error: "Task not found" };
-    
-    // Clean up related comments
-    await Comment.deleteMany({ taskId });
-    
-    await Task.findByIdAndDelete(taskId);
-    
+    const res = await apiClient.delete(`/media/tasks/${taskId}`);
     revalidatePath("/");
     revalidatePath("/explore");
     revalidatePath("/profile");
-    
-    return { success: true };
+    return { success: true, ...res };
   } catch (error: any) {
     return { success: false, error: error.message };
   }
 }
 
-export async function getBestPerformanceTasks() {
-  await dbConnect();
+export async function getBestPerformanceTasks(): Promise<{ success: boolean; data: BestPerformanceTask[] }> {
   try {
-    const oneMonthAgo = new Date();
-    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
-    
-    const tasks = await Task.find({ 
-      createdAt: { $gte: oneMonthAgo },
-      "review.grade": { $exists: true }
-    })
-      .sort({ "review.grade": -1 })
-      .limit(5)
-      .populate("authorId", "name image")
-      .populate("collaborators", "name image")
-      .populate("projectId", "title projectManagerId")
-      .lean();
-
-    const session = await getServerSession(authOptions);
-    const userId = session?.user ? (session.user as any).id : null;
-
-    const formattedData = tasks.map((t: any) => ({
-      id: t._id.toString(),
-      caption: t.caption,
-      mediaUrl: t.mediaUrl,
-      mediaUrls: t.mediaUrls || [],
-      mediaType: t.mediaType,
-      status: t.status,
-      createdAt: t.createdAt.toISOString(),
-      likesCount: t.likes?.length || 0,
-      isLikedByMe: userId && t.likes ? t.likes.some((id: any) => id.toString() === userId.toString()) : false,
-      author: {
-        id: t.authorId?._id?.toString(),
-        name: t.authorId?.name,
-        image: t.authorId?.image,
-      },
-      collaborators: t.collaborators?.map((c: any) => ({
-        name: c.name,
-        image: c.image,
-      })) || [],
-      projectTitle: t.projectId?.title,
-      project: {
-        id: t.projectId?._id?.toString(),
-        title: t.projectId?.title,
-        managerId: t.projectId?.projectManagerId?.toString()
-      },
-      review: t.review ? {
-        grade: t.review.grade,
-        comment: t.review.comment,
-        mentorName: "Mentor", 
-      } : undefined
-    }));
-
-    return { 
-      success: true, 
-      data: formattedData
+    const res = await apiClient.get<{ success: boolean; data: BestPerformanceTask[] }>("/media/tasks/best-performance");
+    return {
+      success: true,
+      data: res.data || [],
     };
   } catch (error: any) {
     console.error("getBestPerformanceTasks error:", error);

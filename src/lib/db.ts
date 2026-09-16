@@ -1,35 +1,13 @@
-import mongoose from "mongoose";
+/**
+ * [DISCONNECTED]
+ * MongoDB connection has been disconnected.
+ * All database operations (CRUD & Auth) are now handled directly by the JazAcademy API.
+ * See: src/lib/api-client.ts
+ */
 
-const MONGODB_URI = process.env.MONGODB_URI;
-
-if (!MONGODB_URI) {
-  throw new Error(
-    "Please define the MONGODB_URI environment variable inside .env.local"
-  );
-}
-
-let cached = (global as any).mongoose;
-
-if (!cached) {
-  cached = (global as any).mongoose = { conn: null, promise: null };
-}
-
-async function connectToDatabase() {
-  if (cached.conn) {
-    return cached.conn;
-  }
-
-  if (!cached.promise) {
-    const opts = {
-      bufferCommands: false,
-    };
-
-    cached.promise = mongoose.connect(MONGODB_URI!, opts).then((mongoose) => {
-      return mongoose;
-    });
-  }
-  cached.conn = await cached.promise;
-  return cached.conn;
+export async function connectToDatabase() {
+  console.warn("MongoDB is disconnected. Operations should use JazAcademy API (src/lib/api-client.ts)");
+  return null;
 }
 
 export default connectToDatabase;

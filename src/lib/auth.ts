@@ -1,15 +1,50 @@
 import { NextAuthOptions } from "next-auth";
 import InstagramProvider from "next-auth/providers/instagram";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { apiClient } from "@/lib/api-client";
+import { apiClient, getApiBaseUrl, getIdpBaseUrl } from "@/lib/api-client";
 
 export const authOptions: NextAuthOptions = {
   providers: [
+    // Official JazAcademy OAuth 2.0 Provider (RFC 6749)
+    {
+      id: "jazacademy",
+      name: "JazAcademy",
+      type: "oauth",
+      authorization: {
+        url: `${getIdpBaseUrl()}/oauth/authorize`,
+        params: { scope: "profile email" },
+      },
+      token: `${getIdpBaseUrl()}/oauth/token`,
+      userinfo: `${getApiBaseUrl()}/oauth/user`,
+      clientId: process.env.JAZACADEMY_CLIENT_ID || "5",
+      clientSecret: process.env.JAZACADEMY_CLIENT_SECRET || "",
+      checks: ["state"],
+      profile(profile: any, tokens: any) {
+        const role =
+          typeof profile.role === "number"
+            ? profile.role > 0
+              ? "admin"
+              : "member"
+            : profile.role_name?.toLowerCase() || "member";
+
+        return {
+          id: String(profile.id || profile.sub),
+          name: profile.name || profile.username || "User",
+          username:
+            profile.username ||
+            (profile.email ? profile.email.split("@")[0] : `user_${profile.id}`),
+          email: profile.email,
+          image: profile.avatar || profile.image,
+          role: role,
+          accessToken: tokens.access_token,
+        };
+      },
+    },
     InstagramProvider({
       clientId: process.env.INSTAGRAM_CLIENT_ID || "",
       clientSecret: process.env.INSTAGRAM_CLIENT_SECRET || "",
     }),
-    // SSO Provider for one-click login from JazAcademy
+    // SSO Provider for one-click login from JazAcademy (Ticket-based fallback)
     CredentialsProvider({
       id: "jazacademy-sso",
       name: "JazAcademy SSO",
@@ -124,8 +159,12 @@ export const authOptions: NextAuthOptions = {
         token.sub = user.id;
         token.role = (user as any).role;
         token.username = (user as any).username;
-        token.accessToken = (user as any).accessToken;
+        token.accessToken = (user as any).accessToken || account?.access_token;
         if (user.image) token.picture = user.image;
+      }
+
+      if (account?.access_token) {
+        token.accessToken = account.access_token;
       }
 
       return token;

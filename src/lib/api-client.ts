@@ -1,7 +1,27 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
-const API_BASE_URL = process.env.JAZACADEMY_API_URL || "http://localhost:8000/api";
+export function getApiBaseUrl(): string {
+  const envUrl = process.env.JAZACADEMY_API_URL;
+  if (envUrl && !envUrl.includes("localhost") && !envUrl.includes("127.0.0.1")) {
+    return envUrl.replace(/\/$/, "");
+  }
+  if (process.env.VERCEL || process.env.NODE_ENV === "production") {
+    return "https://jazacademy.id/api";
+  }
+  return (envUrl || "http://localhost:8000/api").replace(/\/$/, "");
+}
+
+export function getIdpBaseUrl(): string {
+  const envUrl = process.env.NEXT_PUBLIC_JAZACADEMY_URL || process.env.JAZACADEMY_URL;
+  if (envUrl && !envUrl.includes("localhost") && !envUrl.includes("127.0.0.1")) {
+    return envUrl.replace(/\/$/, "");
+  }
+  if (process.env.VERCEL || process.env.NODE_ENV === "production") {
+    return "https://jazacademy.id";
+  }
+  return (envUrl || "http://localhost:8000").replace(/\/$/, "");
+}
 
 export async function getAuthToken(): Promise<string | null> {
   try {
@@ -16,9 +36,10 @@ export async function apiFetch<T = any>(
   endpoint: string,
   options: RequestInit & { token?: string } = {}
 ): Promise<T> {
+  const baseUrl = getApiBaseUrl();
   const url = endpoint.startsWith("http")
     ? endpoint
-    : `${API_BASE_URL}${endpoint.startsWith("/") ? "" : "/"}${endpoint}`;
+    : `${baseUrl}${endpoint.startsWith("/") ? "" : "/"}${endpoint}`;
 
   const headers: Record<string, string> = {
     Accept: "application/json",

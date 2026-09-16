@@ -4,6 +4,7 @@ import * as React from "react"
 import { Avatar as AvatarPrimitive } from "@base-ui/react/avatar"
 
 import { cn } from "@/lib/utils"
+import { getDirectMediaUrl } from "@/lib/utils/media"
 
 function Avatar({
   className,
@@ -25,10 +26,12 @@ function Avatar({
   )
 }
 
-function AvatarImage({ className, ...props }: AvatarPrimitive.Image.Props) {
+function AvatarImage({ className, src, ...props }: AvatarPrimitive.Image.Props) {
+  const finalSrc = typeof src === "string" ? getDirectMediaUrl(src, "image") : src;
   return (
     <AvatarPrimitive.Image
       data-slot="avatar-image"
+      src={finalSrc}
       className={cn(
         "aspect-square size-full rounded-full object-cover",
         className
@@ -46,7 +49,7 @@ function AvatarFallback({
     <AvatarPrimitive.Fallback
       data-slot="avatar-fallback"
       className={cn(
-        "flex size-full items-center justify-center rounded-full bg-muted text-sm text-muted-foreground group-data-[size=sm]/avatar:text-xs",
+        "flex size-full items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 text-white font-bold text-xs select-none group-data-[size=sm]/avatar:text-[10px]",
         className
       )}
       {...props}

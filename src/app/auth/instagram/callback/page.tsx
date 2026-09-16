@@ -36,6 +36,7 @@ function CallbackContent() {
           setStatusText("Menautkan akun Instagram ke profil Anda...");
           const linkRes = await linkInstagramAccount(res.instagramId, res.name, res.username, res.image, res.bio);
           if (linkRes.success) {
+            localStorage.setItem("jazmedia_linked_instagram", "true");
             showAlert({ message: "Instagram berhasil ditautkan!", type: "success" });
             router.push("/profile/edit");
           } else {
@@ -43,14 +44,28 @@ function CallbackContent() {
             router.push("/profile/edit");
           }
         } else {
+          if (!res.isReturningUser) {
+            setStatusText("Akun Instagram belum tertaut.");
+            showAlert({
+              message: "Akun Instagram belum ditautkan ke akun JazAcademy. Silakan masuk menggunakan Login jazacademy.id terlebih dahulu, lalu tautkan di menu profil.",
+              type: "error",
+            });
+            setTimeout(() => router.push("/login"), 3000);
+            return;
+          }
+
           setStatusText("Otorisasi berhasil. Membuat sesi aplikasi...");
+          localStorage.setItem("jazmedia_linked_instagram", "true");
           const result = await signIn("instagram-custom", {
             redirect: false,
             instagramId: res.instagramId,
-            name: res.name,
-            username: res.username,
-            image: res.image,
-            bio: res.bio,
+            name: res.user?.name || res.name,
+            username: res.user?.username || res.username,
+            image: res.user?.image || res.image,
+            bio: res.user?.bio || res.bio,
+            userId: (res.user?.id || res.user?._id || "").toString(),
+            accessToken: res.token || "",
+            role: res.user?.role || "member",
           });
 
           if (result?.error) {

@@ -8,6 +8,8 @@ import { useSession } from "next-auth/react";
 import { useAlert } from "@/components/providers/AlertProvider";
 import { useState, useEffect } from "react";
 
+import { getDirectMediaUrl } from "@/lib/utils/media";
+
 export default function BottomNav() {
   const pathname = usePathname();
   const router = useRouter();
@@ -115,7 +117,7 @@ export default function BottomNav() {
                     session.user.image.includes("dicebear") ||
                     session.user.image.includes("unsplash")
                       ? "/no-photo.png"
-                      : session.user.image
+                      : getDirectMediaUrl(session.user.image, "image")
                   }
                   alt="Profile"
                   className={`h-7 w-7 rounded-full object-cover transition-all duration-200 ${

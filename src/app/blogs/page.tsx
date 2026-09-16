@@ -22,6 +22,7 @@ import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useAlert } from "@/components/providers/AlertProvider";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getInitials } from "@/lib/utils/avatar";
 import { useQuery } from "@tanstack/react-query";
 
 export default function BlogsPage() {
@@ -255,7 +256,7 @@ export default function BlogsPage() {
                         alt={blog.authorName}
                       />
                       <AvatarFallback className="bg-blue-100 text-blue-600 text-[10px] font-bold">
-                        {blog.authorName ? blog.authorName.charAt(0) : "T"}
+                        {getInitials(blog.authorName || "Tim Jazmedia")}
                       </AvatarFallback>
                     </Avatar>
                     <div>

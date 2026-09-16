@@ -1,6 +1,7 @@
 "use client";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getInitials } from "@/lib/utils/avatar";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
@@ -262,7 +263,7 @@ export default function Profile() {
         <div className="flex items-center gap-6">
           <Avatar className="h-24 w-24 border-2 border-slate-100 shadow-sm relative">
             <AvatarImage src={image} alt={name} />
-            <AvatarFallback>{name.charAt(0)}</AvatarFallback>
+            <AvatarFallback>{getInitials(name)}</AvatarFallback>
             {role === "mentor" && (
               <div className="absolute -bottom-1 -right-1 bg-amber-100 text-amber-600 rounded-full p-1 border-2 border-white shadow-sm">
                 <CheckCircle2 className="w-5 h-5 fill-amber-500 text-white" />

@@ -11,6 +11,7 @@ import Cropper from "react-easy-crop";
 import getCroppedImg from "@/lib/utils/cropImage";
 import { uploadProfilePicture } from "@/lib/actions/upload";
 import { unlinkInstagramAccount } from "@/lib/actions/auth-custom";
+import { getDirectMediaUrl } from "@/lib/utils/media";
 
 interface Skill {
   name: string;
@@ -26,8 +27,6 @@ export default function EditProfile() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [image, setImage] = useState("");
   const [bio, setBio] = useState("");
   const [role, setRole] = useState("member");
@@ -56,6 +55,11 @@ export default function EditProfile() {
           setRole(data.role || "member");
           setSkills(data.skills || []);
           setInstagramId(data.instagramId || null);
+          if (data.instagramId) {
+            localStorage.setItem("jazmedia_linked_instagram", "true");
+          } else {
+            localStorage.removeItem("jazmedia_linked_instagram");
+          }
         }
         setIsLoading(false);
       });
@@ -123,24 +127,11 @@ export default function EditProfile() {
   };
 
   const handleSave = async () => {
-    if (password && password !== confirmPassword) {
-      showAlert({
-        message: "Kata sandi dan konfirmasi sandi tidak cocok",
-        type: "error",
-      });
-      return;
-    }
-    if (password && password.length < 6) {
-      showAlert({ message: "Kata sandi minimal 6 karakter", type: "error" });
-      return;
-    }
-
     setIsSaving(true);
     const formData = new FormData();
     formData.append("name", name);
     formData.append("email", email);
     formData.append("username", username);
-    if (password) formData.append("password", password);
     formData.append("image", image);
     formData.append("bio", bio);
     formData.append("role", role);
@@ -205,19 +196,6 @@ export default function EditProfile() {
           />
         </div>
 
-        <div>
-          <label className="block text-xs font-bold text-slate-700 mb-2 px-2 uppercase tracking-wide">
-            Email
-          </label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            disabled={isSaving}
-            placeholder="Masukkan email"
-            className="w-full bg-white border border-slate-200 rounded-2xl p-4 text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-sm disabled:opacity-50"
-          />
-        </div>
 
         <div>
           <label className="block text-xs font-bold text-slate-700 mb-2 px-2 uppercase tracking-wide">
@@ -287,6 +265,7 @@ export default function EditProfile() {
                     const res = await unlinkInstagramAccount();
                     if (res.success) {
                       setInstagramId(null);
+                      localStorage.removeItem("jazmedia_linked_instagram");
                       showAlert({
                         message: "Tautan Instagram diputus",
                         type: "success",
@@ -322,7 +301,7 @@ export default function EditProfile() {
           <div className="flex gap-4 items-center">
             {image ? (
               <img
-                src={image}
+                src={getDirectMediaUrl(image, "image")}
                 alt="Preview"
                 className="w-16 h-16 rounded-full object-cover border-4 border-slate-100 flex-shrink-0 shadow-sm"
               />
@@ -362,59 +341,6 @@ export default function EditProfile() {
           ></textarea>
         </div>
 
-        <div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-2 px-2 uppercase tracking-wide">
-                Kata Sandi Baru
-              </label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                disabled={isSaving}
-                placeholder="Kosongkan jika tidak ingin mengubah"
-                className="w-full bg-white border border-slate-200 rounded-2xl p-4 text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-sm disabled:opacity-50"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-2 px-2 uppercase tracking-wide">
-                Konfirmasi
-              </label>
-              <input
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                disabled={isSaving}
-                placeholder="Ulangi kata sandi baru"
-                className="w-full bg-white border border-slate-200 rounded-2xl p-4 text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-sm disabled:opacity-50"
-              />
-            </div>
-          </div>
-          {password.length > 0 ? (
-            <div className="px-2 mt-2 space-y-1">
-              <p
-                className={`text-[10px] font-medium ${password.length >= 6 ? "text-green-500" : "text-red-500"}`}
-              >
-                {password.length >= 6
-                  ? "✓ Minimal 6 karakter"
-                  : "✗ Minimal 6 karakter"}
-              </p>
-              <p
-                className={`text-[10px] font-medium ${password === confirmPassword ? "text-green-500" : "text-red-500"}`}
-              >
-                {password === confirmPassword
-                  ? "✓ Konfirmasi sandi cocok"
-                  : "✗ Konfirmasi sandi belum cocok"}
-              </p>
-            </div>
-          ) : (
-            <p className="text-[10px] text-slate-400 mt-2 px-2 font-medium">
-              Biarkan kosong jika tidak ingin menambahkan atau mengubah sandi.
-            </p>
-          )}
-        </div>
 
         <div>
           <div className="flex justify-between items-center mb-2 px-2">

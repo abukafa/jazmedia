@@ -20,6 +20,7 @@ import { searchTasks, searchUsers, getMemberStreaks } from "@/lib/actions/explor
 import { getPublicProjects } from "@/lib/actions/project";
 import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getInitials } from "@/lib/utils/avatar";
 import { getDirectMediaUrl } from "@/lib/utils/media";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -268,7 +269,7 @@ export default function Explore() {
                         }
                       />
                       <AvatarFallback>
-                        {user.name?.substring(0, 2)}
+                        {getInitials(user.name)}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">

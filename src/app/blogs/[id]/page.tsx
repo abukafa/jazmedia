@@ -25,6 +25,7 @@ import {
 import { getDirectMediaUrl } from "@/lib/utils/media";
 import { useAlert } from "@/components/providers/AlertProvider";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getInitials } from "@/lib/utils/avatar";
 
 export default function BlogDetailPage() {
   const params = useParams();
@@ -221,7 +222,7 @@ export default function BlogDetailPage() {
             <Avatar className="w-9 h-9 border-2 border-white shadow-md shadow-blue-500/20 ring-1 ring-slate-100">
               <AvatarImage src={blog.authorAvatar} alt={blog.authorName} />
               <AvatarFallback className="bg-blue-600 text-white text-xs font-extrabold">
-                {blog.authorName ? blog.authorName.charAt(0) : "T"}
+                {getInitials(blog.authorName || "Tim Jazmedia")}
               </AvatarFallback>
             </Avatar>
             <div>
@@ -307,7 +308,7 @@ export default function BlogDetailPage() {
               <div className="w-9 h-9 rounded-full bg-slate-100 flex-shrink-0 overflow-hidden flex items-center justify-center text-slate-500 font-bold text-xs">
                 {comment.author.image ? (
                   <img
-                    src={comment.author.image}
+                    src={getDirectMediaUrl(comment.author.image, "image")}
                     alt={comment.author.name}
                     className="w-full h-full object-cover"
                   />
@@ -347,7 +348,7 @@ export default function BlogDetailPage() {
           <div className="w-9 h-9 rounded-full bg-blue-100 flex-shrink-0 flex items-center justify-center text-blue-700 font-bold text-xs overflow-hidden">
             {session?.user?.image ? (
               <img
-                src={session.user.image}
+                src={getDirectMediaUrl(session.user.image, "image")}
                 alt="User"
                 className="w-full h-full object-cover"
               />

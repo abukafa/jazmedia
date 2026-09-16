@@ -15,10 +15,20 @@ interface MediaCarouselProps {
 }
 
 export function MediaCarousel({ urls, mediaType, isFs = false, activeSlide, onActiveSlideChange }: MediaCarouselProps) {
+  const validUrls = (urls || []).filter(
+    (url) => typeof url === "string" && url.trim().length > 0,
+  );
+
+  if (validUrls.length === 0) {
+    return null;
+  }
+
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const scrollLeft = e.currentTarget.scrollLeft;
     const width = e.currentTarget.clientWidth;
-    onActiveSlideChange(Math.round(scrollLeft / width));
+    if (width > 0) {
+      onActiveSlideChange(Math.round(scrollLeft / width));
+    }
   };
 
   const renderMedia = (url: string, index: number) => {
@@ -39,16 +49,16 @@ export function MediaCarousel({ urls, mediaType, isFs = false, activeSlide, onAc
         className={`flex overflow-x-auto snap-x snap-mandatory scrollbar-hide w-full ${isFs ? 'h-full items-center' : 'h-auto items-center'}`}
         onScroll={handleScroll}
       >
-        {urls.map((url, index) => (
+        {validUrls.map((url, index) => (
           <div key={`slide-${index}`} className={`flex-none w-full snap-center relative ${isFs ? 'h-full flex items-center justify-center' : 'h-auto'}`}>
             {renderMedia(url, index)}
           </div>
         ))}
       </div>
 
-      {urls.length > 1 && (
+      {validUrls.length > 1 && (
         <div className={`absolute left-0 right-0 flex justify-center gap-1.5 z-20 pointer-events-none ${isFs ? 'bottom-6 gap-2' : 'bottom-3'}`}>
-          {urls.map((_, i) => (
+          {validUrls.map((_, i) => (
             <div 
               key={i} 
               className={`rounded-full transition-all duration-300 ${isFs ? 'w-2 h-2' : 'w-1.5 h-1.5'} ${

@@ -6,6 +6,7 @@ import { useAlert } from "@/components/providers/AlertProvider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Users, Folder, Grid3X3, ShieldAlert, FileText } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getInitials } from "@/lib/utils/avatar";
 import { getDirectMediaUrl } from "@/lib/utils/media";
 import {
   getAllUsers,
@@ -149,9 +150,9 @@ export default function AdminDashboard({ currentUserId }: AdminDashboardProps) {
             >
               <div className="flex items-center gap-3">
                 <img
-                  src={user.image || "/no-photo.png"}
+                  src={user.image ? getDirectMediaUrl(user.image, "image") : "/no-photo.png"}
                   alt={user.name}
-                  className="w-10 h-10 rounded-full bg-slate-100"
+                  className="w-10 h-10 rounded-full bg-slate-100 object-cover"
                 />
                 <div>
                   <p className="text-sm font-bold text-slate-900">
@@ -271,7 +272,7 @@ export default function AdminDashboard({ currentUserId }: AdminDashboardProps) {
                     <Avatar className="h-5 w-5 border-2 border-white shadow-sm relative z-20">
                       <AvatarImage src={task.author?.image} />
                       <AvatarFallback className="text-[8px] bg-blue-100 text-blue-700">
-                        {task.author?.name?.charAt(0)}
+                        {getInitials(task.author?.name)}
                       </AvatarFallback>
                     </Avatar>
 
@@ -286,7 +287,7 @@ export default function AdminDashboard({ currentUserId }: AdminDashboardProps) {
                             >
                               <AvatarImage src={collab.image} />
                               <AvatarFallback className="text-[8px] bg-slate-100 text-slate-600">
-                                {collab.name?.charAt(0)}
+                                {getInitials(collab.name)}
                               </AvatarFallback>
                             </Avatar>
                           ))}

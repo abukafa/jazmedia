@@ -168,16 +168,17 @@ export default function EditProfile() {
 
   const handleSave = async () => {
     setIsSaving(true);
-    const formData = new FormData();
-    formData.append("name", name);
-    formData.append("email", email);
-    formData.append("username", username);
-    formData.append("image", image);
-    formData.append("bio", bio);
-    formData.append("role", role);
-    formData.append("skills", JSON.stringify(skills));
+    const payload = {
+      name,
+      email,
+      username,
+      image,
+      bio,
+      role,
+      skills,
+    };
 
-    const res = await updateUserProfile(formData);
+    const res = await updateUserProfile(payload);
     if (res.success) {
       // Refresh session if profile fields change
       await update({ name, role, email, username, image });

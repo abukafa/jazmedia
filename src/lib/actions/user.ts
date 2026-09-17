@@ -12,9 +12,26 @@ export async function getUserProfile() {
   }
 }
 
-export async function updateUserProfile(formData: FormData) {
+export async function updateUserProfile(data: Record<string, any> | FormData) {
   try {
-    const res = await apiClient.put("/media/profile", formData);
+    let payload: Record<string, any> = {};
+    if (typeof FormData !== "undefined" && data instanceof FormData) {
+      data.forEach((value, key) => {
+        if (key === "skills" && typeof value === "string") {
+          try {
+            payload[key] = JSON.parse(value);
+          } catch {
+            payload[key] = value;
+          }
+        } else {
+          payload[key] = value;
+        }
+      });
+    } else {
+      payload = data;
+    }
+
+    const res = await apiClient.put("/media/profile", payload);
     revalidatePath("/profile");
     return { success: true, ...res };
   } catch (error: any) {

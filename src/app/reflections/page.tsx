@@ -38,7 +38,8 @@ import { getMetricColor } from "@/lib/utils/metric-color";
 export default function ReflectionsFeedPage() {
   const { data: session } = useSession();
   const { showAlert } = useAlert();
-  const isAdmin = (session?.user as any)?.role === "admin";
+  const userRole = ((session?.user as any)?.role || "").toLowerCase();
+  const isAdmin = userRole === "admin" || userRole === "mentor";
 
   const [activeTab, setActiveTab] = useState<"all" | "mine">("all");
   const [reflections, setReflections] = useState<ReflectionItem[]>([]);

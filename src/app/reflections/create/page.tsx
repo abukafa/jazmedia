@@ -35,7 +35,8 @@ export default function CreateReflectionPage() {
   const { showAlert } = useAlert();
   const { data: session, status } = useSession();
 
-  const isAdmin = (session?.user as any)?.role === "admin";
+  const userRole = ((session?.user as any)?.role || "").toLowerCase();
+  const isAdmin = userRole === "admin" || userRole === "mentor";
   const [students, setStudents] = useState<StudentSelectItem[]>([]);
   const [selectedStudentId, setSelectedStudentId] = useState<number | null>(null);
   const [isLoadingStudents, setIsLoadingStudents] = useState(false);

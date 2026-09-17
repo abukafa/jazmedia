@@ -237,8 +237,8 @@ export default function CreateReflectionPage() {
               </span>
             </div>
             <p className="text-[11px] text-slate-500">
-              Refleksi atas nama siswa. Jika tidak dipilih akan disimpan untuk
-              akun Anda sendiri.
+              Refleksi atas nama siswa. Jika tidak dipilih akan disimpan a/n
+              admin.
             </p>
             {isLoadingStudents ? (
               <div className="text-xs text-slate-400 py-2">
@@ -254,11 +254,10 @@ export default function CreateReflectionPage() {
                 }
                 className="w-full h-11 px-3 rounded-xl bg-slate-50/70 border border-slate-200 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition"
               >
-                <option value="">-- Diri Sendiri (Default) --</option>
+                <option value="">-- Admin (Default) --</option>
                 {students.map((st) => (
                   <option key={st.id} value={st.id}>
-                    {st.name} {st.nickname ? `(${st.nickname})` : ""}{" "}
-                    {st.nis ? `[NIS: ${st.nis}]` : ""}
+                    {st.name}
                   </option>
                 ))}
               </select>

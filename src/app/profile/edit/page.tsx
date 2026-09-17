@@ -53,7 +53,47 @@ export default function EditProfile() {
           setImage(data.image || "");
           setBio(data.bio || "");
           setRole(data.role || "member");
-          setSkills(data.skills || []);
+          let loadedSkills: Skill[] = [];
+          const rawSkills = data.skills;
+          if (Array.isArray(rawSkills)) {
+            loadedSkills = rawSkills.map((s: any) =>
+              typeof s === "string"
+                ? { name: s, icon: "Code", percentage: 100 }
+                : {
+                    name: s?.name || "",
+                    icon: s?.icon || "Code",
+                    percentage: typeof s?.percentage === "number" ? s.percentage : 100,
+                  }
+            );
+          } else if (typeof rawSkills === "string") {
+            try {
+              const parsed = JSON.parse(rawSkills);
+              if (Array.isArray(parsed)) {
+                loadedSkills = parsed.map((s: any) =>
+                  typeof s === "string"
+                    ? { name: s, icon: "Code", percentage: 100 }
+                    : {
+                        name: s?.name || "",
+                        icon: s?.icon || "Code",
+                        percentage: typeof s?.percentage === "number" ? s.percentage : 100,
+                      }
+                );
+              } else {
+                loadedSkills = rawSkills
+                  .split(",")
+                  .map((s: string) => s.trim())
+                  .filter(Boolean)
+                  .map((s: string) => ({ name: s, icon: "Code", percentage: 100 }));
+              }
+            } catch {
+              loadedSkills = rawSkills
+                .split(",")
+                .map((s: string) => s.trim())
+                .filter(Boolean)
+                .map((s: string) => ({ name: s, icon: "Code", percentage: 100 }));
+            }
+          }
+          setSkills(loadedSkills);
           setInstagramId(data.instagramId || null);
           if (data.instagramId) {
             localStorage.setItem("jazmedia_linked_instagram", "true");

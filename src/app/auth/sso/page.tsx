@@ -12,7 +12,9 @@ function SsoCallbackContent() {
   const ticket = searchParams.get("ticket");
   const code = searchParams.get("code");
   const state = searchParams.get("state");
-  const [statusText, setStatusText] = useState("Memvalidasi sesi JazAcademy...");
+  const [statusText, setStatusText] = useState(
+    "Memvalidasi sesi JazAcademy...",
+  );
   const [hasError, setHasError] = useState(false);
   const [isLocalhost, setIsLocalhost] = useState(false);
   const { status } = useSession();
@@ -21,7 +23,10 @@ function SsoCallbackContent() {
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      setIsLocalhost(window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
+      setIsLocalhost(
+        window.location.hostname === "localhost" ||
+          window.location.hostname === "127.0.0.1",
+      );
     }
   }, []);
 
@@ -32,7 +37,9 @@ function SsoCallbackContent() {
     // 1. If OAuth authorization code was received at /auth/sso, forward to NextAuth callback
     if (code) {
       executed.current = true;
-      setStatusText("Menerima kode otorisasi JazAcademy, menyelesaikan login...");
+      setStatusText(
+        "Menerima kode otorisasi JazAcademy, menyelesaikan login...",
+      );
       const callbackUrl = `/api/auth/callback/jazacademy?code=${encodeURIComponent(code)}${state ? `&state=${encodeURIComponent(state)}` : ""}`;
       window.location.href = callbackUrl;
       return;
@@ -40,7 +47,9 @@ function SsoCallbackContent() {
 
     // 2. If no ticket or code is found
     if (!ticket) {
-      setStatusText("Tiket otentikasi tidak ditemukan. Mengalihkan ke halaman login...");
+      setStatusText(
+        "Tiket otentikasi tidak ditemukan. Mengalihkan ke halaman login...",
+      );
       setTimeout(() => router.push("/login"), 1500);
       return;
     }
@@ -50,7 +59,7 @@ function SsoCallbackContent() {
     // 3. Process SSO ticket exchange
     async function processSso() {
       try {
-        setStatusText("Menghubungkan akun JazAcademy...");
+        setStatusText("Menghubungkan...");
         const result = await signIn("jazacademy-sso", {
           redirect: false,
           ticket,
@@ -66,7 +75,8 @@ function SsoCallbackContent() {
         } else {
           setStatusText("Login berhasil! Mengalihkan ke beranda...");
           showAlert({
-            message: "Selamat datang kembali! Anda berhasil masuk melalui SSO JazAcademy.",
+            message:
+              "Selamat datang kembali! Anda berhasil masuk melalui SSO JazAcademy.",
             type: "success",
           });
           router.push("/");
@@ -104,7 +114,8 @@ function SsoCallbackContent() {
           <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-left text-xs text-amber-700 dark:text-amber-300 space-y-1">
             <p className="font-semibold">Beralih dari Vercel?</p>
             <p>
-              Jika Anda sedang menguji coba di Vercel, Anda dapat membuka tautan ini di domain Vercel:
+              Jika Anda sedang menguji coba di Vercel, Anda dapat membuka tautan
+              ini di domain Vercel:
             </p>
             <a
               href={`https://jazmedia-02.vercel.app/auth/sso?ticket=${ticket}`}

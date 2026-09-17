@@ -27,6 +27,19 @@ export const getPreviewUrl = (url: string) => {
 
 export const getDirectMediaUrl = (url: string, mediaType: "image" | "video" | "document" = "image") => {
   if (!url || typeof url !== 'string' || !url.trim()) return '';
+
+  const backendBase = (process.env.NEXT_PUBLIC_JAZACADEMY_URL || "https://jazacademy.id").replace(/\/$/, '');
+
+  // Fix relative storage path
+  if (url.startsWith('/storage/')) {
+    return `${backendBase}${url}`;
+  }
+
+  // Fix invalid http://localhost/storage/ (port 80) or localhost on remote setup
+  if (/^https?:\/\/localhost(?::\d+)?\/storage\//.test(url)) {
+    return url.replace(/^https?:\/\/localhost(?::\d+)?\/storage\//, `${backendBase}/storage/`);
+  }
+
   const id = extractDriveId(url);
   if (id) {
     // Route image and video through internal stream endpoint with byte-range and caching support

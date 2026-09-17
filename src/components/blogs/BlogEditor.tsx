@@ -25,6 +25,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { uploadToGDrive } from "@/lib/actions/upload";
+import { useAlert } from "@/components/providers/AlertProvider";
 
 interface BlogEditorProps {
   value: string;
@@ -37,6 +38,7 @@ export default function BlogEditor({
   onChange,
   placeholder = "Tulis cerita hebatmu di sini...",
 }: BlogEditorProps) {
+  const { showAlert } = useAlert();
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -109,7 +111,11 @@ export default function BlogEditor({
         editor.chain().focus().setImage({ src: url }).run();
       }
     } catch (err) {
-      alert("Gagal mengunggah gambar ke Google Drive");
+      showAlert({
+        title: "Gagal Mengunggah",
+        message: "Gagal mengunggah gambar ke Google Drive",
+        type: "error",
+      });
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";

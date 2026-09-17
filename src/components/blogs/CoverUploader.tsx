@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { uploadToGDrive } from "@/lib/actions/upload";
 import { getDirectMediaUrl } from "@/lib/utils/media";
+import { useAlert } from "@/components/providers/AlertProvider";
 
 interface CoverUploaderProps {
   value: string;
@@ -18,6 +19,7 @@ interface CoverUploaderProps {
 }
 
 export default function CoverUploader({ value, onChange }: CoverUploaderProps) {
+  const { showAlert } = useAlert();
   const [isUploading, setIsUploading] = useState(false);
   const [isUrlMode, setIsUrlMode] = useState(false);
   const [urlInput, setUrlInput] = useState("");
@@ -34,7 +36,11 @@ export default function CoverUploader({ value, onChange }: CoverUploaderProps) {
         onChange(url);
       }
     } catch (err) {
-      alert("Gagal mengunggah gambar ke Google Drive.");
+      showAlert({
+        title: "Gagal Mengunggah",
+        message: "Gagal mengunggah gambar ke Google Drive.",
+        type: "error",
+      });
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -53,7 +59,11 @@ export default function CoverUploader({ value, onChange }: CoverUploaderProps) {
         onChange(url);
       }
     } catch (err) {
-      alert("Gagal mengunggah gambar ke Google Drive.");
+      showAlert({
+        title: "Gagal Mengunggah",
+        message: "Gagal mengunggah gambar ke Google Drive.",
+        type: "error",
+      });
     } finally {
       setIsUploading(false);
     }

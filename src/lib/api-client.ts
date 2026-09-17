@@ -54,6 +54,11 @@ export async function apiFetch<T = any>(
     }
   }
 
+  // Attach platform API Key if available (for restricted API endpoints)
+  if (!headers["X-API-Key"] && process.env.JAZACADEMY_API_KEY) {
+    headers["X-API-Key"] = process.env.JAZACADEMY_API_KEY;
+  }
+
   // If body is not FormData, ensure Content-Type is application/json
   if (options.body && !(options.body instanceof FormData) && !headers["Content-Type"]) {
     headers["Content-Type"] = "application/json";
@@ -74,6 +79,13 @@ export async function apiFetch<T = any>(
   }
 
   if (!response.ok) {
+    if (response.status === 401) {
+      console.warn(
+        `[apiFetch 401] Unauthorized on ${options.method || "GET"} ${url}.` +
+        ` Token attached: ${headers["Authorization"] ? headers["Authorization"].substring(0, 15) + "..." : "NONE"}.` +
+        ` Catatan: Jika berganti konfigurasi target backend (local <-> hosting), sesi lama harus Logout dan Login ulang.`
+      );
+    }
     const errorMessage =
       (data && typeof data === "object" && (data.error || data.message)) ||
       `API request failed with status ${response.status}`;

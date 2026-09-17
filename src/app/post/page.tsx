@@ -240,7 +240,7 @@ export default function PostTask() {
               <div>
                 <h3 className="font-bold text-slate-900">Gambar / Karusel</h3>
                 <p className="text-xs text-slate-500">
-                  Unggah satu atau beberapa gambar sekaligus
+                  Unggah satu atau beberapa gambar
                 </p>
               </div>
             </CardContent>
@@ -274,7 +274,7 @@ export default function PostTask() {
               <div>
                 <h3 className="font-bold text-slate-900">Dokumen PDF</h3>
                 <p className="text-xs text-slate-500">
-                  Unggah laporan, presentasi, atau dokumen PDF
+                  Unggah laporan, presentasi, dokumen PDF
                 </p>
               </div>
             </CardContent>
@@ -298,9 +298,8 @@ export default function PostTask() {
                   </span>
                 </div>
                 <p className="text-xs text-slate-600 leading-relaxed mb-4">
-                  Tinjau performa belajar mingguan Anda meliputi capaian,
-                  kendala, pelajaran yang dipetik, dan fokus prioritas ke depan.
-                  Dilengkapi metrik slider dan grafik progres mingguan.
+                  Tinjau performa belajar meliputi capaian, kendala, pelajaran,
+                  dan fokus prioritas.
                 </p>
                 <div className="flex flex-wrap items-center gap-2.5">
                   <Link
@@ -308,14 +307,14 @@ export default function PostTask() {
                     className="inline-flex items-center justify-center px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition shadow-sm hover:shadow"
                   >
                     <PenLine className="w-3.5 h-3.5 mr-1.5" />
-                    Isi Form Refleksi
+                    Isi Refleksi
                   </Link>
                   <Link
                     href="/reflections"
                     className="inline-flex items-center justify-center px-4 py-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold border border-slate-200 transition shadow-sm"
                   >
                     <TrendingUp className="w-3.5 h-3.5 mr-1.5 text-indigo-600" />
-                    Lihat Feed Refleksi
+                    Feed
                   </Link>
                 </div>
               </div>

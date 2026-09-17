@@ -59,19 +59,22 @@ import { ProjectManager } from "@/components/profile/ProjectManager";
 import { useMemo } from "react";
 
 const CircularProgress = ({
-  percentage,
+  percentage = 100,
   icon,
   name,
 }: {
-  percentage: number;
-  icon: SkillIconName;
+  percentage?: number;
+  icon?: SkillIconName;
   name: string;
 }) => {
   const radius = 26;
   const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset = circumference - (percentage / 100) * circumference;
+  const safePercent = typeof percentage === "number" && !isNaN(percentage)
+    ? Math.min(100, Math.max(0, percentage))
+    : 100;
+  const strokeDashoffset = circumference - (safePercent / 100) * circumference;
 
-  const IconComponent = SKILL_ICONS[icon] || SKILL_ICONS.Code;
+  const IconComponent = (icon && SKILL_ICONS[icon]) ? SKILL_ICONS[icon] : SKILL_ICONS.Code;
 
   return (
     <div className="flex flex-col items-center gap-1.5 min-w-[72px]">
@@ -253,7 +256,22 @@ export default function Profile() {
   const bio = dbUser
     ? dbUser.bio
     : "Halo! Saya menggunakan Jazmedia untuk membangun portofolio dan berbagi perjalanan belajar saya.";
-  const skills = dbUser?.skills || [];
+  const rawSkills = dbUser?.skills || sessionUser?.skills || [];
+  let skills: any[] = [];
+  if (Array.isArray(rawSkills)) {
+    skills = rawSkills;
+  } else if (typeof rawSkills === "string") {
+    try {
+      const parsed = JSON.parse(rawSkills);
+      if (Array.isArray(parsed)) {
+        skills = parsed;
+      } else {
+        skills = rawSkills.split(",").map((s: string) => s.trim()).filter(Boolean);
+      }
+    } catch {
+      skills = rawSkills.split(",").map((s: string) => s.trim()).filter(Boolean);
+    }
+  }
   const role = dbUser?.role || sessionUser?.role || "member";
 
   return (
@@ -360,14 +378,22 @@ export default function Profile() {
         {skills && skills.length > 0 && (
           <div className="mt-6">
             <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide px-1">
-              {skills.map((skill: any, index: number) => (
-                <CircularProgress
-                  key={index}
-                  name={skill.name}
-                  icon={skill.icon}
-                  percentage={skill.percentage}
-                />
-              ))}
+              {skills.map((skill: any, index: number) => {
+                const skillName = typeof skill === "string" ? skill : (skill?.name || "Skill");
+                const skillIcon = typeof skill === "object" ? skill?.icon : undefined;
+                const skillPercentage = typeof skill === "object" && typeof skill?.percentage === "number"
+                  ? skill.percentage
+                  : 100;
+
+                return (
+                  <CircularProgress
+                    key={index}
+                    name={skillName}
+                    icon={skillIcon}
+                    percentage={skillPercentage}
+                  />
+                );
+              })}
             </div>
           </div>
         )}

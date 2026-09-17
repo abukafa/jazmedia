@@ -12,7 +12,7 @@ function CallbackContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const code = searchParams.get("code");
-  const [statusText, setStatusText] = useState("Menghubungkan Instagram...");
+  const [statusText, setStatusText] = useState("Menghubungkan...");
   const { status, data: session } = useSession();
   const { showAlert } = useAlert();
   const executed = useRef(false);
@@ -34,20 +34,33 @@ function CallbackContent() {
       } else if (res.success) {
         if (status === "authenticated") {
           setStatusText("Menautkan akun Instagram ke profil Anda...");
-          const linkRes = await linkInstagramAccount(res.instagramId, res.name, res.username, res.image, res.bio);
+          const linkRes = await linkInstagramAccount(
+            res.instagramId,
+            res.name,
+            res.username,
+            res.image,
+            res.bio,
+          );
           if (linkRes.success) {
             localStorage.setItem("jazmedia_linked_instagram", "true");
-            showAlert({ message: "Instagram berhasil ditautkan!", type: "success" });
+            showAlert({
+              message: "Instagram berhasil ditautkan!",
+              type: "success",
+            });
             router.push("/profile/edit");
           } else {
-            showAlert({ message: "Gagal menautkan Instagram: " + linkRes.error, type: "error" });
+            showAlert({
+              message: "Gagal menautkan Instagram: " + linkRes.error,
+              type: "error",
+            });
             router.push("/profile/edit");
           }
         } else {
           if (!res.isReturningUser) {
             setStatusText("Akun Instagram belum tertaut.");
             showAlert({
-              message: "Akun Instagram belum ditautkan ke akun JazAcademy. Silakan masuk menggunakan Login jazacademy.id terlebih dahulu, lalu tautkan di menu profil.",
+              message:
+                "Akun Instagram belum ditautkan ke akun JazAcademy. Silakan masuk menggunakan Login jazacademy.id terlebih dahulu, lalu tautkan di menu profil.",
               type: "error",
             });
             setTimeout(() => router.push("/login"), 3000);
@@ -90,12 +103,16 @@ function CallbackContent() {
 
 export default function InstagramCallback() {
   return (
-    <Suspense fallback={
-      <div className="min-h-[70vh] bg-white flex flex-col items-center justify-center p-8 text-center pt-32">
-        <Loader2 className="w-10 h-10 text-pink-600 animate-spin mb-4" />
-        <p className="text-sm font-medium text-slate-500">Memuat rute callback...</p>
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="min-h-[70vh] bg-white flex flex-col items-center justify-center p-8 text-center pt-32">
+          <Loader2 className="w-10 h-10 text-pink-600 animate-spin mb-4" />
+          <p className="text-sm font-medium text-slate-500">
+            Memuat rute callback...
+          </p>
+        </div>
+      }
+    >
       <CallbackContent />
     </Suspense>
   );

@@ -246,7 +246,11 @@ export default function BlogDetailPage() {
                 });
               } else {
                 navigator.clipboard.writeText(window.location.href);
-                alert("Tautan artikel disalin!");
+                showAlert({
+                  title: "Tersalin",
+                  message: "Tautan artikel berhasil disalin!",
+                  type: "success",
+                });
               }
             }}
             className="p-2 bg-white hover:bg-slate-50 text-slate-600 rounded-xl shadow-sm border border-slate-200/60 transition-colors cursor-pointer"

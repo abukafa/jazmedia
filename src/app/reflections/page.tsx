@@ -20,28 +20,73 @@ import {
   BarChart3,
   ArrowRight,
   Filter,
+  Trash2,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useAlert } from "@/components/providers/AlertProvider";
 import { getInitials } from "@/lib/utils/avatar";
 import {
   getReflections,
   getMyReflections,
+  deleteReflection,
   ReflectionItem,
 } from "@/lib/actions/reflection";
 import { getMetricColor } from "@/lib/utils/metric-color";
 
 export default function ReflectionsFeedPage() {
   const { data: session } = useSession();
+  const { showAlert, showConfirm } = useAlert();
+  const userRole = ((session?.user as any)?.role || "").toLowerCase();
+  const isAdmin = userRole === "admin" || userRole === "mentor";
+
   const [activeTab, setActiveTab] = useState<"all" | "mine">("all");
   const [reflections, setReflections] = useState<ReflectionItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [expandedDetails, setExpandedDetails] = useState<
     Record<string, boolean>
   >({});
+
+  const handleDelete = (id: string | number) => {
+    showConfirm({
+      title: "Konfirmasi Hapus",
+      message: "Apakah Anda yakin ingin menghapus data refleksi ini?",
+      type: "warning",
+      onConfirm: async () => {
+        const idStr = String(id);
+        setDeletingId(idStr);
+        try {
+          const res = await deleteReflection(id);
+          if (res.success) {
+            setReflections((prev) => prev.filter((r) => r.id !== idStr));
+            showAlert({
+              title: "Berhasil",
+              message: "Data refleksi berhasil dihapus.",
+              type: "success",
+            });
+          } else {
+            showAlert({
+              title: "Gagal",
+              message: res.error || "Gagal menghapus refleksi.",
+              type: "error",
+            });
+          }
+        } catch (err: any) {
+          showAlert({
+            title: "Error",
+            message: err.message || "Terjadi kesalahan saat menghapus refleksi.",
+            type: "error",
+          });
+        } finally {
+          setDeletingId(null);
+        }
+      },
+    });
+  };
 
   const loadData = async (tab: "all" | "mine", pageNum = 1, append = false) => {
     setIsLoading(true);
@@ -130,7 +175,7 @@ export default function ReflectionsFeedPage() {
   return (
     <div className="pt-6 pb-16 px-4 max-w-2xl mx-auto bg-slate-50 min-h-screen">
       {/* Header Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+      <div className="flex flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-black text-slate-900 tracking-tight">
@@ -147,7 +192,7 @@ export default function ReflectionsFeedPage() {
           className="inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold shadow-md shadow-indigo-200 transition-all self-start sm:self-auto"
         >
           <Plus className="w-4 h-4" />
-          <span>Tulis Refleksi</span>
+          <span>Tulis</span>
         </Link>
       </div>
 
@@ -287,6 +332,22 @@ export default function ReflectionsFeedPage() {
                       </div>
                     </div>
                   </div>
+
+                  {/* Tombol Hapus (Khusus Admin) */}
+                  {isAdmin && (
+                    <button
+                      onClick={() => handleDelete(ref.id)}
+                      disabled={deletingId === ref.id}
+                      title="Hapus Refleksi (Admin)"
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors disabled:opacity-50"
+                    >
+                      {deletingId === ref.id ? (
+                        <span className="inline-block w-4 h-4 border-2 border-rose-500 border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <Trash2 className="w-4 h-4" />
+                      )}
+                    </button>
+                  )}
                 </div>
 
                 {/* 1 Paragraf Narasi Rapi */}

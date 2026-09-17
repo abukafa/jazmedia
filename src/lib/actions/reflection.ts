@@ -16,6 +16,7 @@ export interface ReflectionAuthor {
   username: string;
   image: string;
   role: string;
+  type?: string;
 }
 
 export interface ReflectionItem {
@@ -38,8 +39,19 @@ export interface ReflectionItem {
   createdAt: string | null;
 }
 
+export interface StudentSelectItem {
+  id: number;
+  name: string;
+  nickname: string;
+  nis: string | null;
+  role: string | null;
+  image: string | null;
+  user_id: number | null;
+}
+
 export interface ReflectionPayload {
   date: string;
+  admin_student_id?: number | string | null;
   achievement: {
     nilai: number;
     deskripsi: string;
@@ -145,6 +157,44 @@ export async function submitReflection(payload: ReflectionPayload) {
     return {
       success: false,
       error: error.message || "Gagal menyimpan refleksi.",
+    };
+  }
+}
+
+export async function deleteReflection(id: string | number) {
+  try {
+    const res = await apiClient.delete(`/media/reflections/${id}`);
+
+    revalidatePath("/reflections");
+    revalidatePath("/post");
+    revalidatePath("/profile");
+
+    return {
+      success: true,
+      message: res.message || "Refleksi berhasil dihapus.",
+    };
+  } catch (error: any) {
+    console.error("Error deleting reflection:", error);
+    return {
+      success: false,
+      error: error.message || "Gagal menghapus refleksi.",
+    };
+  }
+}
+
+export async function getStudentsForSelect() {
+  try {
+    const res = await apiClient.get("/media/students-select");
+    return {
+      success: true,
+      data: (res.data || []) as StudentSelectItem[],
+    };
+  } catch (error: any) {
+    console.error("Error fetching students for select:", error);
+    return {
+      success: false,
+      data: [] as StudentSelectItem[],
+      error: error.message || "Gagal memuat daftar siswa.",
     };
   }
 }

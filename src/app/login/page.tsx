@@ -107,8 +107,12 @@ export default function LoginPage() {
               boxShadow: "0 3px 12px rgba(115, 103, 240, 0.35)",
             }}
           >
-            <JazLogoIcon className={`w-5 h-5 flex-shrink-0 transition-transform ${isLoggingIn ? "animate-spin" : "group-hover:scale-105"}`} />
-            <span>{isLoggingIn ? "Menghubungkan ke JazAcademy..." : "Login jazacademy.id"}</span>
+            <JazLogoIcon
+              className={`w-5 h-5 flex-shrink-0 transition-transform ${isLoggingIn ? "animate-spin" : "group-hover:scale-105"}`}
+            />
+            <span>
+              {isLoggingIn ? "Menghubungkan..." : "Login jazacademy.id"}
+            </span>
           </button>
 
           {/* Instagram Button - Only displayed if account is already linked */}

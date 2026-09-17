@@ -137,36 +137,56 @@ export default function PublicProfilePage() {
             )}
 
             {/* Skills */}
-            {profile.skills && profile.skills.length > 0 && (
-              <div className="w-full mt-6 text-left">
-                <h3 className="text-xs font-bold text-slate-900 mb-3 uppercase tracking-wider">
-                  Keahlian
-                </h3>
-                <div className="grid grid-cols-2 gap-2">
-                  {profile.skills.map((skill: any, idx: number) => (
-                    <div
-                      key={idx}
-                      className="bg-slate-50 rounded-xl p-3 border border-slate-100"
-                    >
-                      <div className="flex justify-between gap-2 mb-2">
-                        <span className="text-xs font-bold text-slate-700 truncate">
-                          {skill.name}
-                        </span>
-                        <span className="text-xs font-bold text-slate-500">
-                          {skill.percentage}%
-                        </span>
-                      </div>
-                      <div className="h-1.5 w-full bg-slate-200 rounded-full overflow-hidden">
+            {(() => {
+              const raw = profile.skills;
+              if (!raw) return null;
+              let list: any[] = [];
+              if (Array.isArray(raw)) list = raw;
+              else if (typeof raw === "string") {
+                try {
+                  const parsed = JSON.parse(raw);
+                  list = Array.isArray(parsed) ? parsed : raw.split(",").map((s: string) => s.trim()).filter(Boolean);
+                } catch {
+                  list = raw.split(",").map((s: string) => s.trim()).filter(Boolean);
+                }
+              }
+              if (list.length === 0) return null;
+
+              return (
+                <div className="w-full mt-6 text-left">
+                  <h3 className="text-xs font-bold text-slate-900 mb-3 uppercase tracking-wider">
+                    Keahlian
+                  </h3>
+                  <div className="grid grid-cols-2 gap-2">
+                    {list.map((skill: any, idx: number) => {
+                      const skillName = typeof skill === "string" ? skill : (skill?.name || "Skill");
+                      const pct = typeof skill === "object" && typeof skill?.percentage === "number" ? skill.percentage : 100;
+                      return (
                         <div
-                          className={`h-full ${skill.percentage >= 90 ? "bg-blue-500" : skill.percentage >= 70 ? "bg-green-500" : "bg-amber-300"} rounded-full`}
-                          style={{ width: `${skill.percentage}%` }}
-                        />
-                      </div>
-                    </div>
-                  ))}
+                          key={idx}
+                          className="bg-slate-50 rounded-xl p-3 border border-slate-100"
+                        >
+                          <div className="flex justify-between gap-2 mb-2">
+                            <span className="text-xs font-bold text-slate-700 truncate">
+                              {skillName}
+                            </span>
+                            <span className="text-xs font-bold text-slate-500">
+                              {pct}%
+                            </span>
+                          </div>
+                          <div className="h-1.5 w-full bg-slate-200 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full ${pct >= 90 ? "bg-blue-500" : pct >= 70 ? "bg-green-500" : "bg-amber-300"} rounded-full`}
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
           </div>
         </div>
 

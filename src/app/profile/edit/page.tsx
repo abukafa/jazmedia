@@ -22,7 +22,7 @@ interface Skill {
 export default function EditProfile() {
   const router = useRouter();
   const { data: session, update } = useSession();
-  const { showAlert } = useAlert();
+  const { showAlert, showConfirm } = useAlert();
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -53,7 +53,47 @@ export default function EditProfile() {
           setImage(data.image || "");
           setBio(data.bio || "");
           setRole(data.role || "member");
-          setSkills(data.skills || []);
+          let loadedSkills: Skill[] = [];
+          const rawSkills = data.skills;
+          if (Array.isArray(rawSkills)) {
+            loadedSkills = rawSkills.map((s: any) =>
+              typeof s === "string"
+                ? { name: s, icon: "Code", percentage: 100 }
+                : {
+                    name: s?.name || "",
+                    icon: s?.icon || "Code",
+                    percentage: typeof s?.percentage === "number" ? s.percentage : 100,
+                  }
+            );
+          } else if (typeof rawSkills === "string") {
+            try {
+              const parsed = JSON.parse(rawSkills);
+              if (Array.isArray(parsed)) {
+                loadedSkills = parsed.map((s: any) =>
+                  typeof s === "string"
+                    ? { name: s, icon: "Code", percentage: 100 }
+                    : {
+                        name: s?.name || "",
+                        icon: s?.icon || "Code",
+                        percentage: typeof s?.percentage === "number" ? s.percentage : 100,
+                      }
+                );
+              } else {
+                loadedSkills = rawSkills
+                  .split(",")
+                  .map((s: string) => s.trim())
+                  .filter(Boolean)
+                  .map((s: string) => ({ name: s, icon: "Code", percentage: 100 }));
+              }
+            } catch {
+              loadedSkills = rawSkills
+                .split(",")
+                .map((s: string) => s.trim())
+                .filter(Boolean)
+                .map((s: string) => ({ name: s, icon: "Code", percentage: 100 }));
+            }
+          }
+          setSkills(loadedSkills);
           setInstagramId(data.instagramId || null);
           if (data.instagramId) {
             localStorage.setItem("jazmedia_linked_instagram", "true");
@@ -128,16 +168,17 @@ export default function EditProfile() {
 
   const handleSave = async () => {
     setIsSaving(true);
-    const formData = new FormData();
-    formData.append("name", name);
-    formData.append("email", email);
-    formData.append("username", username);
-    formData.append("image", image);
-    formData.append("bio", bio);
-    formData.append("role", role);
-    formData.append("skills", JSON.stringify(skills));
+    const payload = {
+      name,
+      email,
+      username,
+      image,
+      bio,
+      role,
+      skills,
+    };
 
-    const res = await updateUserProfile(formData);
+    const res = await updateUserProfile(payload);
     if (res.success) {
       // Refresh session if profile fields change
       await update({ name, role, email, username, image });
@@ -255,33 +296,36 @@ export default function EditProfile() {
               <button
                 type="button"
                 disabled={isSaving}
-                onClick={async () => {
-                  if (
-                    confirm(
-                      "Apakah Anda yakin ingin memutuskan tautan Instagram?",
-                    )
-                  ) {
-                    setIsSaving(true);
-                    const res = await unlinkInstagramAccount();
-                    if (res.success) {
-                      setInstagramId(null);
-                      localStorage.removeItem("jazmedia_linked_instagram");
-                      showAlert({
-                        message: "Tautan Instagram diputus",
-                        type: "success",
-                      });
-                    } else {
-                      showAlert({
-                        message: "Gagal: " + res.error,
-                        type: "error",
-                      });
-                    }
-                    setIsSaving(false);
-                  }
+                onClick={() => {
+                  showConfirm({
+                    title: "Putus Tautan Instagram",
+                    message: "Apakah Anda yakin ingin memutuskan tautan Instagram?",
+                    type: "warning",
+                    onConfirm: async () => {
+                      setIsSaving(true);
+                      const res = await unlinkInstagramAccount();
+                      if (res.success) {
+                        setInstagramId(null);
+                        localStorage.removeItem("jazmedia_linked_instagram");
+                        showAlert({
+                          title: "Berhasil",
+                          message: "Tautan Instagram berhasil diputus",
+                          type: "success",
+                        });
+                      } else {
+                        showAlert({
+                          title: "Gagal",
+                          message: "Gagal: " + res.error,
+                          type: "error",
+                        });
+                      }
+                      setIsSaving(false);
+                    },
+                  });
                 }}
-                className="px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg text-xs font-bold transition-colors disabled:opacity-50"
+                className="px-3 py-1.5 bg-rose-50 text-rose-600 rounded-xl text-xs font-bold hover:bg-rose-100 transition-colors cursor-pointer border border-rose-200"
               >
-                Putuskan
+                Putus Tautan
               </button>
             ) : (
               <a

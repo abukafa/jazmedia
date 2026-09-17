@@ -37,7 +37,7 @@ import { getMetricColor } from "@/lib/utils/metric-color";
 
 export default function ReflectionsFeedPage() {
   const { data: session } = useSession();
-  const { showAlert } = useAlert();
+  const { showAlert, showConfirm } = useAlert();
   const userRole = ((session?.user as any)?.role || "").toLowerCase();
   const isAdmin = userRole === "admin" || userRole === "mentor";
 
@@ -51,35 +51,41 @@ export default function ReflectionsFeedPage() {
     Record<string, boolean>
   >({});
 
-  const handleDelete = async (id: string | number) => {
-    if (!window.confirm("Apakah Anda yakin ingin menghapus data refleksi ini?")) {
-      return;
-    }
-
-    const idStr = String(id);
-    setDeletingId(idStr);
-    try {
-      const res = await deleteReflection(id);
-      if (res.success) {
-        setReflections((prev) => prev.filter((r) => r.id !== idStr));
-        showAlert({
-          message: "Data refleksi berhasil dihapus.",
-          type: "success",
-        });
-      } else {
-        showAlert({
-          message: res.error || "Gagal menghapus refleksi.",
-          type: "error",
-        });
-      }
-    } catch (err: any) {
-      showAlert({
-        message: err.message || "Terjadi kesalahan saat menghapus refleksi.",
-        type: "error",
-      });
-    } finally {
-      setDeletingId(null);
-    }
+  const handleDelete = (id: string | number) => {
+    showConfirm({
+      title: "Konfirmasi Hapus",
+      message: "Apakah Anda yakin ingin menghapus data refleksi ini?",
+      type: "warning",
+      onConfirm: async () => {
+        const idStr = String(id);
+        setDeletingId(idStr);
+        try {
+          const res = await deleteReflection(id);
+          if (res.success) {
+            setReflections((prev) => prev.filter((r) => r.id !== idStr));
+            showAlert({
+              title: "Berhasil",
+              message: "Data refleksi berhasil dihapus.",
+              type: "success",
+            });
+          } else {
+            showAlert({
+              title: "Gagal",
+              message: res.error || "Gagal menghapus refleksi.",
+              type: "error",
+            });
+          }
+        } catch (err: any) {
+          showAlert({
+            title: "Error",
+            message: err.message || "Terjadi kesalahan saat menghapus refleksi.",
+            type: "error",
+          });
+        } finally {
+          setDeletingId(null);
+        }
+      },
+    });
   };
 
   const loadData = async (tab: "all" | "mine", pageNum = 1, append = false) => {

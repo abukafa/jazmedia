@@ -38,7 +38,9 @@ export default function CreateReflectionPage() {
   const userRole = ((session?.user as any)?.role || "").toLowerCase();
   const isAdmin = userRole === "admin" || userRole === "mentor";
   const [students, setStudents] = useState<StudentSelectItem[]>([]);
-  const [selectedStudentId, setSelectedStudentId] = useState<number | null>(null);
+  const [selectedStudentId, setSelectedStudentId] = useState<number | null>(
+    null,
+  );
   const [isLoadingStudents, setIsLoadingStudents] = useState(false);
 
   useEffect(() => {
@@ -161,7 +163,8 @@ export default function CreateReflectionPage() {
     try {
       const res = await submitReflection({
         date,
-        admin_student_id: isAdmin && selectedStudentId ? selectedStudentId : undefined,
+        admin_student_id:
+          isAdmin && selectedStudentId ? selectedStudentId : undefined,
         achievement: { nilai: achVal, deskripsi: achDesc },
         obstacles: { nilai: obsVal, deskripsi: obsDesc },
         lessons: { nilai: lesVal, deskripsi: lesDesc },
@@ -227,29 +230,35 @@ export default function CreateReflectionPage() {
             <div className="flex items-center justify-between">
               <label className="text-xs font-bold text-indigo-950 flex items-center gap-1.5">
                 <Users className="w-4 h-4 text-indigo-600" />
-                Target Siswa (Mode Admin)
+                Target Siswa
               </label>
               <span className="text-[10px] font-semibold text-indigo-600 bg-indigo-100/80 px-2.5 py-0.5 rounded-full">
                 Admin
               </span>
             </div>
             <p className="text-[11px] text-slate-500">
-              Pilih siswa untuk menginput refleksi atas nama siswa tersebut. Jika tidak dipilih, refleksi akan disimpan untuk akun Anda sendiri.
+              Refleksi atas nama siswa. Jika tidak dipilih akan disimpan untuk
+              akun Anda sendiri.
             </p>
             {isLoadingStudents ? (
-              <div className="text-xs text-slate-400 py-2">Memuat daftar siswa...</div>
+              <div className="text-xs text-slate-400 py-2">
+                Memuat daftar siswa...
+              </div>
             ) : (
               <select
                 value={selectedStudentId ?? ""}
                 onChange={(e) =>
-                  setSelectedStudentId(e.target.value ? Number(e.target.value) : null)
+                  setSelectedStudentId(
+                    e.target.value ? Number(e.target.value) : null,
+                  )
                 }
                 className="w-full h-11 px-3 rounded-xl bg-slate-50/70 border border-slate-200 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition"
               >
                 <option value="">-- Diri Sendiri (Default) --</option>
                 {students.map((st) => (
                   <option key={st.id} value={st.id}>
-                    {st.name} {st.nickname ? `(${st.nickname})` : ""} {st.nis ? `[NIS: ${st.nis}]` : ""}
+                    {st.name} {st.nickname ? `(${st.nickname})` : ""}{" "}
+                    {st.nis ? `[NIS: ${st.nis}]` : ""}
                   </option>
                 ))}
               </select>

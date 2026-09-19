@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getMemberStreaks } from "@/lib/actions/explore";
 import { motion } from "framer-motion";
-import { Flame } from "lucide-react";
+import { Flame, Sparkles, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
@@ -104,6 +104,10 @@ export default function WelcomeHeader() {
     }
   };
 
+  const hasAnyReflection = useMemo(() => {
+    return members.some((m: MemberStreakItem) => m.hasReflectionThisWeek);
+  }, [members]);
+
   const getRankRing = (member: MemberStreakItem) => {
     if (member.hasReflectionThisWeek) {
       return "bg-blue-600 p-[2.5px] shadow-sm"; // Biru jika ada refleksi pekan ini
@@ -125,6 +129,20 @@ export default function WelcomeHeader() {
           Let&apos;s make something amazing
         </p>
       </motion.div>
+
+      {/* Link to Reflections Feed if any reflection exists */}
+      {hasAnyReflection && (
+        <div className="flex items-center justify-end mt-4 -mb-3 px-0.5">
+          <Link
+            href="/reflections"
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors group select-none"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-blue-600 group-hover:scale-110 transition-transform" />
+            <span>Check Reflections Feed</span>
+            <ChevronRight className="w-3.5 h-3.5 opacity-70 group-hover:translate-x-0.5 transition-transform" />
+          </Link>
+        </div>
+      )}
 
       {/* Avatars Carousel / Row */}
       <div

@@ -230,7 +230,7 @@ export default function CreateReflectionPage() {
             <div className="flex items-center justify-between">
               <label className="text-xs font-bold text-indigo-950 flex items-center gap-1.5">
                 <Users className="w-4 h-4 text-indigo-600" />
-                Target Siswa
+                Target Student
               </label>
               <span className="text-[10px] font-semibold text-indigo-600 bg-indigo-100/80 px-2.5 py-0.5 rounded-full">
                 Admin

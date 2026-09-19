@@ -132,10 +132,10 @@ export default function WelcomeHeader() {
 
       {/* Link to Reflections Feed if any reflection exists */}
       {hasAnyReflection && (
-        <div className="flex items-center justify-end mt-4 -mb-3 px-0.5">
+        <div className="flex items-center justify-start mt-2 mb-3 px-0.5">
           <Link
             href="/reflections"
-            className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors group select-none"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors group select-none"
           >
             <Sparkles className="w-3.5 h-3.5 text-blue-600 group-hover:scale-110 transition-transform" />
             <span>Check Reflections Feed</span>

@@ -63,14 +63,16 @@ export default function WelcomeHeader() {
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0]?.isIntersecting) {
-          setVisibleCount((prev) => Math.min(prev + BATCH_SIZE, sortedMembers.length));
+          setVisibleCount((prev) =>
+            Math.min(prev + BATCH_SIZE, sortedMembers.length),
+          );
         }
       },
       {
         root: container,
         rootMargin: "0px 160px 0px 0px", // Pre-fetch before user reaches the edge
         threshold: 0.1,
-      }
+      },
     );
 
     observer.observe(sentinel);
@@ -82,13 +84,15 @@ export default function WelcomeHeader() {
     const target = e.currentTarget;
     if (target.scrollLeft + target.clientWidth >= target.scrollWidth - 140) {
       if (visibleCount < sortedMembers.length) {
-        setVisibleCount((prev) => Math.min(prev + BATCH_SIZE, sortedMembers.length));
+        setVisibleCount((prev) =>
+          Math.min(prev + BATCH_SIZE, sortedMembers.length),
+        );
       }
     }
   };
 
   const getRankRing = () => {
-    return "bg-blue-600 p-[2.5px] shadow-sm"; // static biru tema
+    return "bg-gray-900 p-[2.5px] shadow-sm"; // static biru tema
   };
 
   return (
@@ -180,7 +184,9 @@ export default function WelcomeHeader() {
             <div className="w-[52px] h-[52px] rounded-full border-2 border-dashed border-slate-200 flex items-center justify-center bg-slate-50/50">
               <div className="w-4 h-4 border-2 border-blue-500/30 border-t-blue-600 rounded-full animate-spin" />
             </div>
-            <span className="text-[10px] font-medium text-slate-400">Lainnya...</span>
+            <span className="text-[10px] font-medium text-slate-400">
+              Lainnya...
+            </span>
           </div>
         )}
       </div>

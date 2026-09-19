@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getMemberStreaks } from "@/lib/actions/explore";
 import { motion } from "framer-motion";
@@ -10,6 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 interface MemberStreakItem {
   id: string;
   name: string;
+  nickname: string;
   username: string;
   image: string;
   totalTasks: number;
@@ -27,16 +29,63 @@ export default function WelcomeHeader() {
     staleTime: 60 * 1000,
   });
 
-  // Sort descending by streak count, then fallback to dummy if DB has no members yet
-  const sortedMembers: MemberStreakItem[] =
-    members.length > 0
-      ? [...members].sort(
-          (a: MemberStreakItem, b: MemberStreakItem) =>
-            b.streakCount - a.streakCount,
-        )
-      : DUMMY_MEMBERS;
+  const BATCH_SIZE = 8;
+  const [visibleCount, setVisibleCount] = useState(10);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
-  const displayMembers = sortedMembers.slice(0, 6);
+  // Sort: Active streaks first -> Most tasks/collabs -> Alphabetical by name
+  const sortedMembers = useMemo(() => {
+    if (!members || members.length === 0) return DUMMY_MEMBERS;
+
+    return [...members].sort((a: MemberStreakItem, b: MemberStreakItem) => {
+      if ((b.streakCount || 0) !== (a.streakCount || 0)) {
+        return (b.streakCount || 0) - (a.streakCount || 0);
+      }
+      const totalB = (b.totalTasks || 0) + (b.totalCollabs || 0);
+      const totalA = (a.totalTasks || 0) + (a.totalCollabs || 0);
+      if (totalB !== totalA) {
+        return totalB - totalA;
+      }
+      return (a.name || "").localeCompare(b.name || "");
+    });
+  }, [members]);
+
+  const displayMembers = sortedMembers.slice(0, visibleCount);
+  const hasMore = visibleCount < sortedMembers.length;
+
+  // Lazy loading via IntersectionObserver on the sentinel
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    const container = containerRef.current;
+    if (!sentinel || !container) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setVisibleCount((prev) => Math.min(prev + BATCH_SIZE, sortedMembers.length));
+        }
+      },
+      {
+        root: container,
+        rootMargin: "0px 160px 0px 0px", // Pre-fetch before user reaches the edge
+        threshold: 0.1,
+      }
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [sortedMembers.length, visibleCount]);
+
+  // Fallback onScroll listener for containers where observer root margin might behave differently
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const target = e.currentTarget;
+    if (target.scrollLeft + target.clientWidth >= target.scrollWidth - 140) {
+      if (visibleCount < sortedMembers.length) {
+        setVisibleCount((prev) => Math.min(prev + BATCH_SIZE, sortedMembers.length));
+      }
+    }
+  };
 
   const getRankRing = () => {
     return "bg-blue-600 p-[2.5px] shadow-sm"; // static biru tema
@@ -58,8 +107,12 @@ export default function WelcomeHeader() {
       </motion.div>
 
       {/* Avatars Carousel / Row */}
-      <div className="flex items-start gap-2 sm:gap-3 mt-6 overflow-x-auto scrollbar-hide -my-1">
-        {displayMembers.map((member, index) => {
+      <div
+        ref={containerRef}
+        onScroll={handleScroll}
+        className="flex items-start gap-2 sm:gap-3 mt-6 overflow-x-auto scrollbar-hide -my-1 scroll-smooth"
+      >
+        {displayMembers.map((member) => {
           const shortName = member.name.split(" ")[0];
 
           return (
@@ -111,12 +164,25 @@ export default function WelcomeHeader() {
 
                 {/* User Name below the avatar */}
                 <span className="text-xs sm:text-[13px] font-semibold text-slate-700 truncate max-w-full text-center tracking-tight">
-                  {shortName}
+                  {member.username || shortName}
                 </span>
               </div>
             </Link>
           );
         })}
+
+        {/* Sentinel loader for progressive lazy loading */}
+        {hasMore && (
+          <div
+            ref={sentinelRef}
+            className="shrink-0 flex flex-col items-center justify-center gap-1.5 w-[70px] sm:w-[80px] h-[90px] text-slate-400"
+          >
+            <div className="w-[52px] h-[52px] rounded-full border-2 border-dashed border-slate-200 flex items-center justify-center bg-slate-50/50">
+              <div className="w-4 h-4 border-2 border-blue-500/30 border-t-blue-600 rounded-full animate-spin" />
+            </div>
+            <span className="text-[10px] font-medium text-slate-400">Lainnya...</span>
+          </div>
+        )}
       </div>
     </div>
   );

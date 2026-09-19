@@ -18,6 +18,7 @@ interface MemberStreakItem {
   totalCollabs: number;
   streakCount: number;
   hasTaskThisWeek: boolean;
+  hasReflectionThisWeek: boolean;
 }
 
 const DUMMY_MEMBERS: MemberStreakItem[] = [];
@@ -34,19 +35,31 @@ export default function WelcomeHeader() {
   const containerRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
-  // Sort: Active streaks first -> Most tasks/collabs -> Alphabetical by name
+  // Sort: Active streaks first -> Has reflection this week -> Most tasks/collabs -> Alphabetical by name
   const sortedMembers = useMemo(() => {
     if (!members || members.length === 0) return DUMMY_MEMBERS;
 
     return [...members].sort((a: MemberStreakItem, b: MemberStreakItem) => {
+      // 1. Active streaks (highest streak first)
       if ((b.streakCount || 0) !== (a.streakCount || 0)) {
         return (b.streakCount || 0) - (a.streakCount || 0);
       }
+
+      // 2. Has reflection this week
+      const bRef = b.hasReflectionThisWeek ? 1 : 0;
+      const aRef = a.hasReflectionThisWeek ? 1 : 0;
+      if (bRef !== aRef) {
+        return bRef - aRef;
+      }
+
+      // 3. Most tasks + collabs
       const totalB = (b.totalTasks || 0) + (b.totalCollabs || 0);
       const totalA = (a.totalTasks || 0) + (a.totalCollabs || 0);
       if (totalB !== totalA) {
         return totalB - totalA;
       }
+
+      // 4. Alphabetical by name
       return (a.name || "").localeCompare(b.name || "");
     });
   }, [members]);
@@ -91,8 +104,11 @@ export default function WelcomeHeader() {
     }
   };
 
-  const getRankRing = () => {
-    return "bg-gray-900 p-[2.5px] shadow-sm"; // static biru tema
+  const getRankRing = (member: MemberStreakItem) => {
+    if (member.hasReflectionThisWeek) {
+      return "bg-blue-600 p-[2.5px] shadow-sm"; // Biru jika ada refleksi pekan ini
+    }
+    return "bg-slate-200 p-[2.5px]"; // Slate jika belum ada refleksi
   };
 
   return (
@@ -130,7 +146,12 @@ export default function WelcomeHeader() {
                 <div className="relative">
                   {/* Avatar Outer Ring: increased size by ~10%: 58px -> 64px, 64px(w-16) -> 70px */}
                   <div
-                    className={`w-[64px] h-[64px] sm:w-[70px] sm:h-[70px] rounded-full transition-all duration-300 ${getRankRing()}`}
+                    className={`w-[64px] h-[64px] sm:w-[70px] sm:h-[70px] rounded-full transition-all duration-300 ${getRankRing(member)}`}
+                    title={
+                      member.hasReflectionThisWeek
+                        ? "✨ Ada refleksi pekan ini"
+                        : "💤 Belum ada refleksi pekan ini"
+                    }
                   >
                     {/* border-[3px] border-white adds the visual gap between the blue border and the pic */}
                     <Avatar className="w-full h-full rounded-full border-[3px] border-white bg-white">

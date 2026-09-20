@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import Script from "next/script";
 import { signIn } from "next-auth/react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ChevronRight, UserPlus, Loader2, ArrowRight } from "lucide-react";
 
 declare global {
   interface Window {
@@ -13,6 +15,13 @@ declare global {
       autoRender: () => void;
     };
   }
+}
+
+interface LastUser {
+  name: string;
+  username: string;
+  email?: string;
+  image?: string;
 }
 
 const JazLogoIcon = ({ className }: { className?: string }) => (
@@ -60,14 +69,20 @@ const InstagramIcon = ({ className }: { className?: string }) => (
 
 export default function LoginPage() {
   const [hasLinkedInstagram, setHasLinkedInstagram] = useState(false);
-
+  const [lastUser, setLastUser] = useState<LastUser | null>(null);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [isSwitching, setIsSwitching] = useState(false);
 
   useEffect(() => {
     try {
       const isLinked =
         localStorage.getItem("jazmedia_linked_instagram") === "true";
       setHasLinkedInstagram(isLinked);
+
+      const savedUser = localStorage.getItem("jazmedia_last_user");
+      if (savedUser) {
+        setLastUser(JSON.parse(savedUser));
+      }
     } catch (e) {}
   }, []);
 
@@ -81,6 +96,27 @@ export default function LoginPage() {
     }
   };
 
+  const handleSwitchAccount = async () => {
+    setIsSwitching(true);
+    try {
+      // Mengirim prompt=login ke Laravel Passport untuk memaksa logout akun sebelumnya
+      // dan menampilkan form login untuk akun baru
+      await signIn("jazacademy", { callbackUrl: "/" }, { prompt: "login" });
+    } catch (error) {
+      console.error("SSO Switch Account error:", error);
+      setIsSwitching(false);
+    }
+  };
+
+  const handleForgetAccount = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      localStorage.removeItem("jazmedia_last_user");
+      setLastUser(null);
+    } catch (e) {}
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 pb-20">
       <Script src="/sdk/jaz-sso.js" strategy="afterInteractive" />
@@ -89,31 +125,97 @@ export default function LoginPage() {
         <h1 className="text-2xl font-black text-slate-900 mb-2">
           Masuk ke Jazmedia
         </h1>
-        <p className="text-sm text-slate-500 mb-8 leading-relaxed">
+        <p className="text-sm text-slate-500 mb-6 leading-relaxed">
           Gunakan akun resmi <strong>JazAcademy</strong> Anda untuk mengakses
           karya, portofolio, dan kolaborasi.
         </p>
 
-        {/* SSO Button */}
+        {/* SSO Section */}
         <div className="space-y-4">
-          <button
-            type="button"
-            onClick={handleSsoClick}
-            disabled={isLoggingIn}
-            className="jaz-btn-base jaz-btn-lg jaz-theme-filled jaz-shape-rounded w-full flex items-center justify-center gap-2.5 h-12 text-sm font-semibold !rounded-xl !shadow-md transition-all active:scale-[0.98] cursor-pointer disabled:opacity-75 disabled:cursor-not-allowed"
-            style={{
-              backgroundColor: "#7367F0",
-              color: "#ffffff",
-              boxShadow: "0 3px 12px rgba(115, 103, 240, 0.35)",
-            }}
-          >
-            <JazLogoIcon
-              className={`w-5 h-5 flex-shrink-0 transition-transform ${isLoggingIn ? "animate-spin" : "group-hover:scale-105"}`}
-            />
-            <span>
-              {isLoggingIn ? "Menghubungkan..." : "Login jazacademy.id"}
-            </span>
-          </button>
+          {lastUser ? (
+            /* Google-Style Account Selector Card */
+            <div className="space-y-3">
+              <button
+                type="button"
+                onClick={handleSsoClick}
+                disabled={isLoggingIn || isSwitching}
+                className="w-full border border-slate-200 hover:bg-blue-300/30 hover:border-blue-500/60 active:scale-[0.99] rounded-2xl p-3.5 flex items-center gap-3.5 transition-all text-left group cursor-pointer shadow-sm disabled:opacity-75 disabled:cursor-not-allowed bg-white"
+              >
+                <Avatar className="w-12 h-12 border-2 border-white shadow-sm flex-shrink-0 bg-slate-100">
+                  <AvatarImage src={lastUser.image} alt={lastUser.name} />
+                  <AvatarFallback className="bg-gradient-to-tr from-blue-600 to-indigo-500 text-white font-bold text-base">
+                    {lastUser.name?.charAt(0)?.toUpperCase() || "U"}
+                  </AvatarFallback>
+                </Avatar>
+
+                <div className="flex-1 min-w-0">
+                  <div className="text-[11px] font-regular text-slate-400 tracking-wider">
+                    Lanjutkan sebagai
+                  </div>
+                  <div className="text-sm font-bold text-slate-900 truncate">
+                    {lastUser.name}
+                  </div>
+                  <div className="text-xs text-slate-500 truncate">
+                    {lastUser.email ||
+                      (lastUser.username ? `@${lastUser.username}` : "")}
+                  </div>
+                </div>
+
+                <div className="flex-shrink-0 text-slate-400 group-hover:text-blue-600 transition-colors">
+                  {isLoggingIn ? (
+                    <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
+                  ) : (
+                    <ChevronRight className="w-5 h-5 group-hover:translate-x-0.5 transition-transform" />
+                  )}
+                </div>
+              </button>
+
+              {/* Account Switcher Link */}
+              <div className="flex flex-col items-center gap-1.5 pt-1">
+                <button
+                  type="button"
+                  onClick={handleSwitchAccount}
+                  disabled={isLoggingIn || isSwitching}
+                  className="text-xs font-bold text-blue-600 hover:text-blue-700 hover:underline inline-flex items-center gap-1.5 transition-colors cursor-pointer py-1 px-2 rounded-lg group disabled:opacity-50"
+                >
+                  {isSwitching ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <UserPlus className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
+                  )}
+                  <span>Bukan Anda? Masuk dengan akun lain</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleForgetAccount}
+                  className="text-[11px] text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+                >
+                  Hapus akun dari perangkat ini
+                </button>
+              </div>
+            </div>
+          ) : (
+            /* Standard SSO Button */
+            <button
+              type="button"
+              onClick={handleSsoClick}
+              disabled={isLoggingIn}
+              className="jaz-btn-base jaz-btn-lg jaz-theme-filled jaz-shape-rounded w-full flex items-center justify-center gap-2.5 h-12 text-sm font-semibold !rounded-xl !shadow-md transition-all active:scale-[0.98] cursor-pointer disabled:opacity-75 disabled:cursor-not-allowed"
+              style={{
+                backgroundColor: "#7367F0",
+                color: "#ffffff",
+                boxShadow: "0 3px 12px rgba(115, 103, 240, 0.35)",
+              }}
+            >
+              <JazLogoIcon
+                className={`w-5 h-5 flex-shrink-0 transition-transform ${isLoggingIn ? "animate-spin" : "group-hover:scale-105"}`}
+              />
+              <span>
+                {isLoggingIn ? "Menghubungkan..." : "Login jazacademy.id"}
+              </span>
+            </button>
+          )}
 
           {/* Instagram Button - Only displayed if account is already linked */}
           {hasLinkedInstagram && (
@@ -132,7 +234,7 @@ export default function LoginPage() {
           )}
         </div>
 
-        <div className="mt-8 pt-6 border-t border-slate-100 text-xs text-slate-400">
+        <div className="mt-8 pt-6 border-t border-slate-100 text-[11px] text-slate-400">
           Akun dikelola terpusat oleh JazAcademy Identity Provider
         </div>
       </div>

@@ -3,6 +3,35 @@ import InstagramProvider from "next-auth/providers/instagram";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { apiClient, getApiBaseUrl, getIdpBaseUrl } from "@/lib/api-client";
 
+export function resolveUserRole(
+  rawRole: any,
+  studentId?: any,
+  teacherId?: any,
+  memberType?: string
+): { role: string; roleNumber: number } {
+  const roleNumber = typeof rawRole === "number" ? rawRole : Number(rawRole ?? 0);
+  const mType = (memberType || "").toLowerCase();
+
+  // 5: Programmer, 4: Superadmin/Manager, 3: Admin
+  if (roleNumber >= 3 || mType === "admin" || mType === "programmer" || mType === "manager") {
+    return { role: "admin", roleNumber };
+  }
+  // 2 + Teacher/Mentor
+  if (teacherId || mType === "teacher") {
+    return { role: "mentor", roleNumber };
+  }
+  // 2 + Student (or role 2)
+  if (roleNumber === 2 || studentId || mType === "student") {
+    return { role: "student", roleNumber };
+  }
+  // 1: Guest (parents / second account / view only)
+  if (roleNumber === 1 || mType === "guest") {
+    return { role: "guest", roleNumber };
+  }
+  // 0: Anonymous (need approval)
+  return { role: "anonymous", roleNumber };
+}
+
 export const authOptions: NextAuthOptions = {
   providers: [
     // Official JazAcademy OAuth 2.0 Provider (RFC 6749)
@@ -20,12 +49,12 @@ export const authOptions: NextAuthOptions = {
       clientSecret: process.env.JAZACADEMY_CLIENT_SECRET || "",
       checks: ["state"],
       profile(profile: any, tokens: any) {
-        const role =
-          typeof profile.role === "number"
-            ? profile.role > 0
-              ? "admin"
-              : "member"
-            : profile.role_name?.toLowerCase() || "member";
+        const { role, roleNumber } = resolveUserRole(
+          profile.role,
+          profile.admin_student_id,
+          profile.admin_teacher_id,
+          profile.member_type
+        );
 
         return {
           id: String(profile.id || profile.sub),
@@ -36,6 +65,7 @@ export const authOptions: NextAuthOptions = {
           email: profile.email,
           image: profile.avatar || profile.image,
           role: role,
+          roleNumber: roleNumber,
           accessToken: tokens.access_token,
         };
       },
@@ -63,12 +93,20 @@ export const authOptions: NextAuthOptions = {
             throw new Error(res.error || "Gagal melakukan otentikasi SSO");
           }
 
+          const { role, roleNumber } = resolveUserRole(
+            res.user.role,
+            res.user.admin_student_id || res.user.student_id,
+            res.user.admin_teacher_id || res.user.teacher_id,
+            res.user.member_type
+          );
+
           return {
             id: (res.user.id || res.user._id).toString(),
             name: res.user.name,
             username: res.user.username,
             image: res.user.image,
-            role: res.user.role,
+            role: role,
+            roleNumber: roleNumber,
             accessToken: res.token,
           };
         } catch (error: any) {
@@ -100,6 +138,7 @@ export const authOptions: NextAuthOptions = {
             username: credentials.username || "",
             image: credentials.image || "",
             role: credentials.role || "member",
+            roleNumber: 0,
             accessToken: credentials.accessToken,
           };
         }
@@ -127,12 +166,20 @@ export const authOptions: NextAuthOptions = {
             throw new Error(res.error || "Kredensial tidak valid");
           }
 
+          const { role, roleNumber } = resolveUserRole(
+            res.user.role,
+            res.user.admin_student_id || res.user.student_id,
+            res.user.admin_teacher_id || res.user.teacher_id,
+            res.user.member_type
+          );
+
           return {
             id: (res.user.id || res.user._id).toString(),
             name: res.user.name,
             username: res.user.username,
             image: res.user.image,
-            role: res.user.role,
+            role: role,
+            roleNumber: roleNumber,
             accessToken: res.token,
           };
         } catch (error: any) {
@@ -151,6 +198,7 @@ export const authOptions: NextAuthOptions = {
       if (trigger === "update" && session) {
         if (session.name) token.name = session.name;
         if (session.role) token.role = session.role;
+        if (session.roleNumber !== undefined) token.roleNumber = session.roleNumber;
         if (session.username) token.username = session.username;
         if (session.image) token.picture = session.image;
       }
@@ -158,6 +206,7 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.sub = user.id;
         token.role = (user as any).role;
+        token.roleNumber = (user as any).roleNumber;
         token.username = (user as any).username;
         token.accessToken = (user as any).accessToken || account?.access_token;
         if (user.image) token.picture = user.image;
@@ -173,6 +222,7 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         (session.user as any).id = token.sub;
         (session.user as any).role = token.role || "member";
+        (session.user as any).roleNumber = token.roleNumber ?? 0;
         (session.user as any).username = token.username;
         (session as any).accessToken = token.accessToken;
 

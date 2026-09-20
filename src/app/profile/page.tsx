@@ -129,6 +129,54 @@ export default function Profile() {
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // Sync last active user info for seamless Google-style account switching on login page
+  useEffect(() => {
+    if (session?.user) {
+      try {
+        const sessionUser = session.user as any;
+        const currentName = dbUser?.name || sessionUser?.name || "User";
+        const currentUsername =
+          dbUser?.username ||
+          sessionUser?.username ||
+          (sessionUser?.email ? sessionUser.email.split("@")[0] : "");
+        const currentEmail = dbUser?.email || sessionUser?.email || "";
+        const currentImage =
+          dbUser?.image || sessionUser?.image || "/no-photo.png";
+
+        localStorage.setItem(
+          "jazmedia_last_user",
+          JSON.stringify({
+            name: currentName,
+            username: currentUsername,
+            email: currentEmail,
+            image: currentImage,
+          }),
+        );
+      } catch (e) {}
+    }
+  }, [session, dbUser]);
+
+  const handleLogout = async () => {
+    if (session?.user) {
+      try {
+        const sessionUser = session.user as any;
+        localStorage.setItem(
+          "jazmedia_last_user",
+          JSON.stringify({
+            name: dbUser?.name || sessionUser?.name || "User",
+            username:
+              dbUser?.username ||
+              sessionUser?.username ||
+              (sessionUser?.email ? sessionUser.email.split("@")[0] : ""),
+            email: dbUser?.email || sessionUser?.email || "",
+            image: dbUser?.image || sessionUser?.image || "/no-photo.png",
+          }),
+        );
+      } catch (e) {}
+    }
+    await signOut({ callbackUrl: "/login" });
+  };
+
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/login");
@@ -365,9 +413,9 @@ export default function Profile() {
             </Button>
           </Link>
           <Button
-            onClick={() => signOut()}
+            onClick={handleLogout}
             variant="outline"
-            className="w-10 h-10 p-0 font-bold border-slate-200 text-red-500 hover:bg-red-50 hover:text-red-600 hover:border-red-200 rounded-xl transition-colors shrink-0"
+            className="w-10 h-10 p-0 font-bold border-slate-200 text-red-500 hover:bg-red-50 hover:text-red-600 hover:border-red-200 rounded-xl transition-colors shrink-0 cursor-pointer"
             title="Keluar"
           >
             <LogOut className="w-4 h-4" />

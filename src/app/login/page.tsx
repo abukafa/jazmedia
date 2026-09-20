@@ -139,7 +139,7 @@ export default function LoginPage() {
                 type="button"
                 onClick={handleSsoClick}
                 disabled={isLoggingIn || isSwitching}
-                className="w-full border border-slate-200 hover:border-blue-500/60 bg-blue-50/30 active:scale-[0.99] rounded-2xl p-3.5 flex items-center gap-3.5 transition-all text-left group cursor-pointer shadow-sm disabled:opacity-75 disabled:cursor-not-allowed"
+                className="w-full border border-slate-200 hover:bg-blue-300/30 hover:border-blue-500/60 active:scale-[0.99] rounded-2xl p-3.5 flex items-center gap-3.5 transition-all text-left group cursor-pointer shadow-sm disabled:opacity-75 disabled:cursor-not-allowed bg-white"
               >
                 <Avatar className="w-12 h-12 border-2 border-white shadow-sm flex-shrink-0 bg-slate-100">
                   <AvatarImage src={lastUser.image} alt={lastUser.name} />

@@ -36,13 +36,13 @@ export default function CreateReflectionPage() {
   const { data: session, status } = useSession();
 
   const userRole = ((session?.user as any)?.role || "").toLowerCase();
-  const isAdmin = userRole === "admin" || userRole === "mentor";
+  const isAdmin = userRole === "admin";
   const [students, setStudents] = useState<StudentSelectItem[]>([]);
   const [selectedStudentId, setSelectedStudentId] = useState<number | null>(
     null,
   );
   const [isLoadingStudents, setIsLoadingStudents] = useState(false);
-
+  console.log("isAdmin:", isAdmin, "userRole:", userRole, "session:", session);
   useEffect(() => {
     if (isAdmin) {
       setIsLoadingStudents(true);

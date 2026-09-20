@@ -78,7 +78,8 @@ export default function ReflectionsFeedPage() {
         } catch (err: any) {
           showAlert({
             title: "Error",
-            message: err.message || "Terjadi kesalahan saat menghapus refleksi.",
+            message:
+              err.message || "Terjadi kesalahan saat menghapus refleksi.",
             type: "error",
           });
         } finally {
@@ -313,13 +314,8 @@ export default function ReflectionsFeedPage() {
                           {ref.author.name}
                         </span>
                         <span className="text-xs text-slate-400">
-                          @{ref.author.username}
+                          @{ref.author.username.toLocaleLowerCase()}
                         </span>
-                        {ref.author.role && (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 uppercase tracking-wider">
-                            {ref.author.role}
-                          </span>
-                        )}
                       </div>
 
                       <div className="flex items-center gap-2 text-[11px] text-slate-400 mt-0.5">

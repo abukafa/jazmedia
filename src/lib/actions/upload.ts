@@ -3,6 +3,7 @@
 import { getDriveClient, getDriveAuth } from "@/lib/drive";
 import { Readable } from "stream";
 import { getDirectMediaUrl } from "@/lib/utils/media";
+import { apiClient } from "@/lib/api-client";
 
 async function getOrCreateSubfolder(drive: any, parentFolderId: string, folderName: string) {
   try {
@@ -121,11 +122,26 @@ export async function uploadProfilePicture(formData: FormData) {
       return { success: false, error: "No image provided" };
     }
     
-    // File verification
+    // File verification (5MB max)
     if (file.size > 5 * 1024 * 1024) {
-      return { success: false, error: "Image size must be less than 5MB" };
+      return { success: false, error: "Ukuran gambar tidak boleh melebihi 5MB" };
     }
     
+    // 1. Upload to backend endpoint as primary source of truth
+    try {
+      const res = await apiClient.post("/media/profile/upload-picture", formData);
+      if (res.success && (res.url || res.image)) {
+        return {
+          success: true,
+          url: res.url || res.image,
+          path: res.path,
+        };
+      }
+    } catch (backendError: any) {
+      console.warn("Backend upload-picture warning, trying fallback:", backendError.message);
+    }
+
+    // 2. Fallback to Google Drive if backend endpoint returned error
     const rawUrl = await uploadToGDrive(file, "profiles");
     const url = getDirectMediaUrl(rawUrl, "image");
     return { success: true, url };

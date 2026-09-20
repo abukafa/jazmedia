@@ -139,7 +139,7 @@ export default function LoginPage() {
                 type="button"
                 onClick={handleSsoClick}
                 disabled={isLoggingIn || isSwitching}
-                className="w-full border border-slate-200 hover:border-blue-500/60 hover:bg-blue-50/30 active:scale-[0.99] rounded-2xl p-3.5 flex items-center gap-3.5 transition-all text-left group cursor-pointer shadow-sm disabled:opacity-75 disabled:cursor-not-allowed bg-white"
+                className="w-full border border-slate-200 hover:border-blue-500/60 bg-blue-50/30 active:scale-[0.99] rounded-2xl p-3.5 flex items-center gap-3.5 transition-all text-left group cursor-pointer shadow-sm disabled:opacity-75 disabled:cursor-not-allowed"
               >
                 <Avatar className="w-12 h-12 border-2 border-white shadow-sm flex-shrink-0 bg-slate-100">
                   <AvatarImage src={lastUser.image} alt={lastUser.name} />
@@ -149,14 +149,15 @@ export default function LoginPage() {
                 </Avatar>
 
                 <div className="flex-1 min-w-0">
-                  <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                  <div className="text-[11px] font-regular text-slate-400 tracking-wider">
                     Lanjutkan sebagai
                   </div>
                   <div className="text-sm font-bold text-slate-900 truncate">
                     {lastUser.name}
                   </div>
                   <div className="text-xs text-slate-500 truncate">
-                    {lastUser.email || (lastUser.username ? `@${lastUser.username}` : "")}
+                    {lastUser.email ||
+                      (lastUser.username ? `@${lastUser.username}` : "")}
                   </div>
                 </div>
 
@@ -233,11 +234,10 @@ export default function LoginPage() {
           )}
         </div>
 
-        <div className="mt-8 pt-6 border-t border-slate-100 text-xs text-slate-400">
+        <div className="mt-8 pt-6 border-t border-slate-100 text-[11px] text-slate-400">
           Akun dikelola terpusat oleh JazAcademy Identity Provider
         </div>
       </div>
     </div>
   );
 }
-

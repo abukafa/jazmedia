@@ -62,7 +62,7 @@ export interface TaskCardProps {
   projectTitle: string;
   mediaUrl: string;
   mediaUrls?: string[];
-  mediaType: "image" | "video" | "document";
+  mediaType: "image" | "video" | "document" | "scratch";
   caption: string;
   review?: {
     grade: number;

@@ -3,7 +3,7 @@ import mongoose, { Schema, Document } from "mongoose";
 export interface ITask extends Document {
   mediaUrl: string;
   mediaUrls: string[];
-  mediaType: "image" | "video" | "document";
+  mediaType: "image" | "video" | "document" | "scratch";
   caption: string;
   projectId: mongoose.Types.ObjectId;
   authorId: mongoose.Types.ObjectId;
@@ -22,7 +22,7 @@ const TaskSchema = new Schema<ITask>(
   {
     mediaUrl: { type: String },
     mediaUrls: [{ type: String }],
-    mediaType: { type: String, enum: ["image", "video", "document"], default: "image" },
+    mediaType: { type: String, enum: ["image", "video", "document", "scratch"], default: "image" },
     caption: { type: String },
     projectId: { type: Schema.Types.ObjectId, ref: "Project", required: true },
     authorId: { type: Schema.Types.ObjectId, ref: "User", required: true },

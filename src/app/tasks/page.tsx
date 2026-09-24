@@ -3,12 +3,13 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { TaskCard } from "@/components/feed/TaskCard";
 import { getTasks } from "@/lib/actions/task";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useInView } from "react-intersection-observer";
 import { Loader2, Inbox } from "lucide-react";
 
 export default function TasksPage() {
   const { ref, inView } = useInView();
+  const [selectedType, setSelectedType] = useState("all");
 
   const {
     data,
@@ -18,9 +19,9 @@ export default function TasksPage() {
     isFetchingNextPage,
     status,
   } = useInfiniteQuery({
-    queryKey: ['tasks'],
+    queryKey: ["tasks", selectedType],
     queryFn: async ({ pageParam = 1 }) => {
-      const res = await getTasks({ pageParam });
+      const res = await getTasks({ pageParam, type: selectedType });
       return res;
     },
     initialPageParam: 1,
@@ -37,16 +38,45 @@ export default function TasksPage() {
   // Fallback mock data if DB is empty or fails
   const showFallback = status === "success" && data.pages[0].data.length === 0;
 
+  const filterOptions = [
+    { label: "Semua", value: "all" },
+    { label: "Gambar", value: "image" },
+    { label: "Video", value: "video" },
+    { label: "Dokumen", value: "document" },
+    { label: "Game", value: "scratch" },
+  ];
+
   return (
     <div className="pt-4 pb-8">
       <div className="px-4">
+        {/* Minimalist Task Type Filter */}
+        <div className="mb-6 overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white transition-all rounded-3xl snap-center snap-always">
+          <div className="flex overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] p-2 gap-2">
+            {filterOptions.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => setSelectedType(opt.value)}
+                className={`px-5 py-2.5 rounded-2xl text-sm font-bold whitespace-nowrap transition-all flex-shrink-0 ${
+                  selectedType === opt.value
+                    ? "bg-slate-900 text-white shadow-md"
+                    : "bg-transparent text-slate-500 hover:bg-slate-50"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {status === "pending" ? (
           <div className="py-32 flex flex-col justify-center items-center gap-3 text-slate-400">
-             <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-             <span className="text-sm font-medium">Memuat tugas terbaru...</span>
+            <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+            <span className="text-sm font-medium">Memuat tugas terbaru...</span>
           </div>
         ) : status === "error" ? (
-          <div className="py-20 text-center text-red-500 font-bold">Error mengambil data dari server. Silakan coba beberapa saat lagi.</div>
+          <div className="py-20 text-center text-red-500 font-bold">
+            Error mengambil data dari server. Silakan coba beberapa saat lagi.
+          </div>
         ) : (
           <>
             {data.pages.map((page, i) => (
@@ -62,26 +92,39 @@ export default function TasksPage() {
                 <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
                   <Inbox className="w-8 h-8 text-slate-400" strokeWidth={1.5} />
                 </div>
-                <p className="text-sm font-bold text-slate-900">Belum ada tugas</p>
-                <p className="text-xs text-slate-500 mt-1">Jadilah yang pertama mengunggah tugas!</p>
+                <p className="text-sm font-bold text-slate-900">
+                  Belum ada tugas
+                </p>
+                <p className="text-xs text-slate-500 mt-1">
+                  Jadilah yang pertama mengunggah tugas!
+                </p>
               </div>
             )}
           </>
         )}
       </div>
-      
+
       {/* Loading Indicator for Infinite Scroll */}
       {status === "success" && !showFallback && (
-        <div ref={ref} className="py-8 flex justify-center items-center gap-2 text-slate-400 h-10">
+        <div
+          ref={ref}
+          className="py-8 flex justify-center items-center gap-2 text-slate-400 h-10"
+        >
           {isFetchingNextPage ? (
             <>
               <div className="w-5 h-5 border-2 border-slate-300 border-t-blue-600 rounded-full animate-spin"></div>
-              <span className="text-xs font-medium">Memuat postingan lama...</span>
+              <span className="text-xs font-medium">
+                Memuat postingan lama...
+              </span>
             </>
           ) : hasNextPage ? (
-            <span className="text-xs font-medium">Scroll untuk memuat lagi</span>
+            <span className="text-xs font-medium">
+              Scroll untuk memuat lagi
+            </span>
           ) : (
-            <span className="text-xs font-medium">Tidak ada postingan lagi</span>
+            <span className="text-xs font-medium">
+              Tidak ada postingan lagi
+            </span>
           )}
         </div>
       )}

@@ -569,7 +569,7 @@ export default function PostTask() {
 
         <Button
           type="submit"
-          disabled={isSubmitting || files.length === 0 || !selectedProjectId}
+          disabled={isSubmitting || (mediaType !== "scratch" && files.length === 0) || (mediaType === "scratch" && !scratchUrl.trim()) || !selectedProjectId}
           className="w-full bg-slate-900 hover:bg-slate-800 text-white rounded-xl h-12 font-black shadow-lg shadow-slate-200 transition-all overflow-hidden relative"
         >
           {isSubmitting && uploadProgress > 0 && uploadProgress < 100 && (
@@ -596,48 +596,6 @@ export default function PostTask() {
           </div>
         </Button>
       </form>
-
-      {/* Card Terpisah: Refleksi Mingguan Siswa */}
-      <div className="mt-8 pt-6 border-t border-slate-200/80">
-        <div className="bg-gradient-to-br from-indigo-50/70 via-white to-blue-50/50 rounded-2xl border border-indigo-100 p-5 shadow-sm transition-all hover:shadow-md">
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-200 flex-shrink-0">
-              <Sparkles className="w-6 h-6" />
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-1">
-                <h3 className="font-bold text-slate-900 text-base">
-                  Laporan dan Refleksi
-                </h3>
-                <span className="text-[10px] font-semibold tracking-wide uppercase px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700">
-                  Weekly
-                </span>
-              </div>
-              <p className="text-xs text-slate-600 leading-relaxed mb-4">
-                Tinjau performa belajar mingguan Anda meliputi capaian, kendala,
-                pelajaran yang dipetik, dan fokus prioritas ke depan. Dilengkapi
-                metrik slider dan grafik progres mingguan.
-              </p>
-              <div className="flex flex-wrap items-center gap-2.5">
-                <Link
-                  href="/reflections/create"
-                  className="inline-flex items-center justify-center px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition shadow-sm hover:shadow"
-                >
-                  <PenLine className="w-3.5 h-3.5 mr-1.5" />
-                  Isi Refleksi Mingguan
-                </Link>
-                <Link
-                  href="/reflections"
-                  className="inline-flex items-center justify-center px-4 py-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold border border-slate-200 transition shadow-sm"
-                >
-                  <TrendingUp className="w-3.5 h-3.5 mr-1.5 text-indigo-600" />
-                  Lihat Feed Refleksi
-                </Link>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

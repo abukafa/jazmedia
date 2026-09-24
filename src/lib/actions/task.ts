@@ -15,8 +15,13 @@ export async function submitTask(formData: FormData) {
   const collaboratorsStr = formData.get("collaborators") as string;
   const collaborators = collaboratorsStr ? JSON.parse(collaboratorsStr) : [];
 
-  if ((!files || files.length === 0) && (!preuploadedIds || preuploadedIds.length === 0)) {
+  const scratchUrl = formData.get("scratchUrl") as string;
+
+  if (mediaType !== "scratch" && (!files || files.length === 0) && (!preuploadedIds || preuploadedIds.length === 0)) {
     return { success: false, error: "Media harus diisi." };
+  }
+  if (mediaType === "scratch" && !scratchUrl) {
+    return { success: false, error: "Link Scratch harus diisi." };
   }
   if (!projectId) {
     return { success: false, error: "Project harus diisi." };
@@ -25,7 +30,9 @@ export async function submitTask(formData: FormData) {
   try {
     // 1. Upload new files via Google Drive
     const mediaUrls: string[] = [];
-    if (files && files.length > 0) {
+    if (mediaType === "scratch") {
+      mediaUrls.push(scratchUrl);
+    } else if (files && files.length > 0) {
       const newUrls = await Promise.all(
         files.map(async (file) => await uploadToGDrive(file, mediaType + "s"))
       );
@@ -69,9 +76,9 @@ export async function submitTask(formData: FormData) {
   }
 }
 
-export async function getTasks({ pageParam = 1 }: { pageParam?: number }) {
+export async function getTasks({ pageParam = 1, type = "all" }: { pageParam?: number; type?: string }) {
   try {
-    const res = await apiClient.get(`/media/tasks?pageParam=${pageParam}&limit=5`);
+    const res = await apiClient.get(`/media/tasks?pageParam=${pageParam}&limit=5${type !== "all" ? `&type=${type}` : ""}`);
     return {
       data: res.data || [],
       nextPage: res.nextPage || undefined,
@@ -95,7 +102,7 @@ export interface BestPerformanceTask {
   caption: string;
   mediaUrl: string;
   mediaUrls?: string[];
-  mediaType: "image" | "video" | "document";
+  mediaType: "image" | "video" | "document" | "scratch";
   status: string;
   createdAt: string;
   likesCount?: number;

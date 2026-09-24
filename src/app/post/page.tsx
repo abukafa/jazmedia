@@ -12,6 +12,7 @@ import {
   Sparkles,
   PenLine,
   TrendingUp,
+  Gamepad2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,8 +39,9 @@ export default function PostTask() {
   const { data: session, status } = useSession();
   const userRole = (session?.user as { role?: string })?.role;
   const [mediaType, setMediaType] = useState<
-    "image" | "video" | "document" | null
+    "image" | "video" | "document" | "scratch" | null
   >(null);
+  const [scratchUrl, setScratchUrl] = useState("");
 
   const [projects, setProjects] = useState<
     Array<{ id: string; title: string }>
@@ -151,7 +153,8 @@ export default function PostTask() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (files.length === 0 || !selectedProjectId || !mediaType) return;
+    if ((mediaType !== "scratch" && files.length === 0) || !selectedProjectId || !mediaType) return;
+    if (mediaType === "scratch" && !scratchUrl.trim()) return;
 
     setIsSubmitting(true);
     setUploadProgress(0);
@@ -162,6 +165,9 @@ export default function PostTask() {
     formData.append("projectId", selectedProjectId);
     formData.append("mediaType", mediaType);
     formData.append("collaborators", JSON.stringify(collaborators));
+    if (mediaType === "scratch") {
+      formData.append("scratchUrl", scratchUrl);
+    }
 
     try {
       // Filter out files that are larger than 5MB to use Direct Upload (or all videos)
@@ -279,6 +285,23 @@ export default function PostTask() {
               </div>
             </CardContent>
           </Card>
+
+          <Card
+            onClick={() => setMediaType("scratch")}
+            className="cursor-pointer hover:border-purple-500 hover:shadow-md transition-all border-slate-200 shadow-sm bg-white"
+          >
+            <CardContent className="p-6 flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-purple-50 flex items-center justify-center text-purple-600">
+                <Gamepad2 className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="font-bold text-slate-900">Game / Animasi</h3>
+                <p className="text-xs text-slate-500">
+                  Bagikan tautan proyek Scratch
+                </p>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Card Terpisah: Refleksi Mingguan Siswa */}
@@ -378,23 +401,37 @@ export default function PostTask() {
             </Select>
           </div>
 
-          <div className="grid gap-2 mt-4">
-            <Label className="text-xs font-bold">Upload File</Label>
-            <Input
-              type="file"
-              multiple={mediaType === "image"}
-              accept={
-                mediaType === "image"
-                  ? "image/*"
-                  : mediaType === "video"
-                    ? "video/*"
-                    : ".pdf"
-              }
-              onChange={handleFileChange}
-              required
-              className="file:mr-4 file:py-1 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 cursor-pointer"
-            />
-          </div>
+          {mediaType === "scratch" ? (
+            <div className="grid gap-2 mt-4">
+              <Label className="text-xs font-bold">Link Proyek Scratch</Label>
+              <Input
+                type="url"
+                placeholder="Contoh: https://scratch.mit.edu/projects/138355..."
+                value={scratchUrl}
+                onChange={(e) => setScratchUrl(e.target.value)}
+                required
+                className="text-sm"
+              />
+            </div>
+          ) : (
+            <div className="grid gap-2 mt-4">
+              <Label className="text-xs font-bold">Upload File</Label>
+              <Input
+                type="file"
+                multiple={mediaType === "image"}
+                accept={
+                  mediaType === "image"
+                    ? "image/*"
+                    : mediaType === "video"
+                      ? "video/*"
+                      : ".pdf"
+                }
+                onChange={handleFileChange}
+                required
+                className="file:mr-4 file:py-1 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 cursor-pointer"
+              />
+            </div>
+          )}
 
           {/* Preview Area */}
           {previews.length > 0 && (

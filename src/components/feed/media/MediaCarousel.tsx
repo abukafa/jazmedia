@@ -3,12 +3,13 @@
 import { useState } from "react";
 import { ImagePostEmbed } from "./ImagePostEmbed";
 import { VideoPostEmbed } from "./VideoPostEmbed";
+import { ScratchPostEmbed } from "./ScratchPostEmbed";
 import dynamic from "next/dynamic";
 const DocumentPostEmbed = dynamic(() => import('./DocumentPostEmbed').then(mod => mod.DocumentPostEmbed), { ssr: false });
 
 interface MediaCarouselProps {
   urls: string[];
-  mediaType: "image" | "video" | "document";
+  mediaType: "image" | "video" | "document" | "scratch";
   isFs?: boolean;
   activeSlide: number;
   onActiveSlideChange: (index: number) => void;
@@ -38,6 +39,10 @@ export function MediaCarousel({ urls, mediaType, isFs = false, activeSlide, onAc
     
     if (mediaType === "document") {
       return <DocumentPostEmbed key={`doc-${index}`} url={url} isFs={isFs} />;
+    }
+
+    if (mediaType === "scratch") {
+      return <ScratchPostEmbed key={`scratch-${index}`} url={url} isFs={isFs} />;
     }
 
     return <ImagePostEmbed key={`img-${index}`} url={url} index={index} isFs={isFs} />;

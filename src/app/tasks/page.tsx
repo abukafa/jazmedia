@@ -5,9 +5,15 @@ import { TaskCard } from "@/components/feed/TaskCard";
 import { getTasks } from "@/lib/actions/task";
 import { useEffect, useState } from "react";
 import { useInView } from "react-intersection-observer";
-import { Loader2, Inbox } from "lucide-react";
+import { Loader2, Inbox, PlusCircle } from "lucide-react";
+import FeedLayout from "@/components/layout/FeedLayout";
+import { useSession } from "next-auth/react";
+import Link from "next/link";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getInitials } from "@/lib/utils/avatar";
 
 export default function TasksPage() {
+  const { data: session } = useSession();
   const { ref, inView } = useInView();
   const [selectedType, setSelectedType] = useState("all");
 
@@ -47,8 +53,31 @@ export default function TasksPage() {
   ];
 
   return (
-    <div className="pt-4 pb-8">
+    <FeedLayout>
+      <div className="pt-4 pb-8 min-h-screen">
       <div className="px-4">
+        
+        {/* Desktop Hero Link to Post */}
+        {session && (
+          <Link 
+            href="/post"
+            className="hidden md:flex mb-6 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100/50 hover:border-blue-200 hover:shadow-md transition-all rounded-3xl p-5 items-center justify-between group"
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform">
+                <PlusCircle className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="font-bold text-slate-800 text-base">Bagikan Tugas Baru</h3>
+                <p className="text-sm text-slate-500 mt-0.5">Tunjukkan progres atau hasil belajarmu hari ini!</p>
+              </div>
+            </div>
+            <div className="px-5 py-2.5 bg-blue-600 text-white text-sm font-bold rounded-full group-hover:bg-blue-700 transition-colors shadow-sm">
+              Buat Post
+            </div>
+          </Link>
+        )}
+
         {/* Minimalist Task Type Filter */}
         <div className="mb-6 overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white transition-all rounded-3xl snap-center snap-always">
           <div className="flex overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] p-2 gap-2">
@@ -128,6 +157,7 @@ export default function TasksPage() {
           )}
         </div>
       )}
-    </div>
+      </div>
+    </FeedLayout>
   );
 }

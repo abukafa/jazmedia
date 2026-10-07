@@ -1,8 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Trophy } from "lucide-react";
 import { getBestPerformanceTasks } from "@/lib/actions/task";
 import { TaskCard } from "@/components/feed/TaskCard";
 
@@ -31,9 +29,6 @@ function getTimeAgo(dateString: string) {
 }
 
 export default function BestPerformanceSection() {
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const [isHovered, setIsHovered] = useState(false);
-
   const { data: tasks = [], isLoading: loading } = useQuery({
     queryKey: ["home", "bestTasks"],
     queryFn: async () => {
@@ -42,36 +37,6 @@ export default function BestPerformanceSection() {
     },
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
-
-  // Auto-swipe right (moving items right, scrolling left)
-  useEffect(() => {
-    if (tasks.length === 0 || isHovered) return;
-
-    const timer = setInterval(() => {
-      const container = scrollRef.current;
-      if (!container) return;
-
-      const cardWidth =
-        container.querySelector("div.shrink-0")?.clientWidth || 0;
-      if (cardWidth === 0) return;
-
-      // Scroll left by one card width
-      if (container.scrollLeft <= 0) {
-        // If at the start, jump to the end
-        container.scrollTo({
-          left: container.scrollWidth,
-          behavior: "smooth",
-        });
-      } else {
-        container.scrollBy({
-          left: -(cardWidth + 16), // width + gap
-          behavior: "smooth",
-        });
-      }
-    }, 4500);
-
-    return () => clearInterval(timer);
-  }, [tasks.length, isHovered]);
 
   if (loading) {
     return (
@@ -87,19 +52,11 @@ export default function BestPerformanceSection() {
 
   return (
     <div className="mt-3 mb-0">
-      <div
-        ref={scrollRef}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-        onTouchStart={() => setIsHovered(true)}
-        onTouchEnd={() => setIsHovered(false)}
-        className="flex items-start gap-4 overflow-x-auto snap-x snap-mandatory scrollbar-hide px-5 py-4 pb-12 -my-2"
-        style={{ scrollBehavior: "auto" }}
-      >
+      <div className="flex flex-col gap-4 px-5 py-2 pb-4">
         {tasks.map((task, index) => (
           <div
             key={task.id}
-            className="w-[85vw] sm:w-[380px] shrink-0 snap-center relative"
+            className="w-full relative"
           >
             {/* Ranking Badge */}
             <div className="absolute -top-3 -left-2 w-8 h-8 rounded-full bg-gradient-to-tr from-amber-400 to-orange-500 text-white font-bold flex items-center justify-center shadow-lg border-2 border-white z-20">

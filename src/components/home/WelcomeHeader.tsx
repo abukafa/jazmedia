@@ -155,7 +155,7 @@ export default function WelcomeHeader() {
 
           return (
             <Link
-              href={`/user/${member.id}`}
+              href={`/students/${member.id}`}
               key={member.id}
               className="shrink-0"
             >

@@ -9,7 +9,7 @@ export function getApiBaseUrl(): string {
   if (process.env.VERCEL || process.env.NODE_ENV === "production") {
     return "https://jazacademy.id/api";
   }
-  return (envUrl || "http://localhost:8000/api").replace(/\/$/, "");
+  return (envUrl || "http://127.0.0.1:8000/api").replace("localhost", "127.0.0.1").replace(/\/$/, "");
 }
 
 export function getIdpBaseUrl(): string {
@@ -20,7 +20,7 @@ export function getIdpBaseUrl(): string {
   if (process.env.VERCEL || process.env.NODE_ENV === "production") {
     return "https://jazacademy.id";
   }
-  return (envUrl || "http://localhost:8000").replace(/\/$/, "");
+  return (envUrl || "http://127.0.0.1:8000").replace("localhost", "127.0.0.1").replace(/\/$/, "");
 }
 
 export async function getAuthToken(): Promise<string | null> {

@@ -19,6 +19,13 @@ import {
   Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
@@ -196,7 +203,7 @@ export default function CreateReflectionPage() {
   };
 
   return (
-    <div className="pt-6 pb-12 px-4 max-w-2xl mx-auto bg-slate-50 min-h-screen">
+    <div className="pt-6 pb-12 px-4 sm:px-6 max-w-4xl mx-auto min-h-screen">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
@@ -246,22 +253,24 @@ export default function CreateReflectionPage() {
                 Memuat daftar siswa...
               </div>
             ) : (
-              <select
-                value={selectedStudentId ?? ""}
-                onChange={(e) =>
-                  setSelectedStudentId(
-                    e.target.value ? Number(e.target.value) : null,
-                  )
+              <Select
+                value={selectedStudentId ? selectedStudentId.toString() : "admin"}
+                onValueChange={(val) =>
+                  setSelectedStudentId(val === "admin" ? null : Number(val))
                 }
-                className="w-full h-11 px-3 rounded-xl bg-slate-50/70 border border-slate-200 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition"
               >
-                <option value="">-- Admin (Default) --</option>
-                {students.map((st) => (
-                  <option key={st.id} value={st.id}>
-                    {st.name}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger className="w-full h-11 rounded-xl bg-slate-50/70 border-slate-200 text-sm font-medium text-slate-800 focus:ring-indigo-500/20 focus:border-indigo-500 transition">
+                  <SelectValue placeholder="-- Admin (Default) --" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="admin">-- Admin (Default) --</SelectItem>
+                  {students.map((st) => (
+                    <SelectItem key={st.id} value={st.id.toString()}>
+                      {st.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             )}
           </div>
         )}

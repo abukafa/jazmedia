@@ -79,6 +79,7 @@ export async function getReflections(options: {
   perPage?: number;
   studentId?: string;
   userId?: string;
+  thisWeek?: boolean;
 } = {}) {
   try {
     const params = new URLSearchParams();
@@ -86,6 +87,7 @@ export async function getReflections(options: {
     if (options.perPage) params.append("per_page", options.perPage.toString());
     if (options.studentId) params.append("student_id", options.studentId);
     if (options.userId) params.append("user_id", options.userId);
+    if (options.thisWeek) params.append("this_week", "1");
 
     const queryString = params.toString() ? `?${params.toString()}` : "";
     const res = await apiClient.get(`/media/reflections${queryString}`);

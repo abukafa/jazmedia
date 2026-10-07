@@ -24,6 +24,7 @@ import { useAlert } from "@/components/providers/AlertProvider";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getInitials } from "@/lib/utils/avatar";
 import { useQuery } from "@tanstack/react-query";
+import FeedLayout from "@/components/layout/FeedLayout";
 
 export default function BlogsPage() {
   const router = useRouter();
@@ -117,8 +118,9 @@ export default function BlogsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f4f7fb] pb-24 pt-4 px-4 sm:px-6 max-w-md mx-auto">
-      {/* Top Header */}
+    <FeedLayout>
+      <div className="min-h-screen bg-[#f4f7fb] pb-24 pt-4 px-4 sm:px-6 rounded-2xl md:rounded-3xl shadow-sm">
+        {/* Top Header */}
       <div className="flex items-center justify-between py-3">
         <button
           onClick={() => router.push("/")}
@@ -310,6 +312,7 @@ export default function BlogsPage() {
           })}
         </div>
       )}
-    </div>
+      </div>
+    </FeedLayout>
   );
 }

@@ -225,7 +225,7 @@ export default function PostTask() {
 
   if (!mediaType) {
     return (
-      <div className="pt-6 pb-8 px-4 bg-slate-50 min-h-screen">
+      <div className="pt-6 pb-8 px-4 sm:px-6 max-w-4xl mx-auto min-h-screen">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-xl font-black text-slate-900">
             Pilih Jenis Postingan
@@ -349,7 +349,7 @@ export default function PostTask() {
   }
 
   return (
-    <div className="pt-6 pb-24 px-4 bg-slate-50 min-h-screen">
+    <div className="pt-6 pb-24 px-4 sm:px-6 max-w-4xl mx-auto min-h-screen">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-xl font-black text-slate-900 flex items-center gap-2">
           {mediaType === "image" && (

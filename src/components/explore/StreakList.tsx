@@ -46,7 +46,7 @@ export function StreakList({ streaks, loading }: StreakListProps) {
   return (
     <div className="space-y-3">
       {streaks.map((member) => (
-        <Link key={member.id} href={`/user/${member.id}`}>
+        <Link key={member.id} href={`/students/${member.id}`}>
           <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-[0_2px_10px_rgb(0,0,0,0.02)] flex items-center justify-between hover:shadow-md transition-shadow cursor-pointer mb-3">
             <div className="flex items-center gap-3">
               <Avatar className="w-12 h-12 rounded-full border-2 border-slate-100">

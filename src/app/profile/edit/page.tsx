@@ -13,6 +13,13 @@ import { uploadProfilePicture } from "@/lib/actions/upload";
 import { unlinkInstagramAccount } from "@/lib/actions/auth-custom";
 import { getDirectMediaUrl } from "@/lib/utils/media";
 
+interface Education {
+  school: string;
+  major: string;
+  degree: string;
+  year: string;
+}
+
 interface Skill {
   name: string;
   icon: SkillIconName;
@@ -30,8 +37,17 @@ export default function EditProfile() {
   const [image, setImage] = useState("");
   const [bio, setBio] = useState("");
   const [role, setRole] = useState("member");
+  const [headline, setHeadline] = useState("");
+  const [addressDetail, setAddressDetail] = useState("");
+  const [bannerImage, setBannerImage] = useState("");
+  const [education, setEducation] = useState<Education[]>([]);
+  const [isUploadingBanner, setIsUploadingBanner] = useState(false);
   const [skills, setSkills] = useState<Skill[]>([]);
   const [instagramId, setInstagramId] = useState<string | null>(null);
+  const [phone, setPhone] = useState("");
+  const [linkedin, setLinkedin] = useState("");
+  const [github, setGithub] = useState("");
+  const [website, setWebsite] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -52,6 +68,16 @@ export default function EditProfile() {
           setUsername(data.username || "");
           setImage(data.image || "");
           setBio(data.bio || "");
+          setHeadline(data.headline || "");
+          setAddressDetail(data.address_detail || "");
+          setBannerImage(data.banner_image || "");
+          let loadedEdu: Education[] = [];
+          if (Array.isArray(data.education)) {
+             loadedEdu = data.education;
+          } else if (typeof data.education === "string") {
+             try { loadedEdu = JSON.parse(data.education); } catch {}
+          }
+          setEducation(loadedEdu);
           setRole(data.role || "member");
           let loadedSkills: Skill[] = [];
           const rawSkills = data.skills;
@@ -95,6 +121,10 @@ export default function EditProfile() {
           }
           setSkills(loadedSkills);
           setInstagramId(data.instagramId || null);
+          setPhone(data.phone || "");
+          setLinkedin(data.linkedin || "");
+          setGithub(data.github || "");
+          setWebsite(data.website || "");
           if (data.instagramId) {
             localStorage.setItem("jazmedia_linked_instagram", "true");
           } else {
@@ -137,6 +167,42 @@ export default function EditProfile() {
     setCroppedAreaPixels(croppedAreaPixels);
   };
 
+  const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const file = e.target.files[0];
+      if (file.size > 5 * 1024 * 1024) {
+        showAlert({ message: "Ukuran banner max 5MB", type: "error" });
+        return;
+      }
+      setIsUploadingBanner(true);
+      try {
+        const formData = new FormData();
+        formData.append("image", file);
+        const res = await uploadProfilePicture(formData);
+        if (res.success && res.url) {
+          setBannerImage(res.url);
+        } else {
+          showAlert({ message: "Gagal upload banner", type: "error" });
+        }
+      } catch {
+        showAlert({ message: "Error upload banner", type: "error" });
+      }
+      setIsUploadingBanner(false);
+    }
+  };
+
+  const handleAddEducation = () => {
+    setEducation([...education, { school: "", major: "", degree: "", year: "" }]);
+  };
+  const handleUpdateEducation = (index: number, field: keyof Education, value: string) => {
+    const newEdu = [...education];
+    newEdu[index] = { ...newEdu[index], [field]: value };
+    setEducation(newEdu);
+  };
+  const handleRemoveEducation = (index: number) => {
+    setEducation(education.filter((_, i) => i !== index));
+  };
+
   const uploadCroppedImage = async () => {
     if (!imageSrc || !croppedAreaPixels) return;
 
@@ -176,7 +242,15 @@ export default function EditProfile() {
       bio,
       role,
       skills,
-    };
+      headline,
+      address_detail: addressDetail,
+      banner_image: bannerImage,
+      education,
+        phone,
+        linkedin,
+        github,
+        website,
+      };
 
     const res = await updateUserProfile(payload);
     if (res.success) {
@@ -202,7 +276,7 @@ export default function EditProfile() {
   }
 
   return (
-    <div className="pt-4 pb-10 px-4 flex flex-col z-[100] relative bg-white min-h-full">
+    <div className="pt-4 pb-10 px-4 sm:px-6 md:px-12 lg:px-24 xl:px-32 max-w-5xl mx-auto flex flex-col z-[100] relative bg-white min-h-full w-full">
       <div className="flex items-center justify-between mb-6">
         <button
           onClick={() => router.back()}
@@ -257,7 +331,97 @@ export default function EditProfile() {
           </div>
         </div>
 
+        
         <div>
+          <label className="block text-xs font-bold text-slate-700 mb-2 px-2 uppercase tracking-wide">
+            Headline (Peran & Spesialisasi)
+          </label>
+          <input
+            type="text"
+            value={headline}
+            onChange={(e) => setHeadline(e.target.value)}
+            disabled={isSaving}
+            placeholder="Contoh: Frontend Developer | UI/UX Enthusiast"
+            className="w-full bg-white border border-slate-200 rounded-2xl p-4 text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-sm disabled:opacity-50"
+          />
+        </div>
+
+
+        <div>
+          <label className="block text-xs font-bold text-slate-700 mb-2 px-2 uppercase tracking-wide">
+            Lokasi / Alamat
+          </label>
+          <input
+            type="text"
+            value={addressDetail}
+            onChange={(e) => setAddressDetail(e.target.value)}
+            disabled={isSaving}
+            placeholder="Contoh: Jakarta, Indonesia"
+            className="w-full bg-white border border-slate-200 rounded-2xl p-4 text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-sm disabled:opacity-50"
+          />
+        </div>
+
+<div>
+            <label htmlFor="phone" className="block text-xs font-bold text-slate-700 mb-2 px-2 uppercase tracking-wide">
+              Nomor HP (WhatsApp)
+            </label>
+            <input
+              id="phone"
+              type="text"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              disabled={isSaving}
+              placeholder="Contoh: 081234567890"
+              className="w-full bg-white border border-slate-200 rounded-2xl p-4 text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-sm disabled:opacity-50"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="linkedin" className="block text-xs font-bold text-slate-700 mb-2 px-2 uppercase tracking-wide">
+              LinkedIn Profile
+            </label>
+            <input
+              id="linkedin"
+              type="text"
+              value={linkedin}
+              onChange={(e) => setLinkedin(e.target.value)}
+              disabled={isSaving}
+              placeholder="Contoh: linkedin.com/in/username"
+              className="w-full bg-white border border-slate-200 rounded-2xl p-4 text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-sm disabled:opacity-50"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="github" className="block text-xs font-bold text-slate-700 mb-2 px-2 uppercase tracking-wide">
+              GitHub Profile
+            </label>
+            <input
+              id="github"
+              type="text"
+              value={github}
+              onChange={(e) => setGithub(e.target.value)}
+              disabled={isSaving}
+              placeholder="Contoh: github.com/username"
+              className="w-full bg-white border border-slate-200 rounded-2xl p-4 text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-sm disabled:opacity-50"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="website" className="block text-xs font-bold text-slate-700 mb-2 px-2 uppercase tracking-wide">
+              Website / Portfolio URL
+            </label>
+            <input
+              id="website"
+              type="text"
+              value={website}
+              onChange={(e) => setWebsite(e.target.value)}
+              disabled={isSaving}
+              placeholder="Contoh: username.com"
+              className="w-full bg-white border border-slate-200 rounded-2xl p-4 text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-sm disabled:opacity-50"
+            />
+          </div>
+
+<div>
           <label className="block text-xs font-bold text-slate-700 mb-2 px-2 uppercase tracking-wide">
             Instagram
           </label>
@@ -338,6 +502,22 @@ export default function EditProfile() {
           </div>
         </div>
 
+
+        <div>
+          <label className="block text-xs font-bold text-slate-700 mb-2 px-2 uppercase tracking-wide">
+            Banner / Header
+          </label>
+          <div className="flex items-center gap-4 bg-slate-50 border border-slate-200 p-4 rounded-2xl">
+            {bannerImage && (
+              <img src={getDirectMediaUrl(bannerImage)} alt="Banner" className="w-24 h-12 object-cover rounded-md" />
+            )}
+            <label className="cursor-pointer inline-flex items-center justify-center bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm">
+              {isUploadingBanner ? <Loader2 className="w-4 h-4 animate-spin" /> : "Pilih Banner"}
+              <input type="file" accept="image/*" onChange={handleBannerUpload} className="hidden" disabled={isUploadingBanner || isSaving} />
+            </label>
+          </div>
+        </div>
+
         <div>
           <label className="block text-xs font-bold text-slate-700 mb-2 px-2 uppercase tracking-wide">
             Foto Profil
@@ -386,7 +566,74 @@ export default function EditProfile() {
         </div>
 
 
+        
         <div>
+          <div className="flex justify-between items-center mb-2 px-2">
+            <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">
+              Riwayat Pendidikan
+            </label>
+            <button
+              onClick={handleAddEducation}
+              disabled={isSaving}
+              className="text-blue-600 hover:text-blue-700 p-1 rounded-lg hover:bg-blue-50 transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="space-y-3">
+            {education.map((edu, idx) => (
+              <div key={idx} className="bg-slate-50 border border-slate-200 rounded-2xl p-4 relative group">
+                <button
+                  onClick={() => handleRemoveEducation(idx)}
+                  disabled={isSaving}
+                  className="absolute right-3 top-3 text-slate-400 hover:text-rose-500 transition-colors p-1"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
+                  <input
+                    type="text"
+                    value={edu.school}
+                    onChange={(e) => handleUpdateEducation(idx, "school", e.target.value)}
+                    placeholder="Nama Sekolah / Universitas"
+                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <input
+                    type="text"
+                    value={edu.major}
+                    onChange={(e) => handleUpdateEducation(idx, "major", e.target.value)}
+                    placeholder="Jurusan"
+                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <input
+                    type="text"
+                    value={edu.degree}
+                    onChange={(e) => handleUpdateEducation(idx, "degree", e.target.value)}
+                    placeholder="Gelar (Opsional)"
+                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <input
+                    type="text"
+                    value={edu.year}
+                    onChange={(e) => handleUpdateEducation(idx, "year", e.target.value)}
+                    placeholder="Tahun Lulus"
+                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+            ))}
+            {education.length === 0 && (
+              <div className="text-center py-6 bg-slate-50 border border-slate-200 rounded-2xl border-dashed">
+                <p className="text-sm font-medium text-slate-500 mb-2">Belum ada data pendidikan</p>
+                <button onClick={handleAddEducation} className="text-blue-600 text-sm font-bold hover:underline">
+                  Tambah Pendidikan
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+<div>
           <div className="flex justify-between items-center mb-2 px-2">
             <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">
               Skills

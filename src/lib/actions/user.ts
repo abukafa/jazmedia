@@ -39,9 +39,9 @@ export async function updateUserProfile(data: Record<string, any> | FormData) {
   }
 }
 
-export async function getPublicProfile(userId: string) {
+export async function getPublicProfile(userId: string, type: string = "user") {
   try {
-    const res = await apiClient.get(`/media/users/${userId}/public`);
+    const res = await apiClient.get(`/media/users/${userId}/public?type=${type}`);
     return {
       success: true,
       data: res.data,
@@ -49,4 +49,8 @@ export async function getPublicProfile(userId: string) {
   } catch (error: any) {
     return { success: false, error: error.message };
   }
+}
+
+export async function getTeacherProfile(userId: string) {
+  return getPublicProfile(userId, 'teacher');
 }

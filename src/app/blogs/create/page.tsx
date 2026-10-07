@@ -143,7 +143,7 @@ export default function CreateBlogPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50/70 pb-24">
+    <div className="min-h-screen pb-24">
       {/* Top Header */}
       <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-200/80">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">

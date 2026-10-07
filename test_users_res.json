@@ -1,0 +1,137 @@
+[
+  {
+    "id": "3",
+    "_id": "3",
+    "name": "Nurul Auni Afifah",
+    "username": "Auni",
+    "image": "/no-photo.png",
+    "role": "member",
+    "bio": "Ustazah"
+  },
+  {
+    "id": "9",
+    "_id": "9",
+    "name": "Ikhwanul Azka",
+    "username": "Azka",
+    "image": "https://jazacademy.id/storage/avatars/student/chnLwggBf4h1ZxeAVRLdp4FZndfbwgqPGFjp8Sd3.jpg",
+    "role": "Content Creator",
+    "bio": "Programmer, Gamer, Youtuber"
+  },
+  {
+    "id": "10",
+    "_id": "10",
+    "name": "Kayyisa Elma Mazea",
+    "username": "Kayyisa",
+    "image": "https://jazacademy.id/storage/avatars/student/QPDWY6Qscz8qn3oAFG0xO6gZOWVFo0thWNEuKfxu.jpg",
+    "role": "Content Creator",
+    "bio": "Dokter OBGYN"
+  },
+  {
+    "id": "11",
+    "_id": "11",
+    "name": "Muhamad Radhan Wahid Assegaf",
+    "username": "Radhan",
+    "image": "https://jazacademy.id/storage/avatars/student/mYQLAzZYbDdu4TWXfCmSmhc2k8g6wneN5Lb0qPp7.jpg",
+    "role": "Content Creator",
+    "bio": "Pengusaha sukses"
+  },
+  {
+    "id": "13",
+    "_id": "13",
+    "name": "Muhammad Usamah Abdurrahman",
+    "username": "Usamah",
+    "image": "/no-photo.png",
+    "role": "Editor",
+    "bio": "Tentara"
+  },
+  {
+    "id": "17",
+    "_id": "17",
+    "name": "Amiratul Hisanah",
+    "username": "Amira",
+    "image": "/no-photo.png",
+    "role": "member",
+    "bio": ""
+  },
+  {
+    "id": "19",
+    "_id": "19",
+    "name": "Muhammad Tijany Herliman",
+    "username": "Igan",
+    "image": "https://jazacademy.id/storage/avatars/student/YhY9azLBPjrlpe0L2FIIXbepwGalSDgZrMC8qpmA.png",
+    "role": "konten creator",
+    "bio": "progamer"
+  },
+  {
+    "id": "20",
+    "_id": "20",
+    "name": "Vabio Alfarisi Putra Hendaris",
+    "username": "Vabio",
+    "image": "/no-photo.png",
+    "role": "content creator",
+    "bio": "pengusaha sukses"
+  },
+  {
+    "id": "21",
+    "_id": "21",
+    "name": "Berwyn Ijlal Junior",
+    "username": "Berwyn",
+    "image": "https://jazacademy.id/storage/avatars/student/UnXtIJYK99e1GFsocY2bT38aGxAmSd4SZ6LHYun1.jpg",
+    "role": "member",
+    "bio": ""
+  },
+  {
+    "id": "23",
+    "_id": "23",
+    "name": "Danar Zenadine Francouer",
+    "username": "Danar",
+    "image": "/no-photo.png",
+    "role": "member",
+    "bio": ""
+  },
+  {
+    "id": "24",
+    "_id": "24",
+    "name": "Muhammad Eza Arraffi Riono",
+    "username": "Eza",
+    "image": "https://jazacademy.id/storage/avatars/student/K7kh9wzROD98FsFnRVW0jwmbyjHHILO48outzMak.jpg",
+    "role": "Content Creator",
+    "bio": "pemain bola"
+  },
+  {
+    "id": "26",
+    "_id": "26",
+    "name": "Muhammad Zavatazurri Yagiandara",
+    "username": "Zava",
+    "image": "https://jazacademy.id/storage/avatars/student/W4jFHbKeUQtxyMiBJLajgpxwvbAoMI4Vx62ZP6B7.jpg",
+    "role": "Content Creator",
+    "bio": "Pemain Sepak Bola"
+  },
+  {
+    "id": "27",
+    "_id": "27",
+    "name": "Rafandra Adelard Alif",
+    "username": "Fandra",
+    "image": "/no-photo.png",
+    "role": "member",
+    "bio": ""
+  },
+  {
+    "id": "28",
+    "_id": "28",
+    "name": "Safaraz Qia Ayyashi",
+    "username": "Qia",
+    "image": "/no-photo.png",
+    "role": "member",
+    "bio": ""
+  },
+  {
+    "id": "31",
+    "_id": "31",
+    "name": "Keola Maureen",
+    "username": "Ola",
+    "image": "/no-photo.png",
+    "role": "member",
+    "bio": ""
+  }
+]

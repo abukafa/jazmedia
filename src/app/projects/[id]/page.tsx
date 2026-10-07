@@ -63,7 +63,7 @@ export default function ProjectDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center max-w-4xl mx-auto md:px-6">
         <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
       </div>
     );
@@ -71,7 +71,7 @@ export default function ProjectDetailPage() {
 
   if (!project) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
+      <div className="min-h-screen flex flex-col items-center justify-center p-4 max-w-4xl mx-auto md:px-6">
         <h2 className="text-xl font-bold text-slate-800 mb-2">
           Proyek Tidak Ditemukan
         </h2>
@@ -89,22 +89,25 @@ export default function ProjectDetailPage() {
   }
 
   return (
-    <div className="pb-10 bg-slate-50 min-h-screen">
+    <div className="min-h-screen pb-10">
       {/* Navbar Minimalis */}
-      <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-slate-100 h-14 flex items-center px-4">
-        <button
-          onClick={() => router.back()}
-          className="p-2 -ml-2 rounded-full hover:bg-slate-100 text-slate-700 transition-colors"
-        >
-          <ArrowLeft className="w-6 h-6" />
-        </button>
-        <h1 className="flex-1 text-center font-bold text-slate-900 mr-8 truncate px-4">
-          Detail Proyek
-        </h1>
+      <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-slate-100 h-14 flex justify-center">
+        <div className="w-full max-w-4xl mx-auto px-4 flex items-center">
+          <button
+            onClick={() => router.back()}
+            className="p-2 -ml-2 rounded-full hover:bg-slate-100 text-slate-700 transition-colors"
+          >
+            <ArrowLeft className="w-6 h-6" />
+          </button>
+          <h1 className="flex-1 text-center font-bold text-slate-900 mr-8 truncate px-4">
+            Detail Proyek
+          </h1>
+        </div>
       </div>
 
-      {/* Profile/Header Proyek */}
-      <div className="px-4 pt-6 pb-6 bg-white border-b border-slate-100">
+      <main className="max-w-4xl mx-auto sm:px-6 md:pt-6">
+        {/* Profile/Header Proyek */}
+        <div className="px-4 pt-6 pb-6 bg-white border-b border-slate-100 md:border-x md:border-t md:rounded-3xl md:border-b">
         <div className="flex items-start justify-between gap-4">
           <div>
             <h1 className="text-2xl font-black text-slate-900 leading-tight">
@@ -279,6 +282,7 @@ export default function ProjectDetailPage() {
           </div>
         </div>
       )}
+      </main>
 
       {/* Auto-scroll helper */}
       {selectedTaskIndex !== null && <AutoScroll refNode={scrollRef} />}

@@ -3,6 +3,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getInitials } from "@/lib/utils/avatar";
 import { Button } from "@/components/ui/button";
+import FeedLayout from "@/components/layout/FeedLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -323,7 +324,8 @@ export default function Profile() {
   const role = dbUser?.role || sessionUser?.role || "member";
 
   return (
-    <div className="pb-10 bg-white min-h-full">
+    <FeedLayout>
+      <div className="pb-10 bg-white min-h-full md:rounded-3xl md:overflow-hidden shadow-sm">
       {/* Profile Header */}
       <div className="px-4 pt-6 pb-4">
         <div className="flex items-center gap-6">
@@ -407,6 +409,14 @@ export default function Profile() {
         </p>
 
         <div className="mt-5 flex gap-2">
+          <Link 
+            href={(dbUser?.admin_student_id || dbUser?.student_id) ? `/students/${dbUser.admin_student_id || dbUser.student_id}` : `/teachers/${dbUser?.admin_teacher_id || dbUser?.teacher_id || dbUser?.id}`}
+            className="flex-1"
+          >
+            <Button className="w-full font-bold bg-blue-600 hover:bg-blue-700 text-white border-none shadow-none rounded-xl h-10 transition-colors">
+              Portofolio
+            </Button>
+          </Link>
           <Link href="/profile/edit" className="flex-1">
             <Button className="w-full font-bold bg-slate-100 hover:bg-slate-200 text-slate-900 border-none shadow-none rounded-xl h-10 transition-colors">
               Edit Profile
@@ -715,7 +725,8 @@ export default function Profile() {
 
       {/* Auto-scroll effect */}
       {selectedTaskIndex !== null && <AutoScroll refNode={scrollRef} />}
-    </div>
+      </div>
+    </FeedLayout>
   );
 }
 

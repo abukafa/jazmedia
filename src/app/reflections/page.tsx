@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
+import FeedLayout from "@/components/layout/FeedLayout";
 import {
   Sparkles,
   Plus,
@@ -41,7 +42,7 @@ export default function ReflectionsFeedPage() {
   const userRole = ((session?.user as any)?.role || "").toLowerCase();
   const isAdmin = userRole === "admin" || userRole === "mentor";
 
-  const [activeTab, setActiveTab] = useState<"all" | "mine">("all");
+  const [activeTab, setActiveTab] = useState<"all" | "mine" | "this_week">("all");
   const [reflections, setReflections] = useState<ReflectionItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -89,7 +90,11 @@ export default function ReflectionsFeedPage() {
     });
   };
 
-  const loadData = async (tab: "all" | "mine", pageNum = 1, append = false) => {
+  const loadData = async (
+    tab: "all" | "mine" | "this_week",
+    pageNum = 1,
+    append = false,
+  ) => {
     setIsLoading(true);
     try {
       if (tab === "mine") {
@@ -99,12 +104,35 @@ export default function ReflectionsFeedPage() {
           setHasMore(false);
         }
       } else {
-        const res = await getReflections({ page: pageNum, perPage: 10 });
+        const isThisWeek = tab === "this_week";
+        const res = await getReflections({ 
+          page: pageNum, 
+          perPage: isThisWeek ? 50 : 10,
+          thisWeek: isThisWeek
+        });
+        
         if (res.success) {
+          let dataToSet = res.data;
+          
+          if (isThisWeek) {
+            const now = new Date();
+            const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay() + 1));
+            startOfWeek.setHours(0,0,0,0);
+            const endOfWeek = new Date(startOfWeek);
+            endOfWeek.setDate(startOfWeek.getDate() + 6);
+            endOfWeek.setHours(23,59,59,999);
+            
+            dataToSet = dataToSet.filter(r => {
+              if(!r.createdAt) return false;
+              const d = new Date(r.createdAt);
+              return d >= startOfWeek && d <= endOfWeek;
+            });
+          }
+
           if (append) {
-            setReflections((prev) => [...prev, ...res.data]);
+            setReflections((prev) => [...prev, ...dataToSet]);
           } else {
-            setReflections(res.data);
+            setReflections(dataToSet);
           }
           setHasMore(Boolean(res.pagination?.hasMore));
         }
@@ -174,8 +202,9 @@ export default function ReflectionsFeedPage() {
   };
 
   return (
-    <div className="pt-6 pb-16 px-4 max-w-2xl mx-auto bg-slate-50 min-h-screen">
-      {/* Header Bar */}
+    <FeedLayout>
+      <div className="pt-6 pb-16 px-4 md:px-0 max-w-2xl mx-auto">
+        {/* Header Bar */}
       <div className="flex flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
           <div className="flex items-center gap-2">
@@ -197,8 +226,8 @@ export default function ReflectionsFeedPage() {
         </Link>
       </div>
 
-      {/* Tabs Filter: Semua vs Refleksi Saya */}
-      <div className="flex items-center bg-slate-200/60 p-1 rounded-xl mb-6 max-w-xs">
+      {/* Tabs Filter: Semua vs Refleksi Saya vs Pekan Ini */}
+      <div className="flex items-center bg-slate-200/60 p-1 rounded-xl mb-6 max-w-sm">
         <button
           onClick={() => setActiveTab("all")}
           className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${
@@ -207,7 +236,17 @@ export default function ReflectionsFeedPage() {
               : "text-slate-600 hover:text-slate-900"
           }`}
         >
-          Semua Refleksi
+          Semua
+        </button>
+        <button
+          onClick={() => setActiveTab("this_week")}
+          className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${
+            activeTab === "this_week"
+              ? "bg-white text-slate-900 shadow-sm"
+              : "text-slate-600 hover:text-slate-900"
+          }`}
+        >
+          Pekan Ini
         </button>
         <button
           onClick={() => setActiveTab("mine")}
@@ -217,7 +256,7 @@ export default function ReflectionsFeedPage() {
               : "text-slate-600 hover:text-slate-900"
           }`}
         >
-          Refleksi Saya
+          Saya
         </button>
       </div>
 
@@ -582,6 +621,7 @@ export default function ReflectionsFeedPage() {
           )}
         </div>
       )}
-    </div>
+      </div>
+    </FeedLayout>
   );
 }

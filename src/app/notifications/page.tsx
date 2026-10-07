@@ -106,7 +106,7 @@ function NotificationsContent() {
     overlayData?.type === "tasks" ? pendingTasks : reviewedTasks;
 
   return (
-    <div className="pt-6 pb-24 bg-slate-50 min-h-screen relative">
+    <div className="pt-6 pb-24 bg-white md:rounded-3xl md:border md:border-slate-100 md:shadow-sm min-h-screen md:min-h-[calc(100vh-2rem)] relative overflow-hidden">
       <div className="px-4 mb-4 flex items-center justify-between">
         <div className="flex items-center">
           <button
@@ -421,16 +421,20 @@ function NotificationsContent() {
   );
 }
 
+import FeedLayout from "@/components/layout/FeedLayout";
+
 export default function NotificationsPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="flex justify-center items-center min-h-screen">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-        </div>
-      }
-    >
-      <NotificationsContent />
-    </Suspense>
+    <FeedLayout>
+      <Suspense
+        fallback={
+          <div className="flex justify-center items-center min-h-screen">
+            <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+          </div>
+        }
+      >
+        <NotificationsContent />
+      </Suspense>
+    </FeedLayout>
   );
 }

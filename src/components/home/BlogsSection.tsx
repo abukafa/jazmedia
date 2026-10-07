@@ -62,11 +62,11 @@ export default function BlogsSection() {
       {/* Vertical Feed Container (Applied everywhere now: mobile, tablet, PC) */}
       <div className="flex flex-col gap-4 px-5 py-2 pb-4">
         {blogItems.map((blog, index) => {
-          const isLiked = !!likedPosts[blog.id || blog._id];
+          const isLiked = !!likedPosts[(blog.id || blog._id || "")];
 
           return (
             <div
-              key={`${blog.id || blog._id}-${index}`}
+              key={`${(blog.id || blog._id || "")}-${index}`}
               onClick={() => router.push(`/blogs/${blog.slug || blog.id}`)}
               className="w-full cursor-pointer rounded-xl mb-0"
             >
@@ -89,7 +89,7 @@ export default function BlogsSection() {
                   {/* Heart / Like Button */}
                   <motion.button
                     whileTap={{ scale: 0.8 }}
-                    onClick={(e) => toggleLike(e, blog.id || blog._id)}
+                    onClick={(e) => toggleLike(e, (blog.id || blog._id || ""))}
                     className={`absolute top-3 right-3 w-9 h-9 rounded-full bg-white/95 backdrop-blur-md shadow-md flex items-center justify-center transition-colors ${
                       isLiked
                         ? "text-rose-600 bg-rose-50/95"

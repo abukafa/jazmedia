@@ -73,9 +73,11 @@ export default function EditProfile() {
           setBannerImage(data.banner_image || "");
           let loadedEdu: Education[] = [];
           if (Array.isArray(data.education)) {
-             loadedEdu = data.education;
+            loadedEdu = data.education;
           } else if (typeof data.education === "string") {
-             try { loadedEdu = JSON.parse(data.education); } catch {}
+            try {
+              loadedEdu = JSON.parse(data.education);
+            } catch {}
           }
           setEducation(loadedEdu);
           setRole(data.role || "member");
@@ -88,8 +90,9 @@ export default function EditProfile() {
                 : {
                     name: s?.name || "",
                     icon: s?.icon || "Code",
-                    percentage: typeof s?.percentage === "number" ? s.percentage : 100,
-                  }
+                    percentage:
+                      typeof s?.percentage === "number" ? s.percentage : 100,
+                  },
             );
           } else if (typeof rawSkills === "string") {
             try {
@@ -101,22 +104,33 @@ export default function EditProfile() {
                     : {
                         name: s?.name || "",
                         icon: s?.icon || "Code",
-                        percentage: typeof s?.percentage === "number" ? s.percentage : 100,
-                      }
+                        percentage:
+                          typeof s?.percentage === "number"
+                            ? s.percentage
+                            : 100,
+                      },
                 );
               } else {
                 loadedSkills = rawSkills
                   .split(",")
                   .map((s: string) => s.trim())
                   .filter(Boolean)
-                  .map((s: string) => ({ name: s, icon: "Code", percentage: 100 }));
+                  .map((s: string) => ({
+                    name: s,
+                    icon: "Code",
+                    percentage: 100,
+                  }));
               }
             } catch {
               loadedSkills = rawSkills
                 .split(",")
                 .map((s: string) => s.trim())
                 .filter(Boolean)
-                .map((s: string) => ({ name: s, icon: "Code", percentage: 100 }));
+                .map((s: string) => ({
+                  name: s,
+                  icon: "Code",
+                  percentage: 100,
+                }));
             }
           }
           setSkills(loadedSkills);
@@ -192,9 +206,16 @@ export default function EditProfile() {
   };
 
   const handleAddEducation = () => {
-    setEducation([...education, { school: "", major: "", degree: "", year: "" }]);
+    setEducation([
+      ...education,
+      { school: "", major: "", degree: "", year: "" },
+    ]);
   };
-  const handleUpdateEducation = (index: number, field: keyof Education, value: string) => {
+  const handleUpdateEducation = (
+    index: number,
+    field: keyof Education,
+    value: string,
+  ) => {
     const newEdu = [...education];
     newEdu[index] = { ...newEdu[index], [field]: value };
     setEducation(newEdu);
@@ -246,11 +267,11 @@ export default function EditProfile() {
       address_detail: addressDetail,
       banner_image: bannerImage,
       education,
-        phone,
-        linkedin,
-        github,
-        website,
-      };
+      phone,
+      linkedin,
+      github,
+      website,
+    };
 
     const res = await updateUserProfile(payload);
     if (res.success) {
@@ -311,7 +332,6 @@ export default function EditProfile() {
           />
         </div>
 
-
         <div>
           <label className="block text-xs font-bold text-slate-700 mb-2 px-2 uppercase tracking-wide">
             Username
@@ -331,9 +351,9 @@ export default function EditProfile() {
           </div>
         </div>
 
-        
+        {/* 
         <div>
-          <label className="block text-xs font-bold text-slate-700 mb-2 px-2 uppercase tracking-wide">
+          <label className="text-xs font-bold text-slate-700 mb-2 px-2 uppercase tracking-wide">
             Headline (Peran & Spesialisasi)
           </label>
           <input
@@ -346,9 +366,8 @@ export default function EditProfile() {
           />
         </div>
 
-
         <div>
-          <label className="block text-xs font-bold text-slate-700 mb-2 px-2 uppercase tracking-wide">
+          <label className="text-xs font-bold text-slate-700 mb-2 px-2 uppercase tracking-wide">
             Lokasi / Alamat
           </label>
           <input
@@ -361,67 +380,80 @@ export default function EditProfile() {
           />
         </div>
 
-<div>
-            <label htmlFor="phone" className="block text-xs font-bold text-slate-700 mb-2 px-2 uppercase tracking-wide">
-              Nomor HP (WhatsApp)
-            </label>
-            <input
-              id="phone"
-              type="text"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              disabled={isSaving}
-              placeholder="Contoh: 081234567890"
-              className="w-full bg-white border border-slate-200 rounded-2xl p-4 text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-sm disabled:opacity-50"
-            />
-          </div>
+        <div>
+          <label
+            htmlFor="phone"
+            className="text-xs font-bold text-slate-700 mb-2 px-2 uppercase tracking-wide"
+          >
+            Nomor HP (WhatsApp)
+          </label>
+          <input
+            id="phone"
+            type="text"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            disabled={isSaving}
+            placeholder="Contoh: 081234567890"
+            className="w-full bg-white border border-slate-200 rounded-2xl p-4 text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-sm disabled:opacity-50"
+          />
+        </div>
 
-          <div>
-            <label htmlFor="linkedin" className="block text-xs font-bold text-slate-700 mb-2 px-2 uppercase tracking-wide">
-              LinkedIn Profile
-            </label>
-            <input
-              id="linkedin"
-              type="text"
-              value={linkedin}
-              onChange={(e) => setLinkedin(e.target.value)}
-              disabled={isSaving}
-              placeholder="Contoh: linkedin.com/in/username"
-              className="w-full bg-white border border-slate-200 rounded-2xl p-4 text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-sm disabled:opacity-50"
-            />
-          </div>
+        <div>
+          <label
+            htmlFor="linkedin"
+            className="text-xs font-bold text-slate-700 mb-2 px-2 uppercase tracking-wide"
+          >
+            LinkedIn Profile
+          </label>
+          <input
+            id="linkedin"
+            type="text"
+            value={linkedin}
+            onChange={(e) => setLinkedin(e.target.value)}
+            disabled={isSaving}
+            placeholder="Contoh: linkedin.com/in/username"
+            className="w-full bg-white border border-slate-200 rounded-2xl p-4 text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-sm disabled:opacity-50"
+          />
+        </div>
 
-          <div>
-            <label htmlFor="github" className="block text-xs font-bold text-slate-700 mb-2 px-2 uppercase tracking-wide">
-              GitHub Profile
-            </label>
-            <input
-              id="github"
-              type="text"
-              value={github}
-              onChange={(e) => setGithub(e.target.value)}
-              disabled={isSaving}
-              placeholder="Contoh: github.com/username"
-              className="w-full bg-white border border-slate-200 rounded-2xl p-4 text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-sm disabled:opacity-50"
-            />
-          </div>
+        <div>
+          <label
+            htmlFor="github"
+            className="text-xs font-bold text-slate-700 mb-2 px-2 uppercase tracking-wide"
+          >
+            GitHub Profile
+          </label>
+          <input
+            id="github"
+            type="text"
+            value={github}
+            onChange={(e) => setGithub(e.target.value)}
+            disabled={isSaving}
+            placeholder="Contoh: github.com/username"
+            className="w-full bg-white border border-slate-200 rounded-2xl p-4 text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-sm disabled:opacity-50"
+          />
+        </div>
 
-          <div>
-            <label htmlFor="website" className="block text-xs font-bold text-slate-700 mb-2 px-2 uppercase tracking-wide">
-              Website / Portfolio URL
-            </label>
-            <input
-              id="website"
-              type="text"
-              value={website}
-              onChange={(e) => setWebsite(e.target.value)}
-              disabled={isSaving}
-              placeholder="Contoh: username.com"
-              className="w-full bg-white border border-slate-200 rounded-2xl p-4 text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-sm disabled:opacity-50"
-            />
-          </div>
+        <div>
+          <label
+            htmlFor="website"
+            className="text-xs font-bold text-slate-700 mb-2 px-2 uppercase tracking-wide"
+          >
+            Website / Portfolio URL
+          </label>
+          <input
+            id="website"
+            type="text"
+            value={website}
+            onChange={(e) => setWebsite(e.target.value)}
+            disabled={isSaving}
+            placeholder="Contoh: username.com"
+            className="w-full bg-white border border-slate-200 rounded-2xl p-4 text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-sm disabled:opacity-50"
+          />
+        </div> 
+        */}
 
-<div>
+        <div>
           <label className="block text-xs font-bold text-slate-700 mb-2 px-2 uppercase tracking-wide">
             Instagram
           </label>
@@ -463,7 +495,8 @@ export default function EditProfile() {
                 onClick={() => {
                   showConfirm({
                     title: "Putus Tautan Instagram",
-                    message: "Apakah Anda yakin ingin memutuskan tautan Instagram?",
+                    message:
+                      "Apakah Anda yakin ingin memutuskan tautan Instagram?",
                     type: "warning",
                     onConfirm: async () => {
                       setIsSaving(true);
@@ -502,18 +535,31 @@ export default function EditProfile() {
           </div>
         </div>
 
-
-        <div>
+        <div className="hidden">
           <label className="block text-xs font-bold text-slate-700 mb-2 px-2 uppercase tracking-wide">
             Banner / Header
           </label>
           <div className="flex items-center gap-4 bg-slate-50 border border-slate-200 p-4 rounded-2xl">
             {bannerImage && (
-              <img src={getDirectMediaUrl(bannerImage)} alt="Banner" className="w-24 h-12 object-cover rounded-md" />
+              <img
+                src={getDirectMediaUrl(bannerImage)}
+                alt="Banner"
+                className="w-24 h-12 object-cover rounded-md"
+              />
             )}
             <label className="cursor-pointer inline-flex items-center justify-center bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm">
-              {isUploadingBanner ? <Loader2 className="w-4 h-4 animate-spin" /> : "Pilih Banner"}
-              <input type="file" accept="image/*" onChange={handleBannerUpload} className="hidden" disabled={isUploadingBanner || isSaving} />
+              {isUploadingBanner ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                "Pilih Banner"
+              )}
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleBannerUpload}
+                className="hidden"
+                disabled={isUploadingBanner || isSaving}
+              />
             </label>
           </div>
         </div>
@@ -565,9 +611,7 @@ export default function EditProfile() {
           ></textarea>
         </div>
 
-
-        
-        <div>
+        <div className="hidden">
           <div className="flex justify-between items-center mb-2 px-2">
             <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">
               Riwayat Pendidikan
@@ -582,7 +626,10 @@ export default function EditProfile() {
           </div>
           <div className="space-y-3">
             {education.map((edu, idx) => (
-              <div key={idx} className="bg-slate-50 border border-slate-200 rounded-2xl p-4 relative group">
+              <div
+                key={idx}
+                className="bg-slate-50 border border-slate-200 rounded-2xl p-4 relative group"
+              >
                 <button
                   onClick={() => handleRemoveEducation(idx)}
                   disabled={isSaving}
@@ -594,28 +641,36 @@ export default function EditProfile() {
                   <input
                     type="text"
                     value={edu.school}
-                    onChange={(e) => handleUpdateEducation(idx, "school", e.target.value)}
+                    onChange={(e) =>
+                      handleUpdateEducation(idx, "school", e.target.value)
+                    }
                     placeholder="Nama Sekolah / Universitas"
                     className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                   <input
                     type="text"
                     value={edu.major}
-                    onChange={(e) => handleUpdateEducation(idx, "major", e.target.value)}
+                    onChange={(e) =>
+                      handleUpdateEducation(idx, "major", e.target.value)
+                    }
                     placeholder="Jurusan"
                     className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                   <input
                     type="text"
                     value={edu.degree}
-                    onChange={(e) => handleUpdateEducation(idx, "degree", e.target.value)}
+                    onChange={(e) =>
+                      handleUpdateEducation(idx, "degree", e.target.value)
+                    }
                     placeholder="Gelar (Opsional)"
                     className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                   <input
                     type="text"
                     value={edu.year}
-                    onChange={(e) => handleUpdateEducation(idx, "year", e.target.value)}
+                    onChange={(e) =>
+                      handleUpdateEducation(idx, "year", e.target.value)
+                    }
                     placeholder="Tahun Lulus"
                     className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
@@ -624,8 +679,13 @@ export default function EditProfile() {
             ))}
             {education.length === 0 && (
               <div className="text-center py-6 bg-slate-50 border border-slate-200 rounded-2xl border-dashed">
-                <p className="text-sm font-medium text-slate-500 mb-2">Belum ada data pendidikan</p>
-                <button onClick={handleAddEducation} className="text-blue-600 text-sm font-bold hover:underline">
+                <p className="text-sm font-medium text-slate-500 mb-2">
+                  Belum ada data pendidikan
+                </p>
+                <button
+                  onClick={handleAddEducation}
+                  className="text-blue-600 text-sm font-bold hover:underline"
+                >
                   Tambah Pendidikan
                 </button>
               </div>
@@ -633,7 +693,7 @@ export default function EditProfile() {
           </div>
         </div>
 
-<div>
+        <div>
           <div className="flex justify-between items-center mb-2 px-2">
             <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">
               Skills
@@ -658,9 +718,9 @@ export default function EditProfile() {
               skills.map((skill, index) => (
                 <div
                   key={index}
-                  className="flex gap-3 items-center bg-slate-50 p-3 rounded-2xl border border-slate-200 shadow-sm"
+                  className="bg-slate-50 p-3 rounded-2xl border border-slate-200 shadow-sm"
                 >
-                  <div className="flex-1 space-y-2">
+                  <div className="flex gap-2 items-center w-full">
                     <input
                       placeholder="Nama Skill (mis. React)"
                       value={skill.name}
@@ -668,60 +728,58 @@ export default function EditProfile() {
                         handleUpdateSkill(index, "name", e.target.value)
                       }
                       disabled={isSaving}
-                      className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="flex-1 w-auto bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
-                    <div className="flex gap-2">
-                      <select
-                        value={skill.icon}
+                    <select
+                      value={skill.icon}
+                      onChange={(e) =>
+                        handleUpdateSkill(
+                          index,
+                          "icon",
+                          e.target.value as SkillIconName,
+                        )
+                      }
+                      disabled={isSaving}
+                      className="hidden md:block flex-1 w-auto bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none"
+                    >
+                      <option value="" disabled>
+                        -- Pilih ikon skill --
+                      </option>
+                      {Object.keys(SKILL_ICONS).map((iconName) => (
+                        <option key={iconName} value={iconName}>
+                          {iconName}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        placeholder="%"
+                        value={skill.percentage}
                         onChange={(e) =>
                           handleUpdateSkill(
                             index,
-                            "icon",
-                            e.target.value as SkillIconName,
+                            "percentage",
+                            Number(e.target.value),
                           )
                         }
                         disabled={isSaving}
-                        className="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none"
-                      >
-                        <option value="" disabled>
-                          -- Pilih ikon skill --
-                        </option>
-                        {Object.keys(SKILL_ICONS).map((iconName) => (
-                          <option key={iconName} value={iconName}>
-                            {iconName}
-                          </option>
-                        ))}
-                      </select>
-                      <div className="relative w-20">
-                        <input
-                          type="number"
-                          placeholder="%"
-                          value={skill.percentage}
-                          onChange={(e) =>
-                            handleUpdateSkill(
-                              index,
-                              "percentage",
-                              Number(e.target.value),
-                            )
-                          }
-                          disabled={isSaving}
-                          min="0"
-                          max="100"
-                          className="w-full bg-white border border-slate-200 rounded-xl pl-3 pr-6 py-2 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 text-right"
-                        />
-                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">
-                          %
-                        </span>
-                      </div>
+                        min="0"
+                        max="100"
+                        className="flex-1 w-auto bg-white border border-slate-200 rounded-xl pl-3 pr-6 py-2 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 text-right"
+                      />
+                      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">
+                        %
+                      </span>
                     </div>
+                    <button
+                      onClick={() => handleRemoveSkill(index)}
+                      disabled={isSaving}
+                      className="flex-none p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
                   </div>
-                  <button
-                    onClick={() => handleRemoveSkill(index)}
-                    disabled={isSaving}
-                    className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors"
-                  >
-                    <Trash2 className="w-5 h-5" />
-                  </button>
                 </div>
               ))
             )}

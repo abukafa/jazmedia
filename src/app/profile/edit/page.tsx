@@ -37,7 +37,7 @@ export default function EditProfile() {
   const [image, setImage] = useState("");
   const [bio, setBio] = useState("");
   const [role, setRole] = useState("member");
-  const [ setHeadline] = useState("");
+  const [headline, setHeadline] = useState("");
   const [addressDetail, setAddressDetail] = useState("");
   const [bannerImage, setBannerImage] = useState("");
   const [education, setEducation] = useState<Education[]>([]);
@@ -242,9 +242,14 @@ export default function EditProfile() {
       bio,
       role,
       skills,
-      
-      
-        
+      headline,
+      address_detail: addressDetail,
+      banner_image: bannerImage,
+      education,
+        phone,
+        linkedin,
+        github,
+        website,
       };
 
     const res = await updateUserProfile(payload);
